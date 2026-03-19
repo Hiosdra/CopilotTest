@@ -1,0 +1,6 @@
+node_modules/
+dist/
+copilot-test-results/
+test-results/
+.env
+*.js.map

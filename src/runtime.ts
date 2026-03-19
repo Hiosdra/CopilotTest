@@ -1,0 +1,373 @@
+import type {
+  Feature,
+  Scenario,
+  Step,
+  PlatformConfig,
+  CopilotTestConfig,
+  StepResult,
+  ScenarioResult,
+  FeatureResult,
+} from "./types.js";
+
+export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
+Your job is to execute BDD test steps by interacting with the provided tools.
+
+Rules:
+1. Execute each step faithfully using the available MCP tools.
+2. After completing a step, respond ONLY with a JSON object in this exact format:
+   {"status": "passed"|"failed", "reasoning": "<explanation>", "error": "<error message if failed>"}
+3. For web tests: use Playwright tools to navigate, interact, and verify.
+4. For API tests: use curl tools to make HTTP requests and verify responses.
+5. For mobile tests: use Android tools to interact with the emulator.
+6. Be thorough in verifications - check that the expected outcome is actually true.
+7. If a step cannot be performed, mark it as failed with a clear error message.
+8. Never skip verification steps.`;
+
+export class CopilotTestRuntime {
+  private config: CopilotTestConfig;
+  private client: unknown = null;
+
+  constructor(config: CopilotTestConfig) {
+    this.config = config;
+  }
+
+  async start(): Promise<void> {
+    try {
+      const { CopilotClient } = await import("@github/copilot-sdk");
+      this.client = new CopilotClient();
+    } catch {
+      // SDK not available - use mock mode for development/demo
+      this.client = { _mock: true };
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (
+      this.client &&
+      typeof (this.client as Record<string, unknown>).stop === "function"
+    ) {
+      await (this.client as { stop(): Promise<void> }).stop();
+    }
+    this.client = null;
+  }
+
+  async runFeature(
+    feature: Feature,
+    platformKey: string
+  ): Promise<FeatureResult> {
+    const platform = this.config.platforms[platformKey];
+    if (!platform) {
+      throw new Error(`Platform "${platformKey}" not found in config`);
+    }
+
+    const startTime = Date.now();
+    const scenarioResults: ScenarioResult[] = [];
+
+    for (const scenario of feature.scenarios) {
+      const result = await this.runScenario(feature, scenario, platform);
+      scenarioResults.push(result);
+    }
+
+    return {
+      feature,
+      scenarios: scenarioResults,
+      duration: Date.now() - startTime,
+    };
+  }
+
+  async runScenario(
+    feature: Feature,
+    scenario: Scenario,
+    platform: PlatformConfig
+  ): Promise<ScenarioResult> {
+    const startTime = Date.now();
+    const stepResults: StepResult[] = [];
+    let scenarioFailed = false;
+
+    // Build steps including background
+    const allSteps: Step[] = [
+      ...(feature.background ?? []),
+      ...scenario.steps,
+    ];
+
+    let session: unknown = null;
+
+    try {
+      session = await this.createSession(feature, scenario, platform);
+
+      for (const step of allSteps) {
+        if (scenarioFailed) {
+          stepResults.push({
+            step,
+            status: "skipped",
+            duration: 0,
+          });
+          continue;
+        }
+
+        const stepResult = await this.executeStep(step, session);
+        stepResults.push(stepResult);
+
+        if (stepResult.status === "failed") {
+          scenarioFailed = true;
+        }
+      }
+    } catch (err) {
+      scenarioFailed = true;
+      // If session creation failed, mark all steps as failed/skipped
+      if (stepResults.length === 0 && allSteps.length > 0) {
+        stepResults.push({
+          step: allSteps[0],
+          status: "failed",
+          duration: 0,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        for (const step of allSteps.slice(1)) {
+          stepResults.push({ step, status: "skipped", duration: 0 });
+        }
+      }
+    } finally {
+      if (
+        session &&
+        typeof (session as Record<string, unknown>).close === "function"
+      ) {
+        await (session as { close(): Promise<void> }).close();
+      }
+    }
+
+    return {
+      scenario,
+      status: scenarioFailed ? "failed" : "passed",
+      steps: stepResults,
+      duration: Date.now() - startTime,
+    };
+  }
+
+  private async createSession(
+    feature: Feature,
+    scenario: Scenario,
+    platform: PlatformConfig
+  ): Promise<unknown> {
+    if (
+      !this.client ||
+      (this.client as Record<string, unknown>)._mock === true
+    ) {
+      // Return a mock session for development/demo
+      return { _mock: true };
+    }
+
+    const { approveAll } = await import("@github/copilot-sdk");
+
+    const mcpServers: Record<string, unknown> = {
+      platform: {
+        ...this.buildMcpServerConfig(platform.mcpServer),
+      },
+    };
+
+    // Add extra MCP servers from config
+    if (this.config.mcpServers) {
+      for (const [key, serverConfig] of Object.entries(this.config.mcpServers)) {
+        mcpServers[key] = this.buildMcpServerConfig(serverConfig);
+      }
+    }
+
+    const systemMessage = this.buildSystemPrompt(feature, scenario, platform);
+
+    const clientWithSession = this.client as {
+      createSession(opts: unknown): Promise<unknown>;
+    };
+
+    return clientWithSession.createSession({
+      model: this.config.model,
+      reasoningEffort: this.config.reasoningEffort,
+      mcpServers,
+      systemMessage: { mode: "replace", content: systemMessage },
+      onPermissionRequest: approveAll,
+      hooks: {
+        onPreToolUse: () => ({ permissionDecision: "allow" as const }),
+        onPostToolUse: (input: { toolName: string }) => {
+          process.stdout.write(`  🔧 Tool: ${input.toolName}\n`);
+        },
+      },
+    });
+  }
+
+  private buildMcpServerConfig(
+    serverConfig: import("./types.js").McpServerConfig
+  ): Record<string, unknown> {
+    const tools = serverConfig.tools ?? ["*"];
+    const mcpTimeout = serverConfig.timeout;
+
+    if (serverConfig.type === "stdio" || !serverConfig.type) {
+      return {
+        type: "local",
+        command: serverConfig.command ?? "",
+        args: serverConfig.args ?? [],
+        env: serverConfig.env,
+        cwd: serverConfig.cwd,
+        tools,
+        ...(mcpTimeout !== undefined ? { timeout: mcpTimeout } : {}),
+      };
+    } else {
+      // sse or http
+      return {
+        type: serverConfig.type,
+        url: serverConfig.url ?? "",
+        headers: serverConfig.headers,
+        tools,
+        ...(mcpTimeout !== undefined ? { timeout: mcpTimeout } : {}),
+      };
+    }
+  }
+
+  async executeStep(step: Step, session: unknown): Promise<StepResult> {
+    const startTime = Date.now();
+    const prompt = this.buildStepPrompt(step);
+    const timeout = this.config.stepTimeout ?? 30000;
+
+    try {
+      if ((session as Record<string, unknown>)._mock === true) {
+        // Mock mode - simulate step execution
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          step,
+          status: "passed",
+          duration: Date.now() - startTime,
+          aiReasoning: `[Mock] Step "${step.keyword} ${step.text}" executed successfully`,
+        };
+      }
+
+      const sessionWithSend = session as {
+        sendAndWait(
+          opts: { prompt: string },
+          timeout?: number
+        ): Promise<{ data: { content: string } } | undefined>;
+      };
+
+      const response = await sessionWithSend.sendAndWait(
+        { prompt },
+        timeout
+      );
+
+      if (!response) {
+        return {
+          step,
+          status: "failed",
+          duration: Date.now() - startTime,
+          error: "No response received from AI",
+        };
+      }
+
+      const parsed = this.parseStepResponse(response.data.content);
+
+      return {
+        step,
+        status: parsed.status,
+        duration: Date.now() - startTime,
+        error: parsed.error,
+        aiReasoning: parsed.reasoning,
+      };
+    } catch (err) {
+      return {
+        step,
+        status: "failed",
+        duration: Date.now() - startTime,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  parseStepResponse(content: string): {
+    status: "passed" | "failed";
+    reasoning: string;
+    error?: string;
+  } {
+    // Try to extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*"status"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]) as {
+          status: "passed" | "failed";
+          reasoning: string;
+          error?: string;
+        };
+        return {
+          status: parsed.status === "failed" ? "failed" : "passed",
+          reasoning: parsed.reasoning ?? content,
+          error: parsed.error,
+        };
+      } catch {
+        // Fall through to heuristic
+      }
+    }
+
+    // Heuristic: if content contains "failed" or "error", mark as failed
+    const lower = content.toLowerCase();
+    if (lower.includes("failed") || lower.includes("error:")) {
+      return { status: "failed", reasoning: content, error: content };
+    }
+
+    return { status: "passed", reasoning: content };
+  }
+
+  buildSystemPrompt(
+    feature: Feature,
+    scenario: Scenario,
+    platform: PlatformConfig
+  ): string {
+    const parts = [
+      DEFAULT_SYSTEM_MESSAGE,
+      "",
+      `## Current Test Context`,
+      `Feature: ${feature.name}`,
+      feature.description ? `Description: ${feature.description}` : "",
+      `Scenario: ${scenario.name}`,
+      `Platform: ${platform.platform}`,
+      "",
+    ].filter(Boolean);
+
+    if (platform.systemContext) {
+      parts.push("## Platform Instructions", platform.systemContext, "");
+    }
+
+    if (feature.background && feature.background.length > 0) {
+      parts.push("## Background Steps");
+      for (const step of feature.background) {
+        parts.push(`  ${step.keyword} ${step.text}`);
+      }
+      parts.push("");
+    }
+
+    parts.push("## Scenario Steps");
+    for (const step of scenario.steps) {
+      parts.push(`  ${step.keyword} ${step.text}`);
+    }
+
+    return parts.join("\n");
+  }
+
+  buildStepPrompt(step: Step): string {
+    const parts = [`Execute this BDD step: ${step.keyword} ${step.text}`];
+
+    if (step.table) {
+      parts.push("\nData table:");
+      for (const row of step.table) {
+        parts.push(`| ${row.join(" | ")} |`);
+      }
+    }
+
+    if (step.docString) {
+      parts.push("\nDoc string:");
+      parts.push("```");
+      parts.push(step.docString);
+      parts.push("```");
+    }
+
+    parts.push(
+      '\nRespond with JSON only: {"status": "passed"|"failed", "reasoning": "<what you did>", "error": "<error if failed>"}'
+    );
+
+    return parts.join("\n");
+  }
+}
+

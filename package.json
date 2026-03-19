@@ -1,0 +1,35 @@
+{
+  "name": "copilot-test",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI-driven BDD testing framework powered by GitHub Copilot SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx tests/unit.test.ts",
+    "test:web": "tsx tests/login.spec.ts",
+    "test:api": "tsx tests/api-users.spec.ts",
+    "test:mobile": "tsx tests/mobile-app.spec.ts",
+    "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.32",
+    "@playwright/mcp": "^0.0.68"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "testing",
+    "bdd",
+    "copilot",
+    "ai",
+    "playwright",
+    "mcp",
+    "gherkin"
+  ],
+  "license": "MIT"
+}
