@@ -5,6 +5,11 @@ export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
 export { mobilePlatform } from "./platforms/mobile.js";
 export { DebugController } from "./debug.js";
+export {
+  defineStep,
+  clearStepDefinitions,
+  getStepDefinitions,
+} from "./step-registry.js";
 
 export type {
   Platform,
@@ -19,5 +24,8 @@ export type {
   ScenarioResult,
   FeatureResult,
   TestRun,
+  StepContext,
+  StepDefinition,
+  StepDefinitionHandler,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";

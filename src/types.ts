@@ -9,11 +9,30 @@ export interface Step {
   docString?: string;
 }
 
+export interface StepContext {
+  session?: unknown;
+  feature?: Feature;
+  scenario?: Scenario;
+  step: Step;
+  platform?: PlatformConfig;
+}
+
+export type StepDefinitionHandler = (
+  context: StepContext,
+  ...matches: Array<string | undefined>
+) => Promise<void> | void;
+
+export interface StepDefinition {
+  pattern: RegExp;
+  handler: StepDefinitionHandler;
+}
+
 export interface Scenario {
   name: string;
   tags: string[];
   steps: Step[];
-  examples?: { headers: string[]; rows: string[][] };
+  examples?: Record<string, string>[];
+  isOutline?: boolean;
   debugMode?: boolean;
 }
 
@@ -56,6 +75,11 @@ export interface CopilotTestConfig {
   debugMode?: boolean;
   breakpoints?: string[];
   interactive?: boolean;
+  useCustomStepDefinitions?: boolean;
+  parallel?: boolean;
+  maxWorkers?: number | "auto";
+  workerTimeout?: number;
+  failFast?: boolean;
 }
 
 export interface StepResult {
