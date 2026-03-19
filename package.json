@@ -12,13 +12,17 @@
     "test:web": "tsx tests/login.spec.ts",
     "test:api": "tsx tests/api-users.spec.ts",
     "test:mobile": "tsx tests/mobile-app.spec.ts",
+    "test:a11y": "tsx tests/a11y.spec.ts",
     "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts"
   },
   "dependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@github/copilot-sdk": "^0.1.32",
-    "@playwright/mcp": "^0.0.68"
+    "@playwright/mcp": "^0.0.68",
+    "axe-core": "^4.11.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^25.5.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"

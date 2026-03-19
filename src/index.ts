@@ -12,6 +12,10 @@ export {
   clearStepDefinitions,
   getStepDefinitions,
 } from "./step-registry.js";
+export {
+  createAccessibilityTester,
+  defaultAccessibilityConfig,
+} from "./a11y.js";
 
 export type {
   Platform,
@@ -32,3 +36,15 @@ export type {
   StepDefinitionHandler,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+export type {
+  AccessibilityConfig,
+  AccessibilityScanResult,
+  AccessibilityViolation,
+  AccessibilityNode,
+  WCAGStandard,
+  ViolationLevel,
+  ScanOptions,
+  KeyboardNavigationResult,
+  ColorContrastResult,
+  HeadingStructure,
+} from "./a11y.js";

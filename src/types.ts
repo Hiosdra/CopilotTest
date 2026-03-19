@@ -172,6 +172,8 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** Accessibility testing configuration */
+  accessibility?: import("./a11y.js").AccessibilityConfig;
 }
 
 /**
@@ -192,6 +194,8 @@ export interface StepResult {
   aiReasoning?: string;
   /** Context updates from this step */
   contextUpdates?: Record<string, unknown>;
+  /** Accessibility scan results if performed */
+  accessibilityResults?: import("./a11y.js").AccessibilityScanResult;
 }
 
 /**
