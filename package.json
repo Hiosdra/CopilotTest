@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsx tests/unit.test.ts",
+    "test": "tsx tests/unit.test.ts && tsx tests/video-recording.test.ts",
     "test:parallel": "tsx tests/parallel.spec.ts",
     "test:web": "tsx tests/login.spec.ts",
     "test:api": "tsx tests/api-users.spec.ts",

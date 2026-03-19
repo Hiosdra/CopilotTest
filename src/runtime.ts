@@ -294,6 +294,12 @@ export class CopilotTestRuntime {
       }
 
       // Handle video recording
+      // NOTE: In the current placeholder implementation, getVideoPath() is called
+      // before session.close() because it only generates a conventional path.
+      // When real video recording is wired up to Playwright MCP:
+      // 1. Move session.close() BEFORE getVideoPath()
+      // 2. Playwright finalizes video files only after context/session closure
+      // 3. Query the session metadata for the actual recorded video path
       if (session && this.config.video?.enabled === true) {
         const videoMode = this.config.video?.mode ?? "on-failure";
         const shouldKeepVideo =
@@ -633,14 +639,17 @@ export class CopilotTestRuntime {
     feature: Feature,
     scenario: Scenario
   ): Promise<string | undefined> {
-    // For Playwright MCP sessions, video is automatically recorded
-    // The video path would typically be available from the session metadata
-    // Since we're using MCP, we need to check if there's a way to get the video path
-    // For now, we'll return a placeholder that indicates where the video would be stored
-
-    // In a real implementation, the Playwright MCP server would provide
-    // the video path through the session object or a dedicated API call
-    // For now, we'll construct an expected path based on convention
+    // IMPORTANT: This is a placeholder implementation
+    // The actual video recording happens in the Playwright MCP session,
+    // but there's currently no API to retrieve the recorded video path.
+    //
+    // TODO: Wire this up to the Playwright MCP session API when available:
+    // - Query session for recorded video artifact path after session.close()
+    // - Verify the video file actually exists before returning the path
+    // - Only set videoPath in ScenarioResult when the artifact truly exists
+    //
+    // Current behavior: Returns a conventional path based on config,
+    // which may not correspond to an actual recorded file.
 
     if ((session as Record<string, unknown>)._mock === true) {
       // Mock mode - no actual video
@@ -652,7 +661,8 @@ export class CopilotTestRuntime {
       // This would need to be coordinated with how Playwright MCP is configured
       const videoDir = this.config.video?.outputDir ?? "videos";
       const sanitizedScenarioName = scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase();
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+      // Include milliseconds to prevent collisions when scenarios run in the same second
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -1);
       const format = this.config.video?.format ?? "webm";
 
       return `${videoDir}/${sanitizedScenarioName}-${timestamp}.${format}`;

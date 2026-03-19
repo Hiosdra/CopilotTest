@@ -9,7 +9,7 @@ CopilotTest supports video recording of test execution to help with debugging, f
 - **Flexible Recording Modes**: Record always, only on failure, or disable entirely
 - **Multiple Formats**: Support for WebM and MP4 video formats
 - **Quality Settings**: Configure video quality (low, medium, high) and FPS
-- **Automatic Cleanup**: Retention policies for managing video storage
+- **Automatic Cleanup (planned)**: Retention policies for managing video storage (not yet implemented)
 - **HTML Report Integration**: Videos are embedded in the HTML report with playback controls
 - **CI/CD Ready**: Optimized for continuous integration environments
 
@@ -72,11 +72,15 @@ configure({
 
 #### `outputDir` (string)
 - **Default**: `"videos"`
-- Directory to save videos (relative to `outputDir`)
+- Directory to save videos
+- This path is used as-is and is not automatically nested under `CopilotTestConfig.outputDir`
+- Can be relative (e.g., `"videos"`, `"copilot-test-results/videos"`) or absolute
 - Videos are saved with scenario name and timestamp
 
 #### `retention` (object)
 - Optional retention policies for automatic cleanup
+- **Note**: Retention policy enforcement is planned but not yet implemented
+- Configuration will be used in future versions
 
 ```typescript
 retention: {
@@ -250,20 +254,18 @@ test:
     - npm install
     - npm test
   artifacts:
-    when: on_failure
-    paths:
-      - copilot-test-results/videos/
-    expire_in: 7 days
-  artifacts:
     when: always
     paths:
+      - copilot-test-results/videos/
       - copilot-test-results/report.html
-    expire_in: 30 days
+    expire_in: 7 days
 ```
 
 ## Storage and Cleanup
 
 ### Manual Cleanup
+
+Since automatic retention is not yet implemented, use manual cleanup:
 
 ```bash
 # Remove all videos older than 7 days
@@ -274,21 +276,23 @@ du -sh copilot-test-results/videos
 # Manually delete oldest videos if needed
 ```
 
-### Automatic Cleanup
+### Automatic Cleanup (Planned)
 
-Configure retention policies in your config:
+Retention policies can be configured but are not yet enforced automatically:
 
 ```typescript
 video: {
   enabled: true,
   mode: "on-failure",
   retention: {
-    maxDays: 7,          // Auto-delete after 7 days
-    maxSize: 500,        // Keep total under 500 MB
-    keepFailures: true,  // Never delete failure videos
+    maxDays: 7,          // Will auto-delete after 7 days (planned)
+    maxSize: 500,        // Keep total under 500 MB (planned)
+    keepFailures: true,  // Never delete failure videos (planned)
   },
 }
 ```
+
+**Note**: This configuration is accepted but retention enforcement will be implemented in a future release.
 
 ## Best Practices
 

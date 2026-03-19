@@ -148,7 +148,11 @@ export interface VideoConfig {
   quality?: "low" | "medium" | "high";
   /** Frames per second (default: 25) */
   fps?: number;
-  /** Directory to save videos (relative to outputDir) */
+  /**
+   * Directory to save videos.
+   * This path is used as-is and is not automatically nested under CopilotTestConfig.outputDir.
+   * Use relative paths (e.g., "videos" or "copilot-test-results/videos") or absolute paths.
+   */
   outputDir?: string;
   /** Retention policy */
   retention?: {

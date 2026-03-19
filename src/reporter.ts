@@ -310,19 +310,29 @@ function renderScenario(scenarioResult: ScenarioResult, featureTags: string[] = 
 
   // Add video player if video path is available
   const videoHtml = scenarioResult.videoPath
-    ? `<div class="video-container">
+    ? (() => {
+      const videoPath = scenarioResult.videoPath;
+      // Determine MIME type based on file extension
+      let mimeType = "video/webm";
+      if (videoPath.endsWith(".mp4")) {
+        mimeType = "video/mp4";
+      } else if (videoPath.endsWith(".ogg")) {
+        mimeType = "video/ogg";
+      }
+
+      return `<div class="video-container">
       <div class="video-header">
         <span style="font-weight: 600; font-size: 0.875rem;">📹 Recorded Video</span>
       </div>
       <video controls preload="metadata" class="scenario-video">
-        <source src="${escapeHtml(scenarioResult.videoPath)}" type="video/webm">
-        <source src="${escapeHtml(scenarioResult.videoPath)}" type="video/mp4">
+        <source src="${escapeHtml(videoPath)}" type="${mimeType}">
         Your browser does not support the video tag.
       </video>
       <div class="video-controls">
-        <a href="${escapeHtml(scenarioResult.videoPath)}" download class="video-btn">Download</a>
+        <a href="${escapeHtml(videoPath)}" download class="video-btn">Download</a>
       </div>
-    </div>`
+    </div>`;
+    })()
     : "";
 
   return `<div class="scenario" data-tags="${escapeHtml(tags)}">
