@@ -4,6 +4,7 @@ export { CopilotTestRuntime } from "./runtime.js";
 export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
 export { mobilePlatform } from "./platforms/mobile.js";
+export { compareTestRuns } from "./compare.js";
 export { ScenarioContext } from "./types.js";
 export {
   defineStep,
@@ -24,6 +25,7 @@ export type {
   ScenarioResult,
   FeatureResult,
   TestRun,
+  TestRunMetadata,
   StepContext,
   StepDefinition,
   StepDefinitionHandler,

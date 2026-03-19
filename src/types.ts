@@ -102,6 +102,21 @@ export interface FeatureResult {
   duration: number;
 }
 
+export interface TestRunMetadata {
+  timestamp: string;
+  duration: number;
+  environment?: string;
+  git?: {
+    branch?: string;
+    commit?: string;
+    author?: string;
+  };
+  ci?: {
+    buildNumber?: string;
+    jobUrl?: string;
+  };
+}
+
 export interface TestRun {
   startedAt: Date;
   finishedAt?: Date;
@@ -112,6 +127,7 @@ export interface TestRun {
     failed: number;
     skipped: number;
   };
+  metadata?: TestRunMetadata;
 }
 
 export class ScenarioContext {
