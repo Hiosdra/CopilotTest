@@ -288,7 +288,11 @@ async function runFeaturesInParallel(
   const featureResults: FeatureResult[] = [];
   for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
     const testFeature = testFeatures[queueIndex];
-    const scenarios = scenarioResultsByQueue[queueIndex];
+    const scenariosForQueue = scenarioResultsByQueue[queueIndex] || [];
+    // Filter out undefined entries (can happen when failFast aborts remaining tasks)
+    const scenarios = scenariosForQueue.filter(
+      (s): s is ScenarioResult => s != null
+    );
     const totalDuration = scenarios.reduce((sum, s) => sum + s.duration, 0);
 
     featureResults.push({
