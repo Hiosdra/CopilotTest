@@ -38,9 +38,14 @@ run();
 ## How It Works
 
 1. **Define placeholders**: Use `<placeholder>` syntax in step text
-2. **Provide examples**: Call `.examples([...])` with an array of data objects
+2. **Provide examples**: Call `.examples([...])` with an array of data objects (required)
 3. **Runtime expansion**: Each example becomes a separate scenario execution
 4. **Parameter substitution**: Placeholders are replaced with actual values from each example
+
+## Important Notes
+
+- **Examples are required**: A Scenario Outline must have at least one example. If you call `.scenarioOutline()` without `.examples([...])`, an error will be thrown.
+- **Safe parameter substitution**: Parameter keys can contain special characters (dots, parentheses, etc.), and values containing `$` symbols are handled correctly.
 
 ## Features
 
@@ -56,6 +61,19 @@ Any text in angle brackets `<name>` in step definitions will be replaced with va
   { query: "python", count: "8" }
 ])
 ```
+
+### Special Characters Support
+
+Parameter keys and values support special characters:
+
+```typescript
+.given('I use "<key.with.dots>" and "<value>"')
+.examples([
+  { "key.with.dots": "value1", value: "$100 price" }
+])
+```
+
+Both regex metacharacters in keys (`.`, `(`, `)`, `*`, etc.) and replacement patterns in values (`$1`, `$$`, etc.) are handled safely.
 
 ### Mixing with Regular Scenarios
 
@@ -87,6 +105,7 @@ Scenario outlines support tags just like regular scenarios:
 .scenarioOutline("Parameterized test")
   .tag("@smoke", "@critical")
   .given('step with "<param>"')
+  .examples([...])
   // ...
 ```
 
@@ -116,10 +135,11 @@ This makes it easy to identify which specific data set caused a failure.
 
 ## Best Practices
 
-1. **Use descriptive parameter names**: Choose clear names like `<username>` instead of `<val1>`
-2. **Keep examples focused**: Each outline should test one specific behavior with different data
-3. **Include edge cases**: Add examples for empty strings, special characters, boundary values
-4. **Organize examples logically**: Order examples from happy path to error cases
+1. **Always provide examples**: Call `.examples([...])` with at least one example object
+2. **Use descriptive parameter names**: Choose clear names like `<username>` instead of `<val1>`
+3. **Keep examples focused**: Each outline should test one specific behavior with different data
+4. **Include edge cases**: Add examples for empty strings, special characters, boundary values
+5. **Organize examples logically**: Order examples from happy path to error cases
 
 ## Complete Example
 
@@ -134,7 +154,7 @@ See `tests/scenario-outline.example.ts` for a comprehensive demonstration includ
 ### Methods
 
 - `.scenarioOutline(name: string)`: Create a new scenario outline
-- `.examples(data: Record<string, string>[])`: Provide example data rows
+- `.examples(data: Record<string, string>[])`: Provide example data rows (required, must have at least one)
 - `.done()`: Complete the outline and return to FeatureBuilder
 
 ### Types
@@ -147,6 +167,18 @@ interface Scenario {
   examples?: Record<string, string>[];
   isOutline?: boolean;
 }
+```
+
+## Error Handling
+
+If you forget to provide examples, a clear error will be thrown:
+
+```typescript
+// This will throw an error:
+feature("Test")
+  .scenarioOutline("Outline without examples")
+    .given("some step")
+    .done() // Error: Scenario Outline "Outline without examples" must have at least one example
 ```
 
 ## Migration from Regular Scenarios

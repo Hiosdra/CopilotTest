@@ -208,48 +208,103 @@ const taggedOutline: Feature = feature("Tagged")
 assert(taggedOutline.scenarios[0].tags.includes("@smoke"), "outline has @smoke tag");
 assert(taggedOutline.scenarios[0].tags.includes("@parameterized"), "outline has @parameterized tag");
 
+// ── DSL — scenario outline validation ────────────────
+
+section("DSL — scenario outline validation");
+
+// Test that scenarioOutline without examples throws an error
+let validationError: Error | null = null;
+try {
+  feature("Validation Test")
+    .scenarioOutline("Outline without examples")
+      .given("some step")
+      .done()
+    ._build();
+} catch (err) {
+  validationError = err as Error;
+}
+assert(validationError !== null, "scenarioOutline without examples throws error");
+assert(validationError!.message.includes("must have at least one example"), "error message mentions examples requirement");
+
 // ── Runtime — expandScenarioOutlines ─────────────────
 
-section("Runtime — expandScenarioOutlines");
+section("Runtime — scenario outline expansion via public API");
 
-const outlineRuntime = new CopilotTestRuntime({
+// Test expansion through runtime.runFeature() mock execution
+// The expanded scenarios will be reflected in the FeatureResult
+
+// First, verify that a feature with scenario outlines gets expanded correctly
+// by checking scenario names in a mock run
+const mockRuntime = new CopilotTestRuntime({
   platforms: { web: webPlatform() },
 });
 
-// Test parameter substitution
-const substituted = (outlineRuntime as any).substituteParameters(
-  'username is "<username>" and password is "<password>"',
-  { username: "admin", password: "secret123" }
-);
-assert(substituted.includes("admin"), "substitution includes username value");
-assert(substituted.includes("secret123"), "substitution includes password value");
-assert(!substituted.includes("<username>"), "substitution removes username placeholder");
-assert(!substituted.includes("<password>"), "substitution removes password placeholder");
+await mockRuntime.start();
 
-// Test scenario expansion
-const expandedScenarios = (outlineRuntime as any).expandScenarioOutlines(
-  outlineFeat.scenarios
-);
-assertEqual(expandedScenarios.length, 3, "outline expanded to 3 scenarios");
-assertEqual(expandedScenarios[0].name, "Login with different credentials (Example 1)", "first expanded scenario name");
-assertEqual(expandedScenarios[1].name, "Login with different credentials (Example 2)", "second expanded scenario name");
-assertEqual(expandedScenarios[2].name, "Login with different credentials (Example 3)", "third expanded scenario name");
+// Run the outline feature and check the expansion in results
+const outlineResult = await mockRuntime.runFeature(outlineFeat, "web");
 
-// Check that parameters are substituted
-assert(expandedScenarios[0].steps[1].text.includes("admin"), "first example has admin username");
-assert(expandedScenarios[0].steps[1].text.includes("admin123"), "first example has admin123 password");
-assert(expandedScenarios[1].steps[1].text.includes("user"), "second example has user username");
-assert(expandedScenarios[1].steps[1].text.includes("wrong"), "second example has wrong password");
-assert(expandedScenarios[0].steps[2].text.includes("Welcome Admin"), "first example has welcome message");
-assert(expandedScenarios[1].steps[2].text.includes("Invalid credentials"), "second example has error message");
+assertEqual(outlineResult.scenarios.length, 3, "outline expanded to 3 scenarios");
+assertEqual(outlineResult.scenarios[0].scenario.name, "Login with different credentials (Example 1)", "first expanded scenario name");
+assertEqual(outlineResult.scenarios[1].scenario.name, "Login with different credentials (Example 2)", "second expanded scenario name");
+assertEqual(outlineResult.scenarios[2].scenario.name, "Login with different credentials (Example 3)", "third expanded scenario name");
 
-// Test that regular scenarios are not expanded
-const mixedExpanded = (outlineRuntime as any).expandScenarioOutlines(
-  mixedFeat.scenarios
-);
-assertEqual(mixedExpanded.length, 3, "mixed feature expands to 3 scenarios (2 from outline + 1 regular)");
-assertEqual(mixedExpanded[2].name, "Regular test", "regular scenario preserved");
-assert(!mixedExpanded[2].name.includes("Example"), "regular scenario name not modified");
+// Check that parameters are substituted in step text
+assert(outlineResult.scenarios[0].steps[1].step.text.includes("admin"), "first example has admin username");
+assert(outlineResult.scenarios[0].steps[1].step.text.includes("admin123"), "first example has admin123 password");
+assert(outlineResult.scenarios[1].steps[1].step.text.includes("user"), "second example has user username");
+assert(outlineResult.scenarios[1].steps[1].step.text.includes("wrong"), "second example has wrong password");
+assert(outlineResult.scenarios[0].steps[2].step.text.includes("Welcome Admin"), "first example has welcome message");
+assert(outlineResult.scenarios[1].steps[2].step.text.includes("Invalid credentials"), "second example has error message");
+
+// Test that regular scenarios mixed with outlines work correctly
+const mixedResult = await mockRuntime.runFeature(mixedFeat, "web");
+assertEqual(mixedResult.scenarios.length, 3, "mixed feature expands to 3 scenarios (2 from outline + 1 regular)");
+assertEqual(mixedResult.scenarios[2].scenario.name, "Regular test", "regular scenario preserved");
+assert(!mixedResult.scenarios[2].scenario.name.includes("Example"), "regular scenario name not modified");
+
+await mockRuntime.stop();
+
+// Test edge cases with special characters in parameters
+section("Runtime — parameter substitution edge cases");
+
+const edgeCaseRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+});
+
+await edgeCaseRuntime.start();
+
+// Test regex metacharacters in parameter keys
+const regexMetaFeat = feature("Regex Meta")
+  .scenarioOutline("Test with regex metacharacters")
+    .given('I use "<key.with.dots>" and "<key(with)parens>"')
+    .examples([
+      { "key.with.dots": "value1", "key(with)parens": "value2" }
+    ])
+    .done()
+  ._build();
+
+const regexMetaResult = await edgeCaseRuntime.runFeature(regexMetaFeat, "web");
+assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value1"), "dots in key name handled");
+assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value2"), "parens in key name handled");
+assert(!regexMetaResult.scenarios[0].steps[0].step.text.includes("<key.with.dots>"), "placeholder removed");
+
+// Test $ replacement patterns in parameter values
+const dollarFeat = feature("Dollar Signs")
+  .scenarioOutline("Test with $ in values")
+    .given('I use "<value>"')
+    .examples([
+      { value: "$1 costs $100" },
+      { value: "$$special$$" }
+    ])
+    .done()
+  ._build();
+
+const dollarResult = await edgeCaseRuntime.runFeature(dollarFeat, "web");
+assert(dollarResult.scenarios[0].steps[0].step.text.includes("$1 costs $100"), "$ in value preserved");
+assert(dollarResult.scenarios[1].steps[0].step.text.includes("$$special$$"), "multiple $ preserved");
+
+await edgeCaseRuntime.stop();
 
 // ── Runtime — parseStepResponse ─────────────────────────────
 

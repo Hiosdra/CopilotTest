@@ -82,7 +82,7 @@ export class CopilotTestRuntime {
     const expanded: Scenario[] = [];
 
     for (const scenario of scenarios) {
-      if (scenario.isOutline && scenario.examples && scenario.examples.length > 0) {
+      if (scenario.examples && scenario.examples.length > 0) {
         // Expand scenario outline into multiple scenarios
         for (let i = 0; i < scenario.examples.length; i++) {
           const exampleData = scenario.examples[i];
@@ -108,8 +108,10 @@ export class CopilotTestRuntime {
   private substituteParameters(text: string, data: Record<string, string>): string {
     let result = text;
     for (const [key, value] of Object.entries(data)) {
-      // Replace <key> with value, case-sensitive
-      result = result.replace(new RegExp(`<${key}>`, "g"), value);
+      // Escape regex metacharacters in key to prevent incorrect matches
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Use callback to prevent "$" in value from being interpreted as replacement pattern
+      result = result.replace(new RegExp(`<${escapedKey}>`, "g"), () => value);
     }
     return result;
   }

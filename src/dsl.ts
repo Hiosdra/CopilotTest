@@ -157,12 +157,17 @@ export class ScenarioOutlineBuilder {
   }
 
   _build(): Scenario {
+    if (!this._examples || this._examples.length === 0) {
+      throw new Error(
+        `Scenario Outline "${this._name}" must have at least one example. Call .examples([...]) before .done()`
+      );
+    }
     return {
       name: this._name,
       tags: this._tags,
       steps: [...this._steps],
       examples: this._examples,
-      isOutline: this._examples !== undefined,
+      isOutline: true,
     };
   }
 }
