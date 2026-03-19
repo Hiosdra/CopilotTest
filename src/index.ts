@@ -6,7 +6,7 @@ export { apiPlatform } from "./platforms/api.js";
 export { mobilePlatform } from "./platforms/mobile.js";
 export { DebugController } from "./debug.js";
 export { compareTestRuns } from "./compare.js";
-export { ScenarioContext } from "./types.js";
+export { ScenarioContext } from "./context.js";
 export { startWatchMode, WatchMode } from "./watch.js";
 export {
   defineStep,
@@ -27,6 +27,45 @@ export {
   comparePerformance,
   formatDuration,
 } from "./performance.js";
+
+// Export new architectural modules
+export { SessionManager, isMockSession, isClosableSession } from "./session-manager.js";
+export { PromptBuilder } from "./prompt-builder.js";
+export {
+  errorToString,
+  classifyError,
+  shouldRetryError,
+  formatErrorMessage,
+  ErrorCategory,
+} from "./error-utils.js";
+export {
+  StepStatus,
+  ScenarioStatus,
+  Icons,
+  Timeouts,
+  RetryDefaults,
+  PerformanceDefaults,
+  VideoDefaults,
+  PlatformDefaults,
+  SystemMessages,
+  Paths,
+  ErrorMessages,
+} from "./constants.js";
+
+// Export new architectural types
+export type {
+  Session,
+  MockSession,
+} from "./session-manager.js";
+
+export type {
+  ClassifiedError,
+} from "./error-utils.js";
+
+export type {
+  StepStatusType,
+  ScenarioStatusType,
+} from "./constants.js";
 
 // Export all types
 export type {

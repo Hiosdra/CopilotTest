@@ -1,3 +1,7 @@
+// Re-export ScenarioContext from dedicated module
+export { ScenarioContext } from "./context.js";
+import type { ScenarioContext } from "./context.js";
+
 /**
  * Supported platform types for test execution.
  * - web: Browser-based testing via Playwright
@@ -432,81 +436,3 @@ export interface TestRun {
  * Manages shared state across steps within a scenario.
  * Allows steps to store and retrieve data during test execution.
  */
-export class ScenarioContext {
-  private data: Map<string, unknown>;
-
-  constructor() {
-    this.data = new Map();
-  }
-
-  /**
-   * Store a value in the context.
-   * @param key - The key to store the value under
-   * @param value - The value to store
-   */
-  set(key: string, value: unknown): void {
-    this.data.set(key, value);
-  }
-
-  /**
-   * Retrieve a value from the context.
-   * @param key - The key to retrieve
-   * @returns The stored value, or undefined if not found
-   */
-  get<T = unknown>(key: string): T | undefined {
-    return this.data.get(key) as T | undefined;
-  }
-
-  /**
-   * Check if a key exists in the context.
-   * @param key - The key to check
-   * @returns True if the key exists, false otherwise
-   */
-  has(key: string): boolean {
-    return this.data.has(key);
-  }
-
-  /**
-   * Remove a key from the context.
-   * @param key - The key to remove
-   * @returns True if the key was removed, false if it didn't exist
-   */
-  delete(key: string): boolean {
-    return this.data.delete(key);
-  }
-
-  /**
-   * Clear all data from the context.
-   */
-  clear(): void {
-    this.data.clear();
-  }
-
-  /**
-   * Get all keys in the context.
-   * @returns Array of all keys
-   */
-  keys(): string[] {
-    return Array.from(this.data.keys());
-  }
-
-  /**
-   * Convert the context to a plain JSON object.
-   * @returns Plain object representation of the context
-   */
-  toJSON(): Record<string, unknown> {
-    return Object.fromEntries(this.data.entries());
-  }
-
-  /**
-   * Load context data from a plain JSON object.
-   * Clears existing data before loading.
-   * @param json - Plain object to load into context
-   */
-  fromJSON(json: Record<string, unknown>): void {
-    this.data.clear();
-    for (const [key, value] of Object.entries(json)) {
-      this.data.set(key, value);
-    }
-  }
-}
