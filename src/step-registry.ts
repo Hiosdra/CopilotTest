@@ -9,17 +9,20 @@ const stepDefinitions: StepDefinition[] = [];
 /**
  * Register a custom step definition.
  *
- * @param pattern - Regular expression to match step text (without the keyword)
+ * @param pattern - Regular expression to match step text (without the keyword).
+ *                  Must not use global (/g) or sticky (/y) flags.
  * @param handler - Async function to execute when pattern matches
  *
  * @example
  * ```typescript
  * defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username, password) => {
- *   const { page } = context;
- *   await page.goto('/login');
- *   await page.fill('#username', username);
- *   await page.fill('#password', password);
- *   await page.click('button[type="submit"]');
+ *   const { session } = context;
+ *   // Use session or other context properties to perform actions
+ *   // Example: const page = await getPageFromSession(session);
+ *   // await page.goto('/login');
+ *   // await page.fill('#username', username);
+ *   // await page.fill('#password', password);
+ *   // await page.click('button[type="submit"]');
  * });
  * ```
  */
@@ -27,6 +30,11 @@ export function defineStep(
   pattern: RegExp,
   handler: StepDefinitionHandler
 ): void {
+  if (pattern.global || pattern.sticky) {
+    throw new Error(
+      "Step definition patterns must not use global (/g) or sticky (/y) flags"
+    );
+  }
   stepDefinitions.push({ pattern, handler });
 }
 
@@ -38,11 +46,16 @@ export function defineStep(
  */
 export function findStepDefinition(
   stepText: string
-): { definition: StepDefinition; matches: string[] } | null {
+): { definition: StepDefinition; matches: Array<string | undefined> } | null {
   for (const definition of stepDefinitions) {
-    const match = stepText.match(definition.pattern);
+    // Reset lastIndex to ensure consistent matching
+    definition.pattern.lastIndex = 0;
+
+    // Use exec() instead of match() to reliably get capture groups
+    const match = definition.pattern.exec(stepText);
     if (match) {
       // Extract captured groups (excluding the full match at index 0)
+      // Note: Optional capture groups will be undefined
       const matches = match.slice(1);
       return { definition, matches };
     }
@@ -61,7 +74,8 @@ export function clearStepDefinitions(): void {
 /**
  * Get all registered step definitions.
  * Useful for debugging or introspection.
+ * Returns a shallow copy to prevent external mutation of the registry.
  */
 export function getStepDefinitions(): ReadonlyArray<StepDefinition> {
-  return stepDefinitions;
+  return stepDefinitions.slice();
 }

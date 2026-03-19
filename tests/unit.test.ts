@@ -466,6 +466,35 @@ assert(receivedContext!.platform !== undefined, "context has platform");
 // Clean up
 clearStepDefinitions();
 
+// ── Custom Step Definitions — Regex Validation ──────────────
+
+section("Custom Step Definitions — Regex Validation");
+
+// Test that global and sticky flags are rejected
+let globalFlagError: Error | null = null;
+try {
+  defineStep(/test/g, async () => {});
+} catch (err) {
+  globalFlagError = err as Error;
+}
+assert(globalFlagError !== null, "global flag throws error");
+assert(globalFlagError!.message.includes("global"), "error mentions global flag");
+
+let stickyFlagError: Error | null = null;
+try {
+  defineStep(/test/y, async () => {});
+} catch (err) {
+  stickyFlagError = err as Error;
+}
+assert(stickyFlagError !== null, "sticky flag throws error");
+assert(stickyFlagError!.message.includes("sticky"), "error mentions sticky flag");
+
+// Normal patterns should work fine
+defineStep(/^test pattern$/, async () => {});
+assertEqual(getStepDefinitions().length, 1, "normal pattern registered successfully");
+
+clearStepDefinitions();
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));

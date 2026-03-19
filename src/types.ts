@@ -10,7 +10,6 @@ export interface Step {
 }
 
 export interface StepContext {
-  page?: unknown;
   session?: unknown;
   feature?: Feature;
   scenario?: Scenario;
@@ -20,7 +19,7 @@ export interface StepContext {
 
 export type StepDefinitionHandler = (
   context: StepContext,
-  ...matches: string[]
+  ...matches: Array<string | undefined>
 ) => Promise<void> | void;
 
 export interface StepDefinition {

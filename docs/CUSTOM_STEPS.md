@@ -35,11 +35,13 @@ import { feature, configure, test, run, defineStep, webPlatform } from '@copilot
 // Define a custom step
 defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username, password) => {
   const { session } = context;
-  // Implement your exact login logic here
-  await page.goto('/login');
-  await page.fill('#username', username);
-  await page.fill('#password', password);
-  await page.click('button[type="submit"]');
+  // Implement your exact login logic here using the session
+  // The session provides access to the Copilot SDK session with MCP tools
+  // For example, you might use Playwright MCP tools through the session:
+  // await session.sendAndWait({ prompt: `Navigate to /login and fill username ${username}` });
+
+  // Note: Direct page access is not available in the context.
+  // You need to interact through the session or implement your own page management.
 });
 
 // Configure tests
