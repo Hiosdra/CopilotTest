@@ -14,6 +14,7 @@ export interface Scenario {
   tags: string[];
   steps: Step[];
   examples?: { headers: string[]; rows: string[][] };
+  debugMode?: boolean;
 }
 
 export interface Feature {
@@ -52,6 +53,9 @@ export interface CopilotTestConfig {
   outputDir?: string;
   mcpServers?: Record<string, McpServerConfig>;
   reasoningEffort?: "low" | "medium" | "high";
+  debugMode?: boolean;
+  breakpoints?: string[];
+  interactive?: boolean;
 }
 
 export interface StepResult {

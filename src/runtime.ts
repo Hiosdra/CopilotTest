@@ -8,6 +8,7 @@ import type {
   ScenarioResult,
   FeatureResult,
 } from "./types.js";
+import { DebugController, type DebugContext } from "./debug.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -84,6 +85,16 @@ export class CopilotTestRuntime {
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
 
+    // Check if debug mode is enabled
+    const debugEnabled =
+      this.config.debugMode === true || scenario.debugMode === true;
+    const debugController = debugEnabled
+      ? new DebugController(
+          this.config.breakpoints || [],
+          this.config.interactive === true
+        )
+      : null;
+
     // Build steps including background
     const allSteps: Step[] = [
       ...(feature.background ?? []),
@@ -95,7 +106,9 @@ export class CopilotTestRuntime {
     try {
       session = await this.createSession(feature, scenario, platform);
 
-      for (const step of allSteps) {
+      for (let i = 0; i < allSteps.length; i++) {
+        const step = allSteps[i];
+
         if (scenarioFailed) {
           stepResults.push({
             step,
@@ -103,6 +116,47 @@ export class CopilotTestRuntime {
             duration: 0,
           });
           continue;
+        }
+
+        // Debug mode: check for breakpoint
+        if (debugController && debugController.shouldBreak(step)) {
+          const debugContext: DebugContext = {
+            scenario,
+            currentStepIndex: i,
+            stepResults: [...stepResults],
+            session,
+          };
+
+          const action =
+            await debugController.startInteractiveConsole(debugContext);
+
+          if (action.type === "exit") {
+            console.log("\n🛑 Debug mode exited by user");
+            scenarioFailed = true;
+            // Mark remaining steps as skipped
+            for (let j = i; j < allSteps.length; j++) {
+              stepResults.push({
+                step: allSteps[j],
+                status: "skipped",
+                duration: 0,
+              });
+            }
+            break;
+          } else if (action.type === "skip") {
+            console.log("\n⏭️  Skipping step");
+            stepResults.push({
+              step,
+              status: "skipped",
+              duration: 0,
+            });
+            continue;
+          } else if (action.type === "retry") {
+            console.log("\n🔄 Retrying step...");
+            // Continue to execute the step below
+          } else if (action.type === "step" || action.type === "continue") {
+            console.log("\n▶️  Continuing...");
+            // Continue to execute the step below
+          }
         }
 
         const stepResult = await this.executeStep(step, session);
@@ -127,6 +181,10 @@ export class CopilotTestRuntime {
         }
       }
     } finally {
+      if (debugController) {
+        debugController.cleanup();
+      }
+
       if (
         session &&
         typeof (session as Record<string, unknown>).close === "function"
