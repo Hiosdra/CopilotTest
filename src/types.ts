@@ -2,11 +2,26 @@ export type Platform = "web" | "mobile" | "api" | "desktop";
 
 export type StepKeyword = "Given" | "When" | "Then" | "And" | "But";
 
+/**
+ * Context object passed to step callbacks
+ */
+export interface StepContext {
+  api?: any;
+  page?: any;
+  context?: Map<string, any>;
+}
+
+/**
+ * Callback function for explicit step implementations
+ */
+export type StepCallback = (context: StepContext) => void | Promise<void>;
+
 export interface Step {
   keyword: StepKeyword;
   text: string;
   table?: string[][];
   docString?: string;
+  callback?: StepCallback;
 }
 
 export interface Scenario {

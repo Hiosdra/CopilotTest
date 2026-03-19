@@ -1,4 +1,4 @@
-import type { Step, StepKeyword, Scenario, Feature } from "./types.js";
+import type { Step, StepKeyword, StepCallback, Scenario, Feature } from "./types.js";
 
 export class ScenarioBuilder {
   private _steps: Step[] = [];
@@ -17,24 +17,49 @@ export class ScenarioBuilder {
     return this;
   }
 
-  given(text: string): this {
-    return this._addStep("Given", text);
+  given(text: string): this;
+  given(callback: StepCallback): this;
+  given(textOrCallback: string | StepCallback): this {
+    if (typeof textOrCallback === "function") {
+      return this._addStep("Given", "", textOrCallback);
+    }
+    return this._addStep("Given", textOrCallback);
   }
 
-  when(text: string): this {
-    return this._addStep("When", text);
+  when(text: string): this;
+  when(callback: StepCallback): this;
+  when(textOrCallback: string | StepCallback): this {
+    if (typeof textOrCallback === "function") {
+      return this._addStep("When", "", textOrCallback);
+    }
+    return this._addStep("When", textOrCallback);
   }
 
-  then(text: string): this {
-    return this._addStep("Then", text);
+  then(text: string): this;
+  then(callback: StepCallback): this;
+  then(textOrCallback: string | StepCallback): this {
+    if (typeof textOrCallback === "function") {
+      return this._addStep("Then", "", textOrCallback);
+    }
+    return this._addStep("Then", textOrCallback);
   }
 
-  and(text: string): this {
-    return this._addStep("And", text);
+  and(text: string): this;
+  and(callback: StepCallback): this;
+  and(textOrCallback: string | StepCallback): this {
+    if (typeof textOrCallback === "function") {
+      return this._addStep("And", "", textOrCallback);
+    }
+    return this._addStep("And", textOrCallback);
   }
 
-  but(text: string): this {
-    return this._addStep("But", text);
+  but(text: string): this;
+  but(callback: StepCallback): this;
+  but(textOrCallback: string | StepCallback): this {
+    if (typeof textOrCallback === "function") {
+      return this._addStep("But", "", textOrCallback);
+    }
+    return this._addStep("But", textOrCallback);
   }
 
   withTable(table: string[][]): this {
@@ -61,8 +86,8 @@ export class ScenarioBuilder {
     return this._featureBuilder;
   }
 
-  private _addStep(keyword: StepKeyword, text: string): this {
-    const step: Step = { keyword, text };
+  private _addStep(keyword: StepKeyword, text: string, callback?: StepCallback): this {
+    const step: Step = { keyword, text, callback };
     this._steps.push(step);
     this._lastStep = step;
     return this;
