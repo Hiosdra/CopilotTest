@@ -323,6 +323,20 @@ function renderStep(stepResult: StepResult): string {
       : "⊘";
   const cssClass = `step step-${stepResult.status}`;
 
+  // Format performance metrics
+  let metricsHtml = "";
+  if (stepResult.metrics) {
+    const parts: string[] = [];
+    parts.push(`Total: ${stepResult.metrics.duration}ms`);
+    if (stepResult.metrics.aiThinkTime !== undefined) {
+      parts.push(`AI: ${stepResult.metrics.aiThinkTime}ms`);
+    }
+    if (stepResult.metrics.executionTime !== undefined) {
+      parts.push(`Exec: ${stepResult.metrics.executionTime}ms`);
+    }
+    metricsHtml = ` <span style="color: #718096; font-size: 0.7rem;">(${parts.join(", ")})</span>`;
+  }
+
   return `<div class="${cssClass}">
   <span class="step-icon">${icon}</span>
   <div class="step-content">
@@ -330,7 +344,7 @@ function renderStep(stepResult: StepResult): string {
       <span class="step-keyword">${escapeHtml(stepResult.step.keyword)}</span>
       ${escapeHtml(stepResult.step.text)}
     </div>
-    <div class="step-duration">${stepResult.duration}ms</div>
+    <div class="step-duration">${stepResult.duration}ms${metricsHtml}</div>
     ${stepResult.error ? `<div class="step-error">Error: ${escapeHtml(stepResult.error)}</div>` : ""}
     ${
       stepResult.aiReasoning
