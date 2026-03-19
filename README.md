@@ -33,11 +33,195 @@ Write test scenarios in **Given/When/Then** style — no step implementations re
 
 ## Quick Start
 
+### Using the CLI (Recommended)
+
+```bash
+# Install globally or use npx
+npm install -g copilot-test
+# or
+npx copilot-test <command>
+
+# Initialize new project
+copilot-test init
+
+# Run tests
+copilot-test run
+
+# List all tests
+copilot-test list
+
+# Validate configuration
+copilot-test validate
+
+# Health check
+copilot-test doctor
+```
+
+### Manual Setup
+
 ```bash
 npm install
 npm run build
 npm test
 ```
+
+## CLI Reference
+
+The CLI tool provides comprehensive commands for managing your test projects.
+
+### Commands
+
+#### `init` - Initialize New Project
+
+Interactive project scaffolding with templates and examples.
+
+```bash
+copilot-test init
+
+# Prompts for:
+# - Project name
+# - Platforms (web, api, mobile)
+# - AI Model
+# - TypeScript or JavaScript
+# - Install dependencies
+```
+
+Creates:
+- `copilot-test.config.ts` - Configuration file
+- `tests/` directory with example tests
+- `package.json` (if not exists)
+- `tsconfig.json` (for TypeScript projects)
+- `.gitignore`
+- `README.md`
+
+#### `run` - Run Tests
+
+Execute tests with various options.
+
+```bash
+# Run all tests
+copilot-test run
+
+# Run specific file
+copilot-test run tests/login.spec.ts
+
+# Run with filters
+copilot-test run --tag=@smoke
+copilot-test run --filter="login"
+copilot-test run --env=staging
+
+# Run with options
+copilot-test run --headless
+copilot-test run --parallel
+copilot-test run --debug
+```
+
+#### `list` - List Available Tests
+
+Display all features and scenarios in your test suite.
+
+```bash
+copilot-test list
+
+# Output:
+# Feature: User Login (tests/login.spec.ts)
+#   ✓ Scenario: Successful admin login [@smoke]
+#   ✓ Scenario: Invalid credentials [@negative]
+# Total: 2 features, 6 scenarios
+```
+
+#### `report` - Generate and View Reports
+
+Open reports or compare test runs.
+
+```bash
+# Open latest report in browser
+copilot-test report
+copilot-test report open
+
+# Compare two test runs
+copilot-test report compare \
+  --baseline copilot-test-results/runs/baseline.json \
+  --current copilot-test-results/runs/current.json \
+  --output comparison.html
+```
+
+#### `validate` - Validate Configuration
+
+Check your configuration and environment setup.
+
+```bash
+copilot-test validate
+
+# Checks:
+# ✓ Configuration file exists and is valid
+# ✓ Test files present
+# ✓ Dependencies installed
+# ✓ Node.js version compatible
+# ⚠ Warnings and errors
+```
+
+#### `create` - Create New Test
+
+Scaffold a new test file from templates.
+
+```bash
+copilot-test create test
+
+# Prompts for:
+# - Test type (web, api, mobile)
+# - Feature name
+# - Scenario name
+# - File name
+```
+
+#### `doctor` - System Health Check
+
+Comprehensive environment validation.
+
+```bash
+copilot-test doctor
+
+# Checks:
+# ✓ Node.js version
+# ✓ TypeScript installed
+# ✓ Dependencies present
+# ✓ Config file valid
+# ✓ API keys configured
+# ⚠ Warnings and issues
+```
+
+#### `config` - Manage Global Configuration
+
+Set and manage global CLI preferences.
+
+```bash
+# Set configuration
+copilot-test config set model gpt-4o
+copilot-test config set headless true
+copilot-test config set parallel true
+
+# Get configuration value
+copilot-test config get model
+
+# List all configuration
+copilot-test config list
+
+# Delete configuration
+copilot-test config delete model
+```
+
+### Options
+
+Global options available for commands:
+
+- `-v, --version` - Show CLI version
+- `-h, --help` - Show help information
+- `--env <name>` - Set environment
+- `--tag <tag>` - Filter by tag
+- `--parallel` - Enable parallel execution
+- `--headless` - Run in headless mode
+- `--debug` - Enable debug output
 
 ## Writing Tests
 
@@ -149,8 +333,89 @@ configure({
   maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
   workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
   failFast: false,                    // Stop all workers on first failure
+  // Watch mode options (NEW)
+  watch: {
+    enabled: true,                    // Enable watch mode
+    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
+    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
+    debounce: 300,                    // Delay before re-running (ms)
+    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
+    failedFirst: true,                // Run failed tests first
+    clearConsole: false,              // Clear console before each run
+  },
 });
 ```
+
+## Watch Mode
+
+Run tests continuously during development with automatic re-execution on file changes:
+
+```bash
+npm run test:watch tests/login.spec.ts
+```
+
+**Note**: Watch mode CLI requires a test file path. The test file should call `configure()` and `test()` but NOT `run()` - watch mode handles test execution.
+
+### Interactive Controls
+
+When running in a terminal, watch mode provides keyboard controls:
+
+```
+Interactive Commands:
+  a - Run all tests
+  f - Run only failed tests
+  q - Quit watch mode
+  Enter - Re-run tests
+```
+
+### Watch Mode UI
+
+```
+╔════════════════════════════════════════╗
+║      COPILOT TEST - WATCH MODE         ║
+╚════════════════════════════════════════╝
+
+📁 Watching 42 files...
+
+============================================================
+🔄 Running tests... (10:30:45 AM)
+============================================================
+
+📝 Changed files:
+  • src/login.ts
+  • tests/login.spec.ts
+
+[Test execution output...]
+
+╔════════════════════════════════════════╗
+║ Status: ✓ All tests passed            ║
+║ Tests: 12 passed, 0 failed            ║
+║ Pass rate: 100%                        ║
+║ Duration: 2345ms                       ║
+╚════════════════════════════════════════╝
+
+👀 Watching for file changes...
+```
+
+### Configuration
+
+```typescript
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    enabled: true,                    // Enable watch mode
+    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
+    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
+    debounce: 300,                    // Delay before re-running (ms)
+    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
+    failedFirst: true,                // Run failed tests first
+    clearConsole: false,              // Clear console before each run
+    maxWorkers: 2,                    // Limit workers in watch mode
+  },
+});
+```
+
+See [Watch Mode Documentation](./docs/watch-mode.md) for more details.
 
 ## Parallel Execution
 

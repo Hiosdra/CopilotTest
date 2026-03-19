@@ -135,6 +135,46 @@ export interface PlatformConfig {
 }
 
 /**
+ * Watch mode configuration for continuous test execution.
+ */
+export interface WatchConfig {
+  /** Enable watch mode */
+  enabled?: boolean;
+  /** File patterns to watch */
+  include?: string[];
+  /** File patterns to exclude from watching */
+  exclude?: string[];
+  /** Debounce delay in milliseconds before re-running tests */
+  debounce?: number;
+  /** Test execution mode: 'all' | 'related' | 'changed-files' */
+  runMode?: "all" | "related" | "changed-files";
+  /** Run failed tests first */
+  failedFirst?: boolean;
+  /** Clear console before each test run */
+  clearConsole?: boolean;
+  /** Enable desktop notifications */
+  notifications?: boolean;
+  /** Verbose output in watch mode */
+  verbose?: boolean;
+  /** Maximum number of workers in watch mode */
+  maxWorkers?: number;
+}
+
+/**
+ * Performance monitoring configuration.
+ */
+export interface PerformanceConfig {
+  /** Warn if step duration exceeds this threshold in milliseconds */
+  warnThreshold?: number;
+  /** Fail if step duration exceeds this threshold in milliseconds */
+  failThreshold?: number;
+  /** Enable performance trend tracking */
+  trackTrends?: boolean;
+  /** File path for storing performance trends */
+  trendsFile?: string;
+}
+
+/**
  * Main configuration for CopilotTest framework.
  */
 export interface CopilotTestConfig {
@@ -172,6 +212,26 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** Watch mode configuration */
+  watch?: WatchConfig;
+  /** Performance monitoring configuration */
+  performance?: PerformanceConfig;
+}
+
+/**
+ * Performance metrics for a step execution.
+ */
+export interface StepMetrics {
+  /** Total step duration in milliseconds */
+  duration: number;
+  /** Time AI spent processing in milliseconds */
+  aiThinkTime?: number;
+  /** Time executing MCP tools in milliseconds */
+  executionTime?: number;
+  /** Network request time in milliseconds */
+  networkTime?: number;
+  /** Browser render time in milliseconds */
+  renderTime?: number;
 }
 
 /**
@@ -192,6 +252,22 @@ export interface StepResult {
   aiReasoning?: string;
   /** Context updates from this step */
   contextUpdates?: Record<string, unknown>;
+  /** Detailed performance metrics */
+  metrics?: StepMetrics;
+}
+
+/**
+ * Resource usage metrics for a scenario execution.
+ */
+export interface ResourceMetrics {
+  /** Peak memory usage in megabytes */
+  memoryUsed?: number;
+  /** CPU time in milliseconds */
+  cpuTime?: number;
+  /** Number of network requests made */
+  networkRequests?: number;
+  /** Number of screenshots taken */
+  screenshots?: number;
 }
 
 /**
@@ -206,6 +282,8 @@ export interface ScenarioResult {
   steps: StepResult[];
   /** Total duration in milliseconds */
   duration: number;
+  /** Resource usage metrics */
+  resources?: ResourceMetrics;
 }
 
 /**

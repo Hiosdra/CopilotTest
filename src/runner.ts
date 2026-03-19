@@ -1,6 +1,7 @@
 import type { Feature, CopilotTestConfig, FeatureResult, TestRun, ScenarioResult } from "./types.js";
 import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
+import { generatePerformanceReport } from "./performance.js";
 import { cpus } from "os";
 
 /**
@@ -195,6 +196,11 @@ class TestRunner {
       }%`
     );
     console.log(`  Duration: ${duration}ms\n`);
+
+    // Print performance report if enabled
+    if (this.config.performance) {
+      console.log(generatePerformanceReport(testRun));
+    }
 
     const outputDir = this.config.outputDir ?? "copilot-test-results";
     await generateReport(testRun, outputDir);
@@ -515,4 +521,12 @@ export function getEnvironment(): string | undefined {
  */
 export function getConfig(): CopilotTestConfig | null {
   return defaultRunner.getConfig();
+}
+
+/**
+ * Get the default singleton TestRunner instance.
+ * Useful for watch mode and other advanced use cases that need access to the runner's queue.
+ */
+export function getDefaultRunner(): TestRunner {
+  return defaultRunner;
 }
