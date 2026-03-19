@@ -12,6 +12,13 @@ export {
   clearStepDefinitions,
   getStepDefinitions,
 } from "./step-registry.js";
+export {
+  calculateRetryDelay,
+  shouldRetryStep,
+  isFlaky,
+  reportFlakyTest,
+  DEFAULT_RETRY_CONFIG,
+} from "./retry.js";
 
 export type {
   Platform,
@@ -30,5 +37,10 @@ export type {
   StepContext,
   StepDefinition,
   StepDefinitionHandler,
+  RetryConfig,
+  RetryStrategy,
+  RetryAttempt,
+  ShouldRetryFn,
+  DelayFn,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";

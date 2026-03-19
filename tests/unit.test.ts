@@ -1112,6 +1112,222 @@ configure({
 
 assert(true, "parallel config disabled");
 
+// ── Retry Mechanisms ─────────────────────────────────────────
+
+section("Retry — calculateRetryDelay");
+
+const { calculateRetryDelay, shouldRetryStep, isFlaky } = await import("../src/retry.js");
+import type { RetryConfig } from "../src/types.js";
+
+// Test fixed strategy
+const fixedConfig: RetryConfig = {
+  enabled: true,
+  strategy: "fixed",
+  stepRetryDelay: 1000,
+};
+
+assertEqual(calculateRetryDelay(1, fixedConfig), 1000, "fixed delay for attempt 1");
+assertEqual(calculateRetryDelay(2, fixedConfig), 1000, "fixed delay for attempt 2");
+assertEqual(calculateRetryDelay(3, fixedConfig), 1000, "fixed delay for attempt 3");
+
+// Test exponential strategy
+const exponentialConfig: RetryConfig = {
+  enabled: true,
+  strategy: "exponential",
+  initialDelay: 100,
+  backoffFactor: 2,
+  maxDelay: 1000,
+};
+
+assertEqual(calculateRetryDelay(1, exponentialConfig), 100, "exponential delay attempt 1: 100ms");
+assertEqual(calculateRetryDelay(2, exponentialConfig), 200, "exponential delay attempt 2: 200ms");
+assertEqual(calculateRetryDelay(3, exponentialConfig), 400, "exponential delay attempt 3: 400ms");
+assertEqual(calculateRetryDelay(4, exponentialConfig), 800, "exponential delay attempt 4: 800ms");
+assertEqual(calculateRetryDelay(5, exponentialConfig), 1000, "exponential delay attempt 5: capped at 1000ms");
+assertEqual(calculateRetryDelay(6, exponentialConfig), 1000, "exponential delay attempt 6: still capped at 1000ms");
+
+// Test custom delay function
+const customConfig: RetryConfig = {
+  enabled: true,
+  strategy: "custom",
+  delayFn: (attempt) => attempt * 500,
+};
+
+assertEqual(calculateRetryDelay(1, customConfig), 500, "custom delay attempt 1");
+assertEqual(calculateRetryDelay(2, customConfig), 1000, "custom delay attempt 2");
+assertEqual(calculateRetryDelay(3, customConfig), 1500, "custom delay attempt 3");
+
+section("Retry — shouldRetryStep");
+
+// Test default behavior (retry everything)
+const defaultConfig: RetryConfig = { enabled: true };
+assert(shouldRetryStep("Network timeout", 1, defaultConfig, 3), "retries timeout by default");
+assert(shouldRetryStep("Connection refused", 1, defaultConfig, 3), "retries connection error by default");
+assert(shouldRetryStep("Assertion failed", 1, defaultConfig, 3), "retries assertion error by default");
+
+// Test retryOn patterns (only retry matching errors)
+const retryOnConfig: RetryConfig = {
+  enabled: true,
+  retryOn: ["timeout", /network error/i],
+};
+
+assert(shouldRetryStep("Network timeout", 1, retryOnConfig, 3), "retries on 'timeout' match");
+assert(shouldRetryStep("Network Error: Connection lost", 1, retryOnConfig, 3), "retries on regex match");
+assert(!shouldRetryStep("Assertion failed", 1, retryOnConfig, 3), "doesn't retry non-matching error");
+assert(!shouldRetryStep("Validation error", 1, retryOnConfig, 3), "doesn't retry validation error");
+
+// Test skipRetryOn patterns (skip specific errors)
+const skipRetryConfig: RetryConfig = {
+  enabled: true,
+  skipRetryOn: ["assertion failed", /validation error/i],
+};
+
+assert(!shouldRetryStep("Assertion failed", 1, skipRetryConfig, 3), "skips 'assertion failed'");
+assert(!shouldRetryStep("Validation Error: Invalid input", 1, skipRetryConfig, 3), "skips validation error");
+assert(shouldRetryStep("Network timeout", 1, skipRetryConfig, 3), "retries timeout (not skipped)");
+assert(shouldRetryStep("Connection refused", 1, skipRetryConfig, 3), "retries connection error (not skipped)");
+
+// Test max retries
+assert(!shouldRetryStep("Network timeout", 4, defaultConfig, 3), "doesn't retry when max retries exceeded");
+
+// Test custom shouldRetry function
+const customRetryConfig: RetryConfig = {
+  enabled: true,
+  shouldRetry: (error, attempt) => {
+    const msg = typeof error === "string" ? error : error.message;
+    const lowerMsg = msg.toLowerCase();  // Case-insensitive matching
+    if (lowerMsg.includes("rate limit")) {
+      return attempt <= 4;  // Retry on attempts 1-4, don't retry on attempt 5+
+    }
+    if (lowerMsg.includes("server error")) {
+      return attempt <= 2;  // Retry on attempts 1-2, don't retry on attempt 3+
+    }
+    return false;
+  },
+};
+
+assert(shouldRetryStep("Rate limit exceeded", 1, customRetryConfig, 10), "custom retry for rate limit");
+assert(shouldRetryStep("Rate limit exceeded", 4, customRetryConfig, 10), "custom retry attempt 4 for rate limit");
+assert(!shouldRetryStep("Rate limit exceeded", 5, customRetryConfig, 10), "no retry attempt 5 for rate limit");
+assert(shouldRetryStep("Server error 500", 1, customRetryConfig, 10), "custom retry for server error");
+assert(shouldRetryStep("Server error 500", 2, customRetryConfig, 10), "custom retry attempt 2 for server error");
+assert(!shouldRetryStep("Server error 500", 3, customRetryConfig, 10), "no retry attempt 3 for server error");
+assert(!shouldRetryStep("Assertion failed", 1, customRetryConfig, 10), "custom doesn't retry assertion");
+
+section("Retry — isFlaky detection");
+
+const flakyConfig: RetryConfig = {
+  enabled: true,
+  trackFlaky: true,
+  flakyThreshold: 2,
+};
+
+assert(!isFlaky(0, flakyConfig), "not flaky with 0 retries");
+assert(!isFlaky(1, flakyConfig), "not flaky with 1 retry (below threshold)");
+assert(isFlaky(2, flakyConfig), "flaky with 2 retries (at threshold)");
+assert(isFlaky(3, flakyConfig), "flaky with 3 retries (above threshold)");
+
+const flakyDisabledConfig: RetryConfig = {
+  enabled: true,
+  trackFlaky: false,
+};
+
+assert(!isFlaky(5, flakyDisabledConfig), "not flaky when tracking disabled");
+
+section("Retry — HTML report rendering with retries");
+
+// Create a test run with retry information
+const retryTestRun: TestRun = {
+  startedAt: new Date("2026-03-19T12:00:00Z"),
+  finishedAt: new Date("2026-03-19T12:00:05Z"),
+  features: [
+    {
+      feature: {
+        name: "Retry Test Feature",
+        tags: [],
+        scenarios: [
+          {
+            name: "Flaky scenario",
+            tags: ["@flaky"],
+            steps: [
+              { keyword: "Given", text: "a flaky step" },
+            ],
+          },
+        ],
+      },
+      scenarios: [
+        {
+          scenario: {
+            name: "Flaky scenario",
+            tags: ["@flaky"],
+            steps: [{ keyword: "Given", text: "a flaky step" }],
+          },
+          status: "passed",
+          duration: 3500,
+          steps: [
+            {
+              step: { keyword: "Given", text: "a flaky step" },
+              status: "passed",
+              duration: 3500,
+              retryCount: 2,
+              retryAttempts: [
+                { attemptNumber: 1, status: "failed", duration: 1000, error: "Timeout" },
+                { attemptNumber: 2, status: "failed", duration: 1200, error: "Network error" },
+                { attemptNumber: 3, status: "passed", duration: 1300 },
+              ],
+            },
+          ],
+        },
+      ],
+      duration: 3500,
+    },
+  ],
+  summary: { total: 1, passed: 1, failed: 0, skipped: 0 },
+};
+
+const retryHtml = buildHtmlReport(retryTestRun);
+
+assert(retryHtml.includes("Retried 2x"), "HTML report includes retry badge");
+assert(retryHtml.includes("Attempt 1"), "HTML report includes attempt 1");
+assert(retryHtml.includes("Attempt 2"), "HTML report includes attempt 2");
+assert(retryHtml.includes("Attempt 3"), "HTML report includes attempt 3");
+assert(retryHtml.includes("Timeout"), "HTML report includes first error");
+assert(retryHtml.includes("Network error"), "HTML report includes second error");
+assert(retryHtml.includes("retry-badge"), "HTML report has retry badge CSS class");
+assert(retryHtml.includes("retry-details"), "HTML report has retry details CSS class");
+
+section("Retry — Step execution with retries");
+
+// Test that retry logic integrates with runtime
+const retryRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+  retry: {
+    enabled: true,
+    stepRetries: 2,
+    stepRetryDelay: 10, // Very short delay for testing
+    strategy: "fixed",
+  },
+});
+
+await retryRuntime.start();
+
+// Create a simple step and context
+const retryTestStep: Step = { keyword: "When", text: "test step executes" };
+const retryTestContext = new ScenarioContext();
+
+// Execute step (should work in mock mode)
+const retryStepResult = await retryRuntime.executeStep(
+  retryTestStep,
+  { _mock: true },
+  retryTestContext
+);
+
+assertEqual(retryStepResult.status, "passed", "retry runtime executes step successfully");
+// In mock mode, steps always pass on first try, so retryCount should be 0
+assertEqual(retryStepResult.retryCount ?? 0, 0, "no retries needed in mock mode");
+
+await retryRuntime.stop();
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));

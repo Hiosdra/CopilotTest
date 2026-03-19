@@ -8,6 +8,65 @@
 export type Platform = "web" | "mobile" | "api" | "desktop";
 
 /**
+ * Retry strategy types for backoff behavior.
+ * - fixed: Wait a constant delay between retries
+ * - exponential: Double the delay each time (with optional cap)
+ * - custom: Use a custom delay function
+ */
+export type RetryStrategy = "fixed" | "exponential" | "custom";
+
+/**
+ * Custom function to determine whether a step should be retried.
+ * @param error - The error that occurred
+ * @param attempt - The current attempt number (1-indexed)
+ * @returns True if the step should be retried, false otherwise
+ */
+export type ShouldRetryFn = (error: Error | string, attempt: number) => boolean;
+
+/**
+ * Custom function to calculate retry delay.
+ * @param attempt - The current attempt number (1-indexed)
+ * @returns Delay in milliseconds before the next retry
+ */
+export type DelayFn = (attempt: number) => number;
+
+/**
+ * Configuration for retry and error recovery behavior.
+ */
+export interface RetryConfig {
+  /** Enable retry functionality */
+  enabled?: boolean;
+  /** Number of times to retry individual steps (default: 0) */
+  stepRetries?: number;
+  /** Delay between step retries in milliseconds (for fixed strategy, default: 1000) */
+  stepRetryDelay?: number;
+  /** Number of times to retry entire scenarios (default: 0) */
+  scenarioRetries?: number;
+  /** Retry strategy: fixed, exponential, or custom */
+  strategy?: RetryStrategy;
+  /** Initial delay for exponential backoff (default: 1000ms) */
+  initialDelay?: number;
+  /** Maximum delay cap for exponential backoff (default: 10000ms) */
+  maxDelay?: number;
+  /** Backoff multiplier for exponential strategy (default: 2) */
+  backoffFactor?: number;
+  /** Array of error messages/patterns to retry on (strings or RegExp) */
+  retryOn?: Array<string | RegExp>;
+  /** Array of error messages/patterns to skip retry on (strings or RegExp) */
+  skipRetryOn?: Array<string | RegExp>;
+  /** Custom function to determine if retry should happen */
+  shouldRetry?: ShouldRetryFn;
+  /** Custom function to calculate retry delay */
+  delayFn?: DelayFn;
+  /** Track and report flaky tests that pass only after retries */
+  trackFlaky?: boolean;
+  /** Number of retries required to consider a test flaky (default: 2) */
+  flakyThreshold?: number;
+  /** Callback when a flaky test is detected */
+  onFlakyDetected?: (scenarioName: string, attempts: number) => void;
+}
+
+/**
  * BDD step keywords from Gherkin syntax.
  */
 export type StepKeyword = "Given" | "When" | "Then" | "And" | "But";
@@ -146,7 +205,7 @@ export interface CopilotTestConfig {
   baseUrl?: string;
   /** Timeout per step in milliseconds */
   stepTimeout?: number;
-  /** Number of times to retry failed scenarios */
+  /** Number of times to retry failed scenarios (deprecated: use retry.scenarioRetries) */
   retries?: number;
   /** Capture screenshots on test failure */
   screenshotOnFailure?: boolean;
@@ -172,6 +231,22 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** Retry and error recovery configuration */
+  retry?: RetryConfig;
+}
+
+/**
+ * Information about a single retry attempt.
+ */
+export interface RetryAttempt {
+  /** Attempt number (1-indexed) */
+  attemptNumber: number;
+  /** Status of this attempt */
+  status: "passed" | "failed" | "skipped" | "pending";
+  /** Duration of this attempt in milliseconds */
+  duration: number;
+  /** Error message if failed */
+  error?: string;
 }
 
 /**
@@ -192,6 +267,10 @@ export interface StepResult {
   aiReasoning?: string;
   /** Context updates from this step */
   contextUpdates?: Record<string, unknown>;
+  /** Number of retry attempts made (0 if passed on first try) */
+  retryCount?: number;
+  /** Details of each retry attempt */
+  retryAttempts?: RetryAttempt[];
 }
 
 /**
