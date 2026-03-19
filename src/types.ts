@@ -52,6 +52,10 @@ export interface CopilotTestConfig {
   outputDir?: string;
   mcpServers?: Record<string, McpServerConfig>;
   reasoningEffort?: "low" | "medium" | "high";
+  parallel?: boolean;
+  maxWorkers?: number | "auto";
+  workerTimeout?: number;
+  failFast?: boolean;
 }
 
 export interface StepResult {

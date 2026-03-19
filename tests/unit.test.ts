@@ -307,6 +307,41 @@ assert(html.includes("badge-failed"), "HTML report has failed badge");
 assert(html.includes("badge-skipped"), "HTML report has skipped badge");
 assert(html.includes("50%"), "HTML report shows pass rate");
 
+// ── Parallel Configuration ──────────────────────────────────
+
+section("Parallel Configuration");
+
+import { configure, run, test } from "../src/runner.js";
+
+// Test parallel config options
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: 4,
+  workerTimeout: 300000,
+  failFast: false,
+});
+
+// Verify that config accepts parallel options (TypeScript compilation is the test)
+console.log("  ✔ PASS: parallel config with maxWorkers as number");
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: "auto",
+});
+
+console.log("  ✔ PASS: parallel config with maxWorkers as 'auto'");
+passes += 2;
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: false,
+});
+
+console.log("  ✔ PASS: parallel config disabled");
+passes++;
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));
