@@ -12,6 +12,11 @@ export {
   clearStepDefinitions,
   getStepDefinitions,
 } from "./step-registry.js";
+export {
+  VisualRegression,
+  createVisualRegression,
+  defaultVisualConfig,
+} from "./visual-regression.js";
 
 export type {
   Platform,
@@ -32,3 +37,9 @@ export type {
   StepDefinitionHandler,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+export type {
+  VisualRegressionConfig,
+  CompareScreenshotOptions,
+  VisualComparisonResult,
+  ViewportSize,
+} from "./visual-regression.js";

@@ -499,3 +499,404 @@ Use this data to:
 - Monitor test execution duration trends
 - Identify flaky tests (tests with inconsistent results)
 - Measure improvement or degradation in pass rates
+
+## 🎨 Visual Regression Testing
+
+CopilotTest includes built-in support for visual regression testing to detect unintended visual changes in your application.
+
+### Overview
+
+Visual regression testing captures screenshots of your application and compares them against baseline images to detect:
+- Layout shifts
+- CSS changes
+- Font rendering differences
+- Color changes
+- Image differences
+- Responsive design issues
+
+### Quick Start
+
+```typescript
+import { configure, feature, test, run, webPlatform } from 'copilot-test';
+
+configure({
+  model: 'gpt-4o',
+  platforms: {
+    web: webPlatform({
+      browser: 'chromium',
+      headless: true,
+    }),
+  },
+  visualRegression: {
+    enabled: true,
+    threshold: 0.1,        // 0.1% difference tolerance
+    baselineDir: 'tests/visual-baselines',
+    diffDir: 'copilot-test-results/visual-diffs',
+    algorithm: 'pixel',    // 'pixel' | 'perceptual' | 'ssim'
+  },
+});
+
+test(
+  feature('Homepage Visual Regression')
+    .scenario('Visual consistency check')
+      .given('I am on https://example.com')
+      .then('I take a full page screenshot named "homepage-full"')
+      .and('the visual appearance matches the baseline within 0.1% threshold')
+      .done()
+    ._build(),
+  'web'
+);
+
+await run();
+```
+
+### Configuration Options
+
+Add visual regression configuration to your `configure()` call:
+
+```typescript
+configure({
+  platforms: { web: webPlatform() },
+  visualRegression: {
+    enabled: true,           // Enable visual regression testing
+    threshold: 0.1,          // Difference tolerance (0-100%)
+    baselineDir: 'tests/visual-baselines',  // Where baselines are stored
+    diffDir: 'copilot-test-results/visual-diffs',  // Where diffs are saved
+    algorithm: 'pixel',      // Comparison algorithm
+  },
+});
+```
+
+### Comparison Features
+
+#### 1. Full Page Screenshots
+
+```typescript
+feature('Full Page Visual Test')
+  .scenario('Homepage appearance')
+    .given('I am on https://example.com')
+    .then('I take a full page screenshot named "homepage"')
+    .and('the visual appearance matches the baseline')
+    .done();
+```
+
+#### 2. Element Screenshots
+
+```typescript
+feature('Component Visual Test')
+  .scenario('Product card appearance')
+    .given('I am on https://example.com/products')
+    .when('I locate the product card element')
+    .then('I take a screenshot of the element named "product-card"')
+    .and('the element appearance matches the baseline')
+    .done();
+```
+
+#### 3. Responsive Testing
+
+Test visual appearance across different viewports:
+
+```typescript
+feature('Responsive Design')
+  .scenario('Desktop viewport')
+    .given('I am on https://example.com')
+    .and('the viewport is 1920x1080 pixels')
+    .then('I take a screenshot named "homepage-desktop"')
+    .and('the appearance matches the baseline')
+    .done()
+  .scenario('Tablet viewport')
+    .given('I am on https://example.com')
+    .and('the viewport is 768x1024 pixels')
+    .then('I take a screenshot named "homepage-tablet"')
+    .and('the appearance matches the baseline')
+    .done()
+  .scenario('Mobile viewport')
+    .given('I am on https://example.com')
+    .and('the viewport is 375x667 pixels')
+    .then('I take a screenshot named "homepage-mobile"')
+    .and('the appearance matches the baseline')
+    .done();
+```
+
+#### 4. Hiding Dynamic Content
+
+Exclude dynamic elements that change frequently:
+
+```typescript
+feature('Visual Test with Dynamic Content')
+  .scenario('Hide dynamic elements')
+    .given('I am on https://example.com/dashboard')
+    .when('I hide elements with class "timestamp"')
+    .and('I hide elements with class "ad-banner"')
+    .and('I hide elements with class "dynamic-content"')
+    .then('I take a screenshot named "dashboard-stable"')
+    .and('the appearance matches the baseline')
+    .done();
+```
+
+#### 5. Waiting for Stability
+
+Wait for animations and fonts to load before capturing:
+
+```typescript
+feature('Animated Page Visual Test')
+  .scenario('Wait for stability')
+    .given('I am on https://example.com/animated-page')
+    .and('I wait for all CSS animations to complete')
+    .and('I wait for all web fonts to load')
+    .and('I wait 1000ms for page stability')
+    .then('I take a screenshot named "animated-page-stable"')
+    .and('the appearance matches the baseline')
+    .done();
+```
+
+### Programmatic API
+
+You can also use the visual regression API directly:
+
+```typescript
+import { createVisualRegression } from 'copilot-test';
+
+const visual = createVisualRegression({
+  enabled: true,
+  threshold: 0.1,
+  baselineDir: 'tests/visual-baselines',
+  diffDir: 'copilot-test-results/visual-diffs',
+});
+
+// Enable baseline update mode
+visual.enableBaselineUpdate();
+
+// Compare screenshot
+const result = await visual.compareScreenshot(page, 'homepage', {
+  fullPage: true,
+  threshold: 0.05,
+  hideElements: ['.timestamp', '.ad-banner'],
+});
+
+if (!result.passed) {
+  console.log(`Visual difference: ${result.difference}%`);
+  console.log(`Diff pixels: ${result.diffPixels}`);
+  console.log(`Diff image: ${result.diffPath}`);
+}
+
+// Compare element
+const elementResult = await visual.compareElement(
+  page.locator('.product-card'),
+  'product-card',
+  { threshold: 0.1 }
+);
+
+// Responsive comparison
+const responsiveResults = await visual.compareResponsive(
+  page,
+  'homepage',
+  { breakpoints: ['desktop', 'tablet', 'mobile'] }
+);
+```
+
+### Managing Baselines
+
+#### Creating Initial Baselines
+
+Run your tests with baseline update mode to create initial baseline images:
+
+```bash
+# Set environment variable to update baselines
+npm run test:visual -- --update-visual-baselines
+
+# Or programmatically
+visual.enableBaselineUpdate();
+```
+
+Baselines are stored in your configured `baselineDir` (default: `tests/visual-baselines/`):
+
+```
+tests/visual-baselines/
+├── homepage-desktop.png
+├── homepage-tablet.png
+├── homepage-mobile.png
+└── product-card.png
+```
+
+#### Updating Baselines
+
+When you intentionally change the UI, update baselines:
+
+```bash
+# Update all baselines
+npm run test:visual -- --update-visual-baselines
+
+# Or selectively approve changes after review
+visual.enableBaselineUpdate();
+```
+
+#### Reviewing Differences
+
+When tests fail due to visual differences, review the diff images:
+
+```
+copilot-test-results/visual-diffs/
+├── homepage-current.png        # Current screenshot
+├── homepage-diff.png           # Highlighted differences
+├── product-card-current.png
+└── product-card-diff.png
+```
+
+### CI/CD Integration
+
+#### Store Baselines in Git
+
+Commit baseline images to version control:
+
+```bash
+git add tests/visual-baselines/
+git commit -m "Add visual regression baselines"
+```
+
+#### GitHub Actions Example
+
+```yaml
+name: Visual Regression Tests
+on: [push, pull_request]
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+      - run: npm run build
+
+      # Run visual regression tests
+      - name: Run visual tests
+        run: npm run test:visual
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_VISUAL_LIVE: 1
+
+      # Upload diffs on failure
+      - name: Upload visual diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: copilot-test-results/visual-diffs/
+
+      # Upload reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: copilot-test-results/
+```
+
+### Comparison Algorithms
+
+Choose the algorithm that best fits your needs:
+
+- **pixel**: Fast pixel-level comparison (default)
+  - Best for exact visual matching
+  - Sensitive to anti-aliasing differences
+
+- **perceptual**: Human perception-based comparison
+  - Better for detecting meaningful visual changes
+  - More tolerant of minor rendering differences
+
+- **ssim**: Structural Similarity Index (SSIM)
+  - Compares image structure and patterns
+  - Good for detecting layout changes
+
+### Advanced Options
+
+#### Custom Tolerance Per Test
+
+Override the global threshold for specific tests:
+
+```typescript
+feature('Strict Visual Test')
+  .scenario('Exact match required')
+    .given('I am on https://example.com')
+    .then('I take a screenshot with 0.01% threshold named "exact-match"')
+    .and('the appearance matches the baseline')
+    .done();
+```
+
+#### Ignore Regions
+
+Ignore specific regions during comparison:
+
+```typescript
+// Using programmatic API
+const result = await visual.compareScreenshot(page, 'dashboard', {
+  ignoreRegions: [
+    { x: 0, y: 0, width: 200, height: 50 },  // Header area
+    { x: 800, y: 600, width: 300, height: 200 },  // Ad banner
+  ],
+});
+```
+
+### Best Practices
+
+1. **Baseline Management**
+   - Store baselines in version control
+   - Review visual diffs before updating baselines
+   - Document intentional visual changes
+
+2. **Test Stability**
+   - Hide dynamic content (timestamps, ads, etc.)
+   - Wait for animations to complete
+   - Ensure fonts are loaded before capturing
+
+3. **Viewport Testing**
+   - Test key breakpoints: desktop, tablet, mobile
+   - Use consistent viewport sizes
+   - Test both portrait and landscape orientations
+
+4. **Threshold Tuning**
+   - Start with 0.1% threshold
+   - Increase for tests with unavoidable variations
+   - Use stricter thresholds for critical UI components
+
+5. **CI/CD Integration**
+   - Run visual tests in consistent environments
+   - Upload diffs as artifacts for review
+   - Consider using dedicated visual testing services for cross-browser testing
+
+### Example Output
+
+When visual differences are detected:
+
+```
+Visual Regression Test Failed
+
+Homepage Comparison:
+  Baseline:   tests/visual-baselines/homepage.png
+  Current:    copilot-test-results/visual-diffs/homepage-current.png
+  Diff:       copilot-test-results/visual-diffs/homepage-diff.png
+
+  Difference: 2.3% (threshold: 0.1%)
+  Changed pixels: 4,521
+
+  Status: FAILED
+```
+
+### Troubleshooting
+
+**Issue**: Tests fail with small differences on CI but pass locally
+- **Solution**: Ensure consistent environment (fonts, browser version, OS)
+
+**Issue**: Fonts look different between runs
+- **Solution**: Wait for web fonts to load before capturing screenshots
+
+**Issue**: Animations cause inconsistent results
+- **Solution**: Wait for animations to complete or hide animated elements
+
+**Issue**: Dynamic content causes failures
+- **Solution**: Hide dynamic elements or use ignore regions
+

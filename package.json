@@ -12,6 +12,7 @@
     "test:web": "tsx tests/login.spec.ts",
     "test:api": "tsx tests/api-users.spec.ts",
     "test:mobile": "tsx tests/mobile-app.spec.ts",
+    "test:visual": "tsx tests/visual-regression.example.ts",
     "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts"
   },
   "dependencies": {

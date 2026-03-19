@@ -1112,6 +1112,79 @@ configure({
 
 assert(true, "parallel config disabled");
 
+// ── Visual Regression ────────────────────────────────────────
+
+section("Visual Regression — Configuration");
+
+import {
+  createVisualRegression,
+  defaultVisualConfig,
+  VisualRegression,
+} from "../src/visual-regression.js";
+import type { VisualRegressionConfig } from "../src/visual-regression.js";
+
+// Test default config
+assertEqual(defaultVisualConfig.enabled, false, "default visual regression is disabled");
+assertEqual(defaultVisualConfig.threshold, 0.1, "default threshold is 0.1%");
+assertEqual(defaultVisualConfig.baselineDir, "tests/visual-baselines", "default baseline dir");
+assertEqual(defaultVisualConfig.diffDir, "copilot-test-results/visual-diffs", "default diff dir");
+assertEqual(defaultVisualConfig.algorithm, "pixel", "default algorithm is pixel");
+
+// Test creating visual regression instance
+const visualConfig: VisualRegressionConfig = {
+  enabled: true,
+  threshold: 0.5,
+  baselineDir: "custom/baselines",
+  diffDir: "custom/diffs",
+  algorithm: "perceptual",
+};
+
+const visual = createVisualRegression(visualConfig);
+assert(visual instanceof VisualRegression, "creates VisualRegression instance");
+
+const config = visual.getConfig();
+assertEqual(config.enabled, true, "config enabled is set");
+assertEqual(config.threshold, 0.5, "config threshold is set");
+assertEqual(config.baselineDir, "custom/baselines", "config baseline dir is set");
+assertEqual(config.diffDir, "custom/diffs", "config diff dir is set");
+assertEqual(config.algorithm, "perceptual", "config algorithm is set");
+
+section("Visual Regression — Baseline Update Mode");
+
+const visualTest = createVisualRegression(defaultVisualConfig);
+assertEqual(visualTest.isBaselineUpdateEnabled(), false, "baseline update is disabled by default");
+
+visualTest.enableBaselineUpdate();
+assertEqual(visualTest.isBaselineUpdateEnabled(), true, "baseline update can be enabled");
+
+visualTest.disableBaselineUpdate();
+assertEqual(visualTest.isBaselineUpdateEnabled(), false, "baseline update can be disabled");
+
+section("Visual Regression — Config Update");
+
+const visualUpdate = createVisualRegression(defaultVisualConfig);
+visualUpdate.updateConfig({ threshold: 1.5, enabled: true });
+const updatedConfig = visualUpdate.getConfig();
+assertEqual(updatedConfig.threshold, 1.5, "config threshold is updated");
+assertEqual(updatedConfig.enabled, true, "config enabled is updated");
+assertEqual(updatedConfig.baselineDir, "tests/visual-baselines", "other config remains unchanged");
+
+section("Visual Regression — Type Configuration");
+
+// Test that visual regression config works with CopilotTestConfig
+configure({
+  platforms: { web: webPlatform() },
+  visualRegression: {
+    enabled: true,
+    threshold: 0.1,
+    baselineDir: "tests/visual-baselines",
+    diffDir: "copilot-test-results/visual-diffs",
+    algorithm: "pixel",
+  },
+});
+
+assert(true, "visual regression config integrates with CopilotTestConfig");
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));

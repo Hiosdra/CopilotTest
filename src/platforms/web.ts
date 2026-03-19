@@ -4,6 +4,12 @@ export interface WebPlatformOptions {
   browser?: "chromium" | "firefox" | "webkit";
   headless?: boolean;
   baseUrl?: string;
+  visualRegression?: {
+    enabled?: boolean;
+    threshold?: number;
+    baselineDir?: string;
+    diffDir?: string;
+  };
 }
 
 export function webPlatform(options: WebPlatformOptions = {}): PlatformConfig {
@@ -21,6 +27,9 @@ export function webPlatform(options: WebPlatformOptions = {}): PlatformConfig {
     "Use the Playwright tools to navigate, click, type, and verify page content.",
     options.baseUrl ? `The application base URL is: ${options.baseUrl}` : "",
     "Take screenshots when verifying visual states.",
+    options.visualRegression?.enabled
+      ? `Visual regression testing is enabled. Use browser_take_screenshot to capture images for comparison.`
+      : "",
     "Report test outcomes as JSON: { status: 'passed'|'failed', reasoning: string, error?: string }",
   ]
     .filter(Boolean)

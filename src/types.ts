@@ -172,6 +172,19 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** Visual regression testing configuration */
+  visualRegression?: {
+    /** Enable visual regression testing */
+    enabled: boolean;
+    /** Difference tolerance as a percentage (0-100) */
+    threshold: number;
+    /** Directory for storing baseline images */
+    baselineDir: string;
+    /** Directory for storing diff images */
+    diffDir: string;
+    /** Comparison algorithm to use */
+    algorithm?: "pixel" | "perceptual" | "ssim";
+  };
 }
 
 /**
