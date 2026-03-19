@@ -167,8 +167,10 @@ configure({
 Run tests continuously during development with automatic re-execution on file changes:
 
 ```bash
-npm run test:watch
+npm run test:watch tests/login.spec.ts
 ```
+
+**Note**: Watch mode CLI requires a test file path. The test file should call `configure()` and `test()` but NOT `run()` - watch mode handles test execution.
 
 ### Interactive Controls
 

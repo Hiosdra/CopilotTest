@@ -32,15 +32,17 @@ configure({
     include: ["src/**/*.ts", "tests/**/*.spec.ts"],
     exclude: ["node_modules/**", "dist/**", "**/.*"],
     debounce: 300,           // Wait 300ms before re-running
-    runMode: "all",          // 'all' | 'related' | 'changed-files'
-    failedFirst: true,       // Run failed tests first
+    runMode: "all",          // 'all' | 'related' | 'changed-files' (only 'all' currently implemented)
+    failedFirst: true,       // Run failed tests first (future enhancement)
     clearConsole: false,     // Clear console before each run
-    notifications: false,    // OS notifications (future feature)
+    notifications: false,    // OS notifications (future enhancement)
     verbose: true,           // Verbose output
-    maxWorkers: 2,           // Limit workers in watch mode
+    maxWorkers: 2,           // Limit workers in watch mode (uses global maxWorkers for now)
   },
 });
 ```
+
+**Note**: Some configuration options like `runMode: "related"/"changed-files"`, `failedFirst`, `notifications`, and watch-specific `maxWorkers` are defined in the API but not fully implemented yet. They are reserved for future enhancements. Currently supported options are: `enabled`, `include`, `exclude`, `debounce`, and `clearConsole`.
 
 ## Watch Mode Options
 
@@ -75,7 +77,9 @@ Show OS notifications on test completion. Default: `false` (future feature)
 Enable verbose output during watch mode. Default: `false`
 
 ### `maxWorkers`
-Maximum number of parallel workers in watch mode. Default: CPU count - 1
+Maximum number of parallel workers in watch mode.
+
+**Note**: This option is currently reserved for future use. The current implementation uses the global `maxWorkers` configuration and does not apply watch-specific worker limits.
 
 ## Interactive Controls
 
@@ -108,7 +112,7 @@ Press `Enter` to re-run the tests without waiting for file changes.
 ### Basic Watch Mode
 
 ```typescript
-import { configure, test, feature, startWatchMode, TestRunner } from "copilot-test";
+import { configure, test, feature, getDefaultRunner, startWatchMode, getConfig } from "copilot-test";
 import { webPlatform } from "copilot-test";
 
 configure({
@@ -127,9 +131,9 @@ test(
   "web"
 );
 
-// Start watch mode
-const runner = new TestRunner();
-const config = runner.getConfig();
+// Start watch mode using the configured singleton runner
+const config = getConfig();
+const runner = getDefaultRunner();
 if (config) {
   await startWatchMode(config, runner);
 }
@@ -208,27 +212,33 @@ Interactive Commands:
 
 ## CI/CD Usage
 
-Watch mode automatically detects non-TTY environments and disables interactive features, making it safe to use in CI/CD pipelines (though typically you'd use regular test execution in CI):
+Watch mode automatically detects non-TTY environments and disables interactive keyboard controls. However, watch mode will continue watching for file changes indefinitely even in CI/non-interactive environments.
+
+**For CI/CD pipelines, you should run tests once in non-watch mode instead:**
 
 ```bash
-# In CI/CD, watch mode will run once and exit
-npm run test:watch
+# In CI/CD, prefer running tests once without watch mode
+npm test
+# or for specific tests:
+npm run test:web
 ```
+
+If you accidentally run watch mode in CI, it will not hang on interactive prompts, but it will keep the process alive indefinitely watching for changes.
 
 ## Programmatic API
 
 You can also start watch mode programmatically:
 
 ```typescript
-import { startWatchMode, TestRunner, configure } from "copilot-test";
+import { startWatchMode, getDefaultRunner, configure, getConfig } from "copilot-test";
 
 configure({
   platforms: { web: webPlatform() },
   watch: { enabled: true },
 });
 
-const runner = new TestRunner();
-const config = runner.getConfig();
+const config = getConfig();
+const runner = getDefaultRunner();
 
 if (config) {
   await startWatchMode(config, runner);
@@ -261,6 +271,19 @@ if (config) {
 - Increase `debounce` delay to reduce rapid re-runs
 - Reduce `maxWorkers` in watch mode
 - Exclude unnecessary directories
+
+**Note on file watchers**: The current implementation creates one file watcher per matched file. On very large projects (hundreds+ of files), this can hit OS file watcher limits (e.g., `EMFILE` or `ENOSPC` errors on Linux). If you encounter these issues:
+
+1. Increase your system's file watcher limit:
+   ```bash
+   # Linux
+   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+   sudo sysctl -p
+   ```
+
+2. Use more specific `include` patterns to watch fewer files
+
+3. Watch only test files instead of source files if your tests are self-contained
 
 ### Interactive controls not working
 
