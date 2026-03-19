@@ -8,8 +8,10 @@ import type {
   ScenarioResult,
   FeatureResult,
   ScenarioContext,
+  StepContext,
 } from "./types.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
+import { findStepDefinition } from "./step-registry.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -56,6 +58,9 @@ You have access to a shared context object that persists across steps within a s
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
   private client: unknown = null;
+  private currentFeature?: Feature;
+  private currentScenario?: Scenario;
+  private currentPlatform?: PlatformConfig;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
@@ -154,6 +159,11 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
+
+    // Store context for custom step definitions
+    this.currentFeature = feature;
+    this.currentScenario = scenario;
+    this.currentPlatform = platform;
 
     // Build steps including background
     const allSteps: Step[] = [
@@ -303,7 +313,50 @@ export class CopilotTestRuntime {
 
   async executeStep(step: Step, session: unknown, context: ScenarioContext): Promise<StepResult> {
     const startTime = Date.now();
+<<<<<<< HEAD
     const prompt = this.buildStepPrompt(step, context);
+=======
+
+    // Check if custom step definitions are enabled (default: true)
+    const useCustomSteps = this.config.useCustomStepDefinitions !== false;
+
+    // Try to match custom step definition first (if enabled)
+    if (useCustomSteps) {
+      const match = findStepDefinition(step.text);
+      if (match) {
+        try {
+          // Build context for custom step handler
+          const context: StepContext = {
+            step,
+            session,
+            feature: this.currentFeature,
+            scenario: this.currentScenario,
+            platform: this.currentPlatform,
+          };
+
+          // Execute custom step handler with captured matches
+          await match.definition.handler(context, ...match.matches);
+
+          return {
+            step,
+            status: "passed",
+            duration: Date.now() - startTime,
+            aiReasoning: `[Custom] Step "${step.keyword} ${step.text}" executed via custom definition`,
+          };
+        } catch (err) {
+          return {
+            step,
+            status: "failed",
+            duration: Date.now() - startTime,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }
+    }
+
+    // Fall back to AI execution if no custom definition matched
+    const prompt = this.buildStepPrompt(step);
+>>>>>>> origin/main
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
