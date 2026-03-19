@@ -9,7 +9,12 @@ import { buildHtmlReport } from "../src/reporter.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
-import type { Feature, TestRun } from "../src/types.js";
+import {
+  defineStep,
+  clearStepDefinitions,
+  getStepDefinitions,
+} from "../src/step-registry.js";
+import type { Feature, TestRun, StepContext } from "../src/types.js";
 
 let failures = 0;
 let passes = 0;
@@ -306,6 +311,160 @@ assert(html.includes("badge-passed"), "HTML report has passed badge");
 assert(html.includes("badge-failed"), "HTML report has failed badge");
 assert(html.includes("badge-skipped"), "HTML report has skipped badge");
 assert(html.includes("50%"), "HTML report shows pass rate");
+
+// ── Custom Step Definitions ─────────────────────────────────
+
+section("Custom Step Definitions — Registry");
+
+// Clear any existing definitions
+clearStepDefinitions();
+assertEqual(getStepDefinitions().length, 0, "registry starts empty");
+
+// Define some custom steps
+let step1Executed = false;
+let step1Args: string[] = [];
+
+defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username, password) => {
+  step1Executed = true;
+  step1Args = [username, password];
+});
+
+assertEqual(getStepDefinitions().length, 1, "registry has 1 definition after defineStep");
+
+let step2Executed = false;
+defineStep(/^I click the button$/, async () => {
+  step2Executed = true;
+});
+
+assertEqual(getStepDefinitions().length, 2, "registry has 2 definitions");
+
+// ── Custom Step Definitions — Matching ──────────────────────
+
+section("Custom Step Definitions — Pattern Matching");
+
+const { findStepDefinition } = await import("../src/step-registry.js");
+
+const match1 = findStepDefinition('I login as "admin" with password "admin123"');
+assert(match1 !== null, "finds matching step definition");
+assertEqual(match1!.matches.length, 2, "extracts 2 captured groups");
+assertEqual(match1!.matches[0], "admin", "first capture is username");
+assertEqual(match1!.matches[1], "admin123", "second capture is password");
+
+const match2 = findStepDefinition("I click the button");
+assert(match2 !== null, "finds step without captures");
+assertEqual(match2!.matches.length, 0, "no captured groups");
+
+const noMatch = findStepDefinition("I do something that is not defined");
+assertEqual(noMatch, null, "returns null for non-matching step");
+
+// ── Custom Step Definitions — Execution ─────────────────────
+
+section("Custom Step Definitions — Execution");
+
+const customRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+  useCustomStepDefinitions: true,
+});
+
+// Test that custom step executes
+step1Executed = false;
+step1Args = [];
+
+const customStepResult = await customRuntime.executeStep(
+  { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
+  { _mock: true }
+);
+
+assert(step1Executed, "custom step handler was executed");
+assertEqual(step1Args[0], "testuser", "custom step received username");
+assertEqual(step1Args[1], "secret", "custom step received password");
+assertEqual(customStepResult.status, "passed", "custom step result is passed");
+assert(customStepResult.aiReasoning?.includes("[Custom]"), "result indicates custom execution");
+
+// Test that custom step failure is caught
+defineStep(/^I fail deliberately$/, async () => {
+  throw new Error("Intentional test failure");
+});
+
+const failedStepResult = await customRuntime.executeStep(
+  { keyword: "When", text: "I fail deliberately" },
+  { _mock: true }
+);
+
+assertEqual(failedStepResult.status, "failed", "failed custom step returns failed status");
+assert(failedStepResult.error?.includes("Intentional test failure"), "error message is captured");
+
+// ── Custom Step Definitions — Fallback to AI ────────────────
+
+section("Custom Step Definitions — AI Fallback");
+
+// Step without custom definition should fall back to AI (mock mode)
+const aiFallbackResult = await customRuntime.executeStep(
+  { keyword: "Then", text: "I should see the dashboard" },
+  { _mock: true }
+);
+
+assertEqual(aiFallbackResult.status, "passed", "non-custom step uses AI");
+assert(aiFallbackResult.aiReasoning?.includes("[Mock]"), "result indicates mock AI execution");
+
+// ── Custom Step Definitions — Disabled ──────────────────────
+
+section("Custom Step Definitions — Can be Disabled");
+
+const noCustomRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+  useCustomStepDefinitions: false,
+});
+
+step1Executed = false;
+
+const disabledCustomResult = await noCustomRuntime.executeStep(
+  { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
+  { _mock: true }
+);
+
+assert(!step1Executed, "custom step not executed when disabled");
+assertEqual(disabledCustomResult.status, "passed", "falls back to AI when disabled");
+assert(disabledCustomResult.aiReasoning?.includes("[Mock]"), "uses AI execution");
+
+// ── Custom Step Definitions — Context ───────────────────────
+
+section("Custom Step Definitions — Context Object");
+
+let receivedContext: StepContext | null = null;
+
+clearStepDefinitions();
+defineStep(/^I check the context$/, async (context) => {
+  receivedContext = context;
+});
+
+const testFeature = feature("Test Feature").scenario("Test Scenario").given("I check the context").done()._build();
+const testScenario = testFeature.scenarios[0];
+const testPlatform = webPlatform();
+
+const contextRuntime = new CopilotTestRuntime({
+  platforms: { web: testPlatform },
+});
+
+// We need to simulate a scenario run to set the context
+contextRuntime["currentFeature"] = testFeature;
+contextRuntime["currentScenario"] = testScenario;
+contextRuntime["currentPlatform"] = testPlatform;
+
+await contextRuntime.executeStep(
+  { keyword: "Given", text: "I check the context" },
+  { _mock: true }
+);
+
+assert(receivedContext !== null, "context was passed to handler");
+assertEqual(receivedContext!.step.text, "I check the context", "context has step");
+assertEqual(receivedContext!.feature?.name, "Test Feature", "context has feature");
+assertEqual(receivedContext!.scenario?.name, "Test Scenario", "context has scenario");
+assert(receivedContext!.session !== undefined, "context has session");
+assert(receivedContext!.platform !== undefined, "context has platform");
+
+// Clean up
+clearStepDefinitions();
 
 // ── Summary ──────────────────────────────────────────────────
 
