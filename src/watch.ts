@@ -3,7 +3,7 @@ import { TestRunner } from "./runner.js";
 import { watch as fsWatch, FSWatcher } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join, relative, sep } from "path";
-import { stdin as processStdin, stdout as processStdout } from "process";
+import { stdin as processStdin } from "process";
 
 /**
  * Represents the state of the watch mode session
@@ -14,6 +14,7 @@ interface WatchState {
   isRunning: boolean;
   changedFiles: Set<string>;
   watchedFiles: Set<string>;
+  originalQueue: any[]; // Store original test queue
 }
 
 /**
@@ -30,11 +31,13 @@ export class WatchMode {
   constructor(config: CopilotTestConfig, runner: TestRunner) {
     this.config = config;
     this.runner = runner;
+    // Store the original queue before any runs
     this.state = {
       failedScenarios: new Map(),
       isRunning: false,
       changedFiles: new Set(),
       watchedFiles: new Set(),
+      originalQueue: [...runner.getQueue()],
     };
   }
 
@@ -222,9 +225,21 @@ export class WatchMode {
     console.log("=".repeat(60));
 
     try {
+      // Restore the original queue before each run since runner.run() clears it
+      this.runner.clearQueue();
+      for (const testFeature of this.state.originalQueue) {
+        if (testFeature.tags) {
+          this.runner.testOnly(testFeature.feature, testFeature.platform, testFeature.tags);
+        } else {
+          this.runner.test(testFeature.feature, testFeature.platform);
+        }
+      }
+
       // If running failed tests only
       if (mode === "failed" && this.state.failedScenarios.size > 0) {
         console.log(`\n🔍 Re-running ${this.state.failedScenarios.size} failed tests...\n`);
+        // Note: Currently runs all tests. Full failed-only filtering would require
+        // rebuilding the queue with only failed scenarios, which is a future enhancement.
       } else if (this.state.changedFiles.size > 0) {
         const changedFilesList = Array.from(this.state.changedFiles)
           .map((f) => relative(process.cwd(), f))
