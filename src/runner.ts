@@ -3,13 +3,19 @@ import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
 import { cpus } from "os";
 
-interface QueuedFeature {
+/**
+ * Represents a feature queued for test execution along with its platform and optional tag filters.
+ */
+interface TestFeature {
   feature: Feature;
   platform: string;
   tags?: string[];
 }
 
-interface WorkerTask {
+/**
+ * Represents a scenario task for parallel execution in the worker pool.
+ */
+interface ParallelScenarioTask {
   feature: Feature;
   scenarioIndex: number;
   platform: string;
@@ -17,22 +23,202 @@ interface WorkerTask {
   queueIndex: number; // Track which queued feature this belongs to
 }
 
-let globalConfig: CopilotTestConfig | null = null;
-const queue: QueuedFeature[] = [];
+/**
+ * TestRunner manages test configuration and execution queue.
+ * Replaces global state with instance state for better testability and concurrent usage.
+ */
+class TestRunner {
+  private config: CopilotTestConfig | null = null;
+  private queue: TestFeature[] = [];
+
+  configure(config: CopilotTestConfig): void {
+    this.config = config;
+  }
+
+  test(featureOrBuilder: Feature | { _build(): Feature }, platform: string): void {
+    const feat =
+      "_build" in featureOrBuilder
+        ? featureOrBuilder._build()
+        : featureOrBuilder;
+    this.queue.push({ feature: feat, platform });
+  }
+
+  testOnly(
+    featureOrBuilder: Feature | { _build(): Feature },
+    platform: string,
+    tags: string[]
+  ): void {
+    const feat =
+      "_build" in featureOrBuilder
+        ? featureOrBuilder._build()
+        : featureOrBuilder;
+
+    const filtered = {
+      ...feat,
+      scenarios: feat.scenarios.filter((s) =>
+        tags.some((tag) => s.tags.includes(tag) || feat.tags.includes(tag))
+      ),
+    };
+
+    this.queue.push({ feature: filtered, platform, tags });
+  }
+
+  getConfig(): CopilotTestConfig | null {
+    return this.config;
+  }
+
+  getQueue(): TestFeature[] {
+    return this.queue;
+  }
+
+  clearQueue(): void {
+    this.queue.length = 0;
+  }
+
+  /**
+   * Execute all queued tests with this runner's configuration.
+   * Enables multiple concurrent test runners with independent state.
+   * @returns Test run results
+   */
+  async run(): Promise<TestRun> {
+    if (!this.config) {
+      throw new Error("No config set. Call configure() before run().");
+    }
+
+    const runtime = new CopilotTestRuntime(this.config);
+    await runtime.start();
+
+    const startDate = new Date();
+    const testRun: TestRun = {
+      startedAt: startDate,
+      features: [],
+      summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
+    };
+
+    console.log("\n🧪 CopilotTest — AI-Driven BDD Testing Framework\n");
+    console.log("=".repeat(60));
+
+    try {
+      // Use parallel execution if enabled
+      if (this.config.parallel) {
+        testRun.features = await runFeaturesInParallel(runtime, this.queue, this.config);
+      } else {
+        // Sequential execution (original behavior)
+        for (const queued of this.queue) {
+          const { feature, platform } = queued;
+          console.log(`\n📋 Feature: ${feature.name}`);
+
+          let featureResult: FeatureResult;
+          try {
+            featureResult = await runtime.runFeature(feature, platform);
+          } catch (err) {
+            console.error(`  ❌ Feature failed: ${err instanceof Error ? err.message : String(err)}`);
+            continue;
+          }
+
+          testRun.features.push(featureResult);
+
+          for (const scenarioResult of featureResult.scenarios) {
+            const icon = scenarioResult.status === "passed" ? "✅" : "❌";
+            console.log(
+              `  ${icon} Scenario: ${scenarioResult.scenario.name} (${scenarioResult.duration}ms)`
+            );
+
+            for (const stepResult of scenarioResult.steps) {
+              const stepIcon =
+                stepResult.status === "passed"
+                  ? "  ✔"
+                  : stepResult.status === "failed"
+                  ? "  ✘"
+                  : "  ⊘";
+              console.log(
+                `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)`
+              );
+
+              if (stepResult.error) {
+                console.log(`       💬 ${stepResult.error}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Compute summary from all features
+      for (const featureResult of testRun.features) {
+        for (const scenarioResult of featureResult.scenarios) {
+          testRun.summary.total++;
+          if (scenarioResult.status === "passed") {
+            testRun.summary.passed++;
+          } else if (scenarioResult.status === "failed") {
+            testRun.summary.failed++;
+          } else {
+            testRun.summary.skipped++;
+          }
+        }
+      }
+    } finally {
+      await runtime.stop();
+    }
+
+    testRun.finishedAt = new Date();
+    const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
+
+    // Add metadata
+    testRun.metadata = {
+      timestamp: testRun.startedAt.toISOString(),
+      duration,
+      environment: process.env.NODE_ENV || process.env.ENVIRONMENT,
+      git: {
+        branch: process.env.GITHUB_REF_NAME || process.env.GIT_BRANCH,
+        commit: process.env.GITHUB_SHA || process.env.GIT_COMMIT,
+        author: process.env.GITHUB_ACTOR || process.env.GIT_AUTHOR,
+      },
+      ci: {
+        buildNumber: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_NUMBER,
+        jobUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+          ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+          : process.env.BUILD_URL,
+      },
+    };
+
+    console.log("\n" + "=".repeat(60));
+    console.log(`\n📊 Results:`);
+    console.log(`  Total:   ${testRun.summary.total}`);
+    console.log(`  Passed:  ${testRun.summary.passed} ✅`);
+    console.log(`  Failed:  ${testRun.summary.failed} ❌`);
+    console.log(`  Skipped: ${testRun.summary.skipped} ⊘`);
+    console.log(
+      `  Pass rate: ${
+        testRun.summary.total > 0
+          ? Math.round((testRun.summary.passed / testRun.summary.total) * 100)
+          : 0
+      }%`
+    );
+    console.log(`  Duration: ${duration}ms\n`);
+
+    const outputDir = this.config.outputDir ?? "copilot-test-results";
+    await generateReport(testRun, outputDir);
+    console.log(`📁 Report saved to: ${outputDir}/\n`);
+
+    // Clear queue for next run
+    this.clearQueue();
+
+    return testRun;
+  }
+}
+
+// Singleton instance for backwards compatibility with existing API
+const defaultRunner = new TestRunner();
 
 export function configure(config: CopilotTestConfig): void {
-  globalConfig = config;
+  defaultRunner.configure(config);
 }
 
 export function test(
   featureOrBuilder: Feature | { _build(): Feature },
   platform: string
 ): void {
-  const feat =
-    "_build" in featureOrBuilder
-      ? featureOrBuilder._build()
-      : featureOrBuilder;
-  queue.push({ feature: feat, platform });
+  defaultRunner.test(featureOrBuilder, platform);
 }
 
 export function testOnly(
@@ -40,19 +226,7 @@ export function testOnly(
   platform: string,
   tags: string[]
 ): void {
-  const feat =
-    "_build" in featureOrBuilder
-      ? featureOrBuilder._build()
-      : featureOrBuilder;
-
-  const filtered = {
-    ...feat,
-    scenarios: feat.scenarios.filter((s) =>
-      tags.some((tag) => s.tags.includes(tag) || feat.tags.includes(tag))
-    ),
-  };
-
-  queue.push({ feature: filtered, platform, tags });
+  defaultRunner.testOnly(featureOrBuilder, platform, tags);
 }
 
 function getMaxWorkers(config: CopilotTestConfig): number {
@@ -117,25 +291,25 @@ async function runScenarioInWorker(
 
 async function runFeaturesInParallel(
   runtime: CopilotTestRuntime,
-  queuedFeatures: QueuedFeature[],
+  testFeatures: TestFeature[],
   config: CopilotTestConfig
 ): Promise<FeatureResult[]> {
   const maxWorkers = getMaxWorkers(config);
 
   // Pre-allocate results array for each queued feature to maintain order
-  const scenarioResultsByQueue: ScenarioResult[][] = queuedFeatures.map(
-    queued => new Array(queued.feature.scenarios.length)
+  const scenarioResultsByQueue: ScenarioResult[][] = testFeatures.map(
+    testFeature => new Array(testFeature.feature.scenarios.length)
   );
 
   // Create tasks for all scenarios across all features
-  const tasks: WorkerTask[] = [];
-  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
-    const queued = queuedFeatures[queueIndex];
-    for (let scenarioIndex = 0; scenarioIndex < queued.feature.scenarios.length; scenarioIndex++) {
+  const tasks: ParallelScenarioTask[] = [];
+  for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
+    const testFeature = testFeatures[queueIndex];
+    for (let scenarioIndex = 0; scenarioIndex < testFeature.feature.scenarios.length; scenarioIndex++) {
       tasks.push({
-        feature: queued.feature,
+        feature: testFeature.feature,
         scenarioIndex,
-        platform: queued.platform,
+        platform: testFeature.platform,
         workerId: 0, // Will be assigned dynamically
         queueIndex,
       });
@@ -243,13 +417,17 @@ async function runFeaturesInParallel(
 
   // Construct feature results from pre-ordered arrays
   const featureResults: FeatureResult[] = [];
-  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
-    const queued = queuedFeatures[queueIndex];
-    const scenarios = scenarioResultsByQueue[queueIndex];
+  for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
+    const testFeature = testFeatures[queueIndex];
+    const scenariosForQueue = scenarioResultsByQueue[queueIndex] || [];
+    // Filter out undefined entries (can happen when failFast aborts remaining tasks)
+    const scenarios = scenariosForQueue.filter(
+      (s): s is ScenarioResult => s != null
+    );
     const totalDuration = scenarios.reduce((sum, s) => sum + s.duration, 0);
 
     featureResults.push({
-      feature: queued.feature,
+      feature: testFeature.feature,
       scenarios,
       duration: totalDuration,
     });
@@ -259,128 +437,26 @@ async function runFeaturesInParallel(
 }
 
 export async function run(): Promise<TestRun> {
-  if (!globalConfig) {
-    throw new Error("No config set. Call configure() before run().");
-  }
+  return defaultRunner.run();
+}
 
-  const config = globalConfig;
-  const runtime = new CopilotTestRuntime(config);
-  await runtime.start();
+/**
+ * Export TestRunner class for advanced use cases (testing, library usage, multiple concurrent runs)
+ */
+export { TestRunner };
 
-  const startDate = new Date();
-  const testRun: TestRun = {
-    startedAt: startDate,
-    features: [],
-    summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
-  };
+/**
+ * Get the current environment name from environment variables.
+ * Used for reporting and configuration.
+ */
+export function getEnvironment(): string | undefined {
+  return process.env.NODE_ENV || process.env.ENVIRONMENT;
+}
 
-  console.log("\n🧪 CopilotTest — AI-Driven BDD Testing Framework\n");
-  console.log("=".repeat(60));
-
-  try {
-    // Use parallel execution if enabled
-    if (config.parallel) {
-      testRun.features = await runFeaturesInParallel(runtime, queue, config);
-    } else {
-      // Sequential execution (original behavior)
-      for (const queued of queue) {
-        const { feature, platform } = queued;
-        console.log(`\n📋 Feature: ${feature.name}`);
-
-        let featureResult: FeatureResult;
-        try {
-          featureResult = await runtime.runFeature(feature, platform);
-        } catch (err) {
-          console.error(`  ❌ Feature failed: ${err instanceof Error ? err.message : String(err)}`);
-          continue;
-        }
-
-        testRun.features.push(featureResult);
-
-        for (const scenarioResult of featureResult.scenarios) {
-          const icon = scenarioResult.status === "passed" ? "✅" : "❌";
-          console.log(
-            `  ${icon} Scenario: ${scenarioResult.scenario.name} (${scenarioResult.duration}ms)`
-          );
-
-          for (const stepResult of scenarioResult.steps) {
-            const stepIcon =
-              stepResult.status === "passed"
-                ? "  ✔"
-                : stepResult.status === "failed"
-                ? "  ✘"
-                : "  ⊘";
-            console.log(
-              `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)`
-            );
-
-            if (stepResult.error) {
-              console.log(`       💬 ${stepResult.error}`);
-            }
-          }
-        }
-      }
-    }
-
-    // Compute summary from all features
-    for (const featureResult of testRun.features) {
-      for (const scenarioResult of featureResult.scenarios) {
-        testRun.summary.total++;
-        if (scenarioResult.status === "passed") {
-          testRun.summary.passed++;
-        } else if (scenarioResult.status === "failed") {
-          testRun.summary.failed++;
-        } else {
-          testRun.summary.skipped++;
-        }
-      }
-    }
-  } finally {
-    await runtime.stop();
-  }
-
-  testRun.finishedAt = new Date();
-  const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
-
-  // Add metadata
-  testRun.metadata = {
-    timestamp: testRun.startedAt.toISOString(),
-    duration,
-    environment: process.env.NODE_ENV || process.env.ENVIRONMENT,
-    git: {
-      branch: process.env.GITHUB_REF_NAME || process.env.GIT_BRANCH,
-      commit: process.env.GITHUB_SHA || process.env.GIT_COMMIT,
-      author: process.env.GITHUB_ACTOR || process.env.GIT_AUTHOR,
-    },
-    ci: {
-      buildNumber: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_NUMBER,
-      jobUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : process.env.BUILD_URL,
-    },
-  };
-
-  console.log("\n" + "=".repeat(60));
-  console.log(`\n📊 Results:`);
-  console.log(`  Total:   ${testRun.summary.total}`);
-  console.log(`  Passed:  ${testRun.summary.passed} ✅`);
-  console.log(`  Failed:  ${testRun.summary.failed} ❌`);
-  console.log(`  Skipped: ${testRun.summary.skipped} ⊘`);
-  console.log(
-    `  Pass rate: ${
-      testRun.summary.total > 0
-        ? Math.round((testRun.summary.passed / testRun.summary.total) * 100)
-        : 0
-    }%`
-  );
-  console.log(`  Duration: ${duration}ms\n`);
-
-  const outputDir = config.outputDir ?? "copilot-test-results";
-  await generateReport(testRun, outputDir);
-  console.log(`📁 Report saved to: ${outputDir}/\n`);
-
-  // Clear queue for next run
-  queue.length = 0;
-
-  return testRun;
+/**
+ * Get the current test runner configuration.
+ * Useful for debugging and test introspection.
+ */
+export function getConfig(): CopilotTestConfig | null {
+  return defaultRunner.getConfig();
 }
