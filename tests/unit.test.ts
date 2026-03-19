@@ -6,6 +6,7 @@
 import { feature } from "../src/dsl.js";
 import { CopilotTestRuntime } from "../src/runtime.js";
 import { buildHtmlReport } from "../src/reporter.js";
+import { compareTestRuns } from "../src/compare.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
@@ -18,6 +19,7 @@ import {
 } from "../src/step-registry.js";
 import { configure, run, test } from "../src/runner.js";
 import type { Feature, TestRun, Scenario, Step, StepContext } from "../src/types.js";
+import { writeFile, mkdir, rm } from "fs/promises";
 
 let failures = 0;
 let passes = 0;
@@ -635,6 +637,261 @@ assert(stepController.shouldBreak(step3), "step-through breaks on all steps");
 
 stepController.cleanup();
 debugController.cleanup();
+
+// ── Comparison Tests ─────────────────────────────────────────
+
+section("Comparison — compareTestRuns function");
+
+// Create test data for comparison
+const baselineRun: TestRun = {
+  startedAt: new Date("2024-01-15T10:00:00Z"),
+  finishedAt: new Date("2024-01-15T10:05:00Z"),
+  features: [
+    {
+      feature: { name: "Feature A", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Test 1", tags: [], steps: [] },
+          status: "failed",
+          steps: [],
+          duration: 1000,
+        },
+        {
+          scenario: { name: "Test 2", tags: [], steps: [] },
+          status: "passed",
+          steps: [],
+          duration: 500,
+        },
+        {
+          scenario: { name: "Test 3", tags: [], steps: [] },
+          status: "passed",
+          steps: [],
+          duration: 2000,
+        },
+      ],
+      duration: 3500,
+    },
+  ],
+  summary: { total: 3, passed: 2, failed: 1, skipped: 0 },
+};
+
+const currentRun: TestRun = {
+  startedAt: new Date("2024-01-15T11:00:00Z"),
+  finishedAt: new Date("2024-01-15T11:04:00Z"),
+  features: [
+    {
+      feature: { name: "Feature A", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Test 1", tags: [], steps: [] },
+          status: "passed", // Improved!
+          steps: [],
+          duration: 950,
+        },
+        {
+          scenario: { name: "Test 2", tags: [], steps: [] },
+          status: "failed", // Regression!
+          steps: [],
+          duration: 600,
+        },
+        {
+          scenario: { name: "Test 4", tags: [], steps: [] }, // New test
+          status: "passed",
+          steps: [],
+          duration: 800,
+        },
+      ],
+      duration: 2350,
+    },
+  ],
+  summary: { total: 3, passed: 2, failed: 1, skipped: 0 },
+};
+
+// Write test files
+const testDir = "/tmp/copilot-test-comparison";
+await mkdir(testDir, { recursive: true });
+await writeFile(
+  `${testDir}/baseline.json`,
+  JSON.stringify(baselineRun),
+  "utf-8"
+);
+await writeFile(
+  `${testDir}/current.json`,
+  JSON.stringify(currentRun),
+  "utf-8"
+);
+
+// Run comparison
+const result = await compareTestRuns(
+  `${testDir}/baseline.json`,
+  `${testDir}/current.json`
+);
+
+// Test improvements detection
+assertEqual(result.changes.improved.length, 1, "detects 1 improvement");
+assertEqual(
+  result.changes.improved[0].name,
+  "Feature A::Test 1",
+  "improvement is Test 1"
+);
+assertEqual(
+  result.changes.improved[0].baselineStatus,
+  "failed",
+  "improvement from failed"
+);
+assertEqual(
+  result.changes.improved[0].currentStatus,
+  "passed",
+  "improvement to passed"
+);
+
+// Test regressions detection
+assertEqual(result.changes.regressed.length, 1, "detects 1 regression");
+assertEqual(
+  result.changes.regressed[0].name,
+  "Feature A::Test 2",
+  "regression is Test 2"
+);
+assertEqual(
+  result.changes.regressed[0].baselineStatus,
+  "passed",
+  "regression from passed"
+);
+assertEqual(
+  result.changes.regressed[0].currentStatus,
+  "failed",
+  "regression to failed"
+);
+
+// Test new scenarios detection
+assertEqual(result.changes.newScenarios.length, 1, "detects 1 new scenario");
+assertEqual(
+  result.changes.newScenarios[0],
+  "Feature A::Test 4",
+  "new scenario is Test 4"
+);
+
+// Test removed scenarios detection
+assertEqual(
+  result.changes.removedScenarios.length,
+  1,
+  "detects 1 removed scenario"
+);
+assertEqual(
+  result.changes.removedScenarios[0],
+  "Feature A::Test 3",
+  "removed scenario is Test 3"
+);
+
+// Test performance threshold (>100ms)
+assert(
+  result.performance.scenarioChanges.length === 0,
+  "no performance changes >100ms threshold"
+);
+
+// Test with performance change
+const performanceRun: TestRun = {
+  startedAt: new Date("2024-01-15T12:00:00Z"),
+  finishedAt: new Date("2024-01-15T12:05:00Z"),
+  features: [
+    {
+      feature: { name: "Feature B", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Slow Test", tags: [], steps: [] },
+          status: "passed",
+          steps: [],
+          duration: 2000, // Was 1000, now 2000 (+1000ms)
+        },
+      ],
+      duration: 2000,
+    },
+  ],
+  summary: { total: 1, passed: 1, failed: 0, skipped: 0 },
+};
+
+await writeFile(
+  `${testDir}/performance.json`,
+  JSON.stringify(performanceRun),
+  "utf-8"
+);
+
+const perfResult = await compareTestRuns(
+  `${testDir}/baseline.json`,
+  `${testDir}/performance.json`
+);
+
+// Should not detect the slow test since it's a different feature
+// But let's create a proper performance test
+const baselinePerf: TestRun = {
+  startedAt: new Date("2024-01-15T10:00:00Z"),
+  finishedAt: new Date("2024-01-15T10:05:00Z"),
+  features: [
+    {
+      feature: { name: "Perf Feature", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Performance Test", tags: [], steps: [] },
+          status: "passed",
+          steps: [],
+          duration: 1000,
+        },
+      ],
+      duration: 1000,
+    },
+  ],
+  summary: { total: 1, passed: 1, failed: 0, skipped: 0 },
+};
+
+const currentPerf: TestRun = {
+  startedAt: new Date("2024-01-15T11:00:00Z"),
+  finishedAt: new Date("2024-01-15T11:04:00Z"),
+  features: [
+    {
+      feature: { name: "Perf Feature", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Performance Test", tags: [], steps: [] },
+          status: "passed",
+          steps: [],
+          duration: 1250, // +250ms - should be detected
+        },
+      ],
+      duration: 1250,
+    },
+  ],
+  summary: { total: 1, passed: 1, failed: 0, skipped: 0 },
+};
+
+await writeFile(
+  `${testDir}/baseline-perf.json`,
+  JSON.stringify(baselinePerf),
+  "utf-8"
+);
+await writeFile(
+  `${testDir}/current-perf.json`,
+  JSON.stringify(currentPerf),
+  "utf-8"
+);
+
+const perfTest = await compareTestRuns(
+  `${testDir}/baseline-perf.json`,
+  `${testDir}/current-perf.json`
+);
+
+assertEqual(
+  perfTest.performance.scenarioChanges.length,
+  1,
+  "detects performance change >100ms"
+);
+assertEqual(
+  perfTest.performance.scenarioChanges[0].diff,
+  250,
+  "performance diff is +250ms"
+);
+
+// Clean up test files
+await rm(testDir, { recursive: true, force: true });
 
 // ── Custom Step Definitions ─────────────────────────────────
 
