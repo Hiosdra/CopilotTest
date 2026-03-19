@@ -499,3 +499,11 @@ export function getEnvironment(): string | undefined {
 export function getConfig(): CopilotTestConfig | null {
   return defaultRunner.getConfig();
 }
+
+/**
+ * Get the default singleton TestRunner instance.
+ * Useful for watch mode and other advanced use cases that need access to the runner's queue.
+ */
+export function getDefaultRunner(): TestRunner {
+  return defaultRunner;
+}
