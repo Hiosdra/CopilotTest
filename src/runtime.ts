@@ -7,7 +7,9 @@ import type {
   StepResult,
   ScenarioResult,
   FeatureResult,
+  ScenarioContext,
 } from "./types.js";
+import { ScenarioContext as ScenarioContextClass } from "./types.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -15,13 +17,21 @@ Your job is to execute BDD test steps by interacting with the provided tools.
 Rules:
 1. Execute each step faithfully using the available MCP tools.
 2. After completing a step, respond ONLY with a JSON object in this exact format:
-   {"status": "passed"|"failed", "reasoning": "<explanation>", "error": "<error message if failed>"}
+   {"status": "passed"|"failed", "reasoning": "<explanation>", "error": "<error message if failed>", "context": {"key": "value"}}
 3. For web tests: use Playwright tools to navigate, interact, and verify.
 4. For API tests: use curl tools to make HTTP requests and verify responses.
 5. For mobile tests: use Android tools to interact with the emulator.
 6. Be thorough in verifications - check that the expected outcome is actually true.
 7. If a step cannot be performed, mark it as failed with a clear error message.
-8. Never skip verification steps.`;
+8. Never skip verification steps.
+
+## Context Management
+You have access to a shared context object that persists across steps within a scenario.
+- Use the "context" field in your response to store values for later steps.
+- The context from previous steps will be provided to you in each step prompt.
+- Common use cases: storing IDs, tokens, user data, or any values needed in subsequent steps.
+- Example: {"status": "passed", "reasoning": "User created", "context": {"userId": "12345"}}
+- You can reference context values in your reasoning and decision-making.`;
 
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
@@ -90,6 +100,9 @@ export class CopilotTestRuntime {
       ...scenario.steps,
     ];
 
+    // Create scenario context
+    const context = new ScenarioContextClass();
+
     let session: unknown = null;
 
     try {
@@ -105,8 +118,15 @@ export class CopilotTestRuntime {
           continue;
         }
 
-        const stepResult = await this.executeStep(step, session);
+        const stepResult = await this.executeStep(step, session, context);
         stepResults.push(stepResult);
+
+        // Update context with any values returned from the step
+        if (stepResult.contextUpdates) {
+          for (const [key, value] of Object.entries(stepResult.contextUpdates)) {
+            context.set(key, value);
+          }
+        }
 
         if (stepResult.status === "failed") {
           scenarioFailed = true;
@@ -220,9 +240,9 @@ export class CopilotTestRuntime {
     }
   }
 
-  async executeStep(step: Step, session: unknown): Promise<StepResult> {
+  async executeStep(step: Step, session: unknown, context: ScenarioContext): Promise<StepResult> {
     const startTime = Date.now();
-    const prompt = this.buildStepPrompt(step);
+    const prompt = this.buildStepPrompt(step, context);
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
@@ -266,6 +286,7 @@ export class CopilotTestRuntime {
         duration: Date.now() - startTime,
         error: parsed.error,
         aiReasoning: parsed.reasoning,
+        contextUpdates: parsed.context,
       };
     } catch (err) {
       return {
@@ -281,6 +302,7 @@ export class CopilotTestRuntime {
     status: "passed" | "failed";
     reasoning: string;
     error?: string;
+    context?: Record<string, unknown>;
   } {
     // Try to extract JSON from the response
     const jsonMatch = content.match(/\{[\s\S]*"status"[\s\S]*\}/);
@@ -290,11 +312,13 @@ export class CopilotTestRuntime {
           status: "passed" | "failed";
           reasoning: string;
           error?: string;
+          context?: Record<string, unknown>;
         };
         return {
           status: parsed.status === "failed" ? "failed" : "passed",
           reasoning: parsed.reasoning ?? content,
           error: parsed.error,
+          context: parsed.context,
         };
       } catch {
         // Fall through to heuristic
@@ -346,7 +370,7 @@ export class CopilotTestRuntime {
     return parts.join("\n");
   }
 
-  buildStepPrompt(step: Step): string {
+  buildStepPrompt(step: Step, context: ScenarioContext): string {
     const parts = [`Execute this BDD step: ${step.keyword} ${step.text}`];
 
     if (step.table) {
@@ -363,8 +387,21 @@ export class CopilotTestRuntime {
       parts.push("```");
     }
 
+    // Add current context if it has any data
+    const contextKeys = context.keys();
+    if (contextKeys.length > 0) {
+      parts.push("\n## Current Context");
+      parts.push("The following data is available from previous steps:");
+      parts.push("```json");
+      parts.push(JSON.stringify(context.toJSON(), null, 2));
+      parts.push("```");
+    }
+
     parts.push(
-      '\nRespond with JSON only: {"status": "passed"|"failed", "reasoning": "<what you did>", "error": "<error if failed>"}'
+      '\nRespond with JSON only: {"status": "passed"|"failed", "reasoning": "<what you did>", "error": "<error if failed>", "context": {"key": "value"}}'
+    );
+    parts.push(
+      'Use the "context" field to store any values needed in later steps (e.g., IDs, tokens, data).'
     );
 
     return parts.join("\n");

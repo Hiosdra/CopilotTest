@@ -61,6 +61,7 @@ export interface StepResult {
   error?: string;
   screenshot?: string;
   aiReasoning?: string;
+  contextUpdates?: Record<string, unknown>;
 }
 
 export interface ScenarioResult {
@@ -86,4 +87,47 @@ export interface TestRun {
     failed: number;
     skipped: number;
   };
+}
+
+export class ScenarioContext {
+  private data: Map<string, unknown>;
+
+  constructor() {
+    this.data = new Map();
+  }
+
+  set(key: string, value: unknown): void {
+    this.data.set(key, value);
+  }
+
+  get<T = unknown>(key: string): T | undefined {
+    return this.data.get(key) as T | undefined;
+  }
+
+  has(key: string): boolean {
+    return this.data.has(key);
+  }
+
+  delete(key: string): boolean {
+    return this.data.delete(key);
+  }
+
+  clear(): void {
+    this.data.clear();
+  }
+
+  keys(): string[] {
+    return Array.from(this.data.keys());
+  }
+
+  toJSON(): Record<string, unknown> {
+    return Object.fromEntries(this.data.entries());
+  }
+
+  fromJSON(json: Record<string, unknown>): void {
+    this.data.clear();
+    for (const [key, value] of Object.entries(json)) {
+      this.data.set(key, value);
+    }
+  }
 }
