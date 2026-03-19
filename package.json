@@ -7,7 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsx tests/login.spec.ts",
+    "test": "tsx tests/unit.test.ts",
+    "test:web": "tsx tests/login.spec.ts",
     "test:api": "tsx tests/api-users.spec.ts",
     "test:mobile": "tsx tests/mobile-app.spec.ts",
     "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts"
