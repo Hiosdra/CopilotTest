@@ -9,6 +9,24 @@ export interface Step {
   docString?: string;
 }
 
+export interface StepContext {
+  session?: unknown;
+  feature?: Feature;
+  scenario?: Scenario;
+  step: Step;
+  platform?: PlatformConfig;
+}
+
+export type StepDefinitionHandler = (
+  context: StepContext,
+  ...matches: Array<string | undefined>
+) => Promise<void> | void;
+
+export interface StepDefinition {
+  pattern: RegExp;
+  handler: StepDefinitionHandler;
+}
+
 export interface Scenario {
   name: string;
   tags: string[];
@@ -53,6 +71,7 @@ export interface CopilotTestConfig {
   outputDir?: string;
   mcpServers?: Record<string, McpServerConfig>;
   reasoningEffort?: "low" | "medium" | "high";
+  useCustomStepDefinitions?: boolean;
   parallel?: boolean;
   maxWorkers?: number | "auto";
   workerTimeout?: number;
