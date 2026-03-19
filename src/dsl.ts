@@ -77,6 +77,101 @@ export class ScenarioBuilder {
   }
 }
 
+export class ScenarioOutlineBuilder {
+  private _steps: Step[] = [];
+  private _tags: string[] = [];
+  private _name: string;
+  private _featureBuilder: FeatureBuilder;
+  private _lastStep: Step | null = null;
+  private _examples?: Record<string, string>[];
+
+  constructor(name: string, featureBuilder: FeatureBuilder) {
+    this._name = name;
+    this._featureBuilder = featureBuilder;
+  }
+
+  tag(...tags: string[]): this {
+    this._tags.push(...tags);
+    return this;
+  }
+
+  given(text: string): this {
+    return this._addStep("Given", text);
+  }
+
+  when(text: string): this {
+    return this._addStep("When", text);
+  }
+
+  then(text: string): this {
+    return this._addStep("Then", text);
+  }
+
+  and(text: string): this {
+    return this._addStep("And", text);
+  }
+
+  but(text: string): this {
+    return this._addStep("But", text);
+  }
+
+  withTable(table: string[][]): this {
+    if (this._lastStep) {
+      this._lastStep.table = table;
+    }
+    return this;
+  }
+
+  withDocString(docString: string): this {
+    if (this._lastStep) {
+      this._lastStep.docString = docString;
+    }
+    return this;
+  }
+
+  examples(data: Record<string, string>[]): this {
+    this._examples = data;
+    return this;
+  }
+
+  scenarioOutline(name: string): ScenarioOutlineBuilder {
+    this._featureBuilder._addScenario(this._build());
+    return new ScenarioOutlineBuilder(name, this._featureBuilder);
+  }
+
+  scenario(name: string): ScenarioBuilder {
+    this._featureBuilder._addScenario(this._build());
+    return new ScenarioBuilder(name, this._featureBuilder);
+  }
+
+  done(): FeatureBuilder {
+    this._featureBuilder._addScenario(this._build());
+    return this._featureBuilder;
+  }
+
+  private _addStep(keyword: StepKeyword, text: string): this {
+    const step: Step = { keyword, text };
+    this._steps.push(step);
+    this._lastStep = step;
+    return this;
+  }
+
+  _build(): Scenario {
+    if (!this._examples || this._examples.length === 0) {
+      throw new Error(
+        `Scenario Outline "${this._name}" must have at least one example. Call .examples([...]) before .done()`
+      );
+    }
+    return {
+      name: this._name,
+      tags: this._tags,
+      steps: [...this._steps],
+      examples: this._examples,
+      isOutline: true,
+    };
+  }
+}
+
 export class BackgroundBuilder {
   private _steps: Step[] = [];
   private _featureBuilder: FeatureBuilder;
@@ -134,6 +229,10 @@ export class FeatureBuilder {
 
   scenario(name: string): ScenarioBuilder {
     return new ScenarioBuilder(name, this);
+  }
+
+  scenarioOutline(name: string): ScenarioOutlineBuilder {
+    return new ScenarioOutlineBuilder(name, this);
   }
 
   _addScenario(scenario: Scenario): void {

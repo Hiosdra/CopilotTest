@@ -63,7 +63,10 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const scenarioResults: ScenarioResult[] = [];
 
-    for (const scenario of feature.scenarios) {
+    // Expand scenario outlines into multiple scenarios
+    const expandedScenarios = this.expandScenarioOutlines(feature.scenarios);
+
+    for (const scenario of expandedScenarios) {
       const result = await this.runScenario(feature, scenario, platform);
       scenarioResults.push(result);
     }
@@ -73,6 +76,44 @@ export class CopilotTestRuntime {
       scenarios: scenarioResults,
       duration: Date.now() - startTime,
     };
+  }
+
+  private expandScenarioOutlines(scenarios: Scenario[]): Scenario[] {
+    const expanded: Scenario[] = [];
+
+    for (const scenario of scenarios) {
+      if (scenario.examples && scenario.examples.length > 0) {
+        // Expand scenario outline into multiple scenarios
+        for (let i = 0; i < scenario.examples.length; i++) {
+          const exampleData = scenario.examples[i];
+          const expandedScenario: Scenario = {
+            name: `${scenario.name} (Example ${i + 1})`,
+            tags: [...scenario.tags],
+            steps: scenario.steps.map((step) => ({
+              ...step,
+              text: this.substituteParameters(step.text, exampleData),
+            })),
+          };
+          expanded.push(expandedScenario);
+        }
+      } else {
+        // Regular scenario, no expansion needed
+        expanded.push(scenario);
+      }
+    }
+
+    return expanded;
+  }
+
+  private substituteParameters(text: string, data: Record<string, string>): string {
+    let result = text;
+    for (const [key, value] of Object.entries(data)) {
+      // Escape regex metacharacters in key to prevent incorrect matches
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Use callback to prevent "$" in value from being interpreted as replacement pattern
+      result = result.replace(new RegExp(`<${escapedKey}>`, "g"), () => value);
+    }
+    return result;
   }
 
   async runScenario(
