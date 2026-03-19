@@ -373,13 +373,24 @@ export class CopilotTestRuntime {
           status: "passed" | "failed";
           reasoning: string;
           error?: string;
-          context?: Record<string, unknown>;
+          context?: unknown;
         };
+
+        // Validate context is a plain object (not array, null, or primitive)
+        let validatedContext: Record<string, unknown> | undefined;
+        if (
+          parsed.context &&
+          typeof parsed.context === "object" &&
+          !Array.isArray(parsed.context)
+        ) {
+          validatedContext = parsed.context as Record<string, unknown>;
+        }
+
         return {
           status: parsed.status === "failed" ? "failed" : "passed",
           reasoning: parsed.reasoning ?? content,
           error: parsed.error,
-          context: parsed.context,
+          context: validatedContext,
         };
       } catch {
         // Fall through to heuristic

@@ -353,6 +353,30 @@ assert(contextResponse.context !== undefined, "parse context response has contex
 assertEqual(contextResponse.context!["userId"], "12345", "parse context userId");
 assertEqual(contextResponse.context!["username"], "alice", "parse context username");
 
+// Test context validation - array should be ignored
+const contextArrayResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": ["invalid", "array"]}'
+);
+assertEqual(contextArrayResponse.context, undefined, "parse context array returns undefined");
+
+// Test context validation - string should be ignored
+const contextStringResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": "invalid string"}'
+);
+assertEqual(contextStringResponse.context, undefined, "parse context string returns undefined");
+
+// Test context validation - null should be ignored
+const contextNullResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": null}'
+);
+assertEqual(contextNullResponse.context, undefined, "parse context null returns undefined");
+
+// Test context validation - number should be ignored
+const contextNumberResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": 123}'
+);
+assertEqual(contextNumberResponse.context, undefined, "parse context number returns undefined");
+
 // ── ScenarioContext ──────────────────────────────────────────
 
 section("ScenarioContext — state management");

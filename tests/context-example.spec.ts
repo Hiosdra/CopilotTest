@@ -35,10 +35,6 @@ const userManagement = feature("User Management API")
     .and("I store the user ID in context for later use")
     .then("the response status should be 201")
     .and("I should receive the created user data")
-
-  .scenario("Fetch user using context from previous creation")
-    .given("I have a JSON API at https://jsonplaceholder.typicode.com")
-    .and("a user ID is available in the context from previous steps")
     .when("I fetch the user using the ID from context")
     // AI will read context.userId and use it in the API call
     .then("the response status should be 200")
@@ -87,11 +83,18 @@ const shoppingCart = feature("Shopping Cart")
     .and("I receive an order confirmation with ID")
     .done();
 
-// Queue the tests (they will run in mock mode without real API)
+// Queue the tests (demo scenarios; execution is guarded below)
 test(userManagement, "api");
 test(authWorkflow, "api");
 test(shoppingCart, "api");
 
-// Run all queued tests
-console.log("\n🚀 Running Context Management Demo Tests...\n");
-await run();
+// Run all queued tests only when explicitly enabled to avoid unintended live calls
+if (process.env.COPILOT_CONTEXT_EXAMPLE_LIVE === "1") {
+  console.log("\n🚀 Running Context Management Demo Tests...\n");
+  await run();
+} else {
+  console.log(
+    "\nContext Management Demo Tests are defined but not executed by default.\n" +
+      "Set COPILOT_CONTEXT_EXAMPLE_LIVE=1 to run them (this may call external services).\n"
+  );
+}

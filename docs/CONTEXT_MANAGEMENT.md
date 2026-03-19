@@ -54,7 +54,7 @@ These context values are automatically available to all following steps in the s
 
 Each step receives the current context state in its prompt:
 
-```
+````
 Execute this BDD step: When I fetch the user
 
 ## Current Context
@@ -67,7 +67,7 @@ The following data is available from previous steps:
 ```
 
 Respond with JSON only: {"status": "passed"|"failed", "reasoning": "<what you did>", "error": "<error if failed>", "context": {"key": "value"}}
-```
+````
 
 ## API Reference
 
