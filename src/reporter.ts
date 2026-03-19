@@ -1,0 +1,189 @@
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+import type { TestRun, FeatureResult, ScenarioResult, StepResult } from "./types.js";
+
+export async function generateReport(
+  testRun: TestRun,
+  outputDir: string
+): Promise<void> {
+  await mkdir(outputDir, { recursive: true });
+
+  const jsonPath = join(outputDir, "report.json");
+  await writeFile(jsonPath, JSON.stringify(testRun, null, 2), "utf-8");
+
+  const htmlPath = join(outputDir, "report.html");
+  await writeFile(htmlPath, buildHtmlReport(testRun), "utf-8");
+}
+
+export function buildHtmlReport(testRun: TestRun): string {
+  const duration = testRun.finishedAt
+    ? testRun.finishedAt.getTime() - testRun.startedAt.getTime()
+    : 0;
+  const passRate =
+    testRun.summary.total > 0
+      ? Math.round((testRun.summary.passed / testRun.summary.total) * 100)
+      : 0;
+
+  const featuresHtml = testRun.features.map(renderFeature).join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CopilotTest Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
+    .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 2rem; }
+    .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .header p { color: #a0aec0; }
+    .summary { display: flex; gap: 1rem; padding: 1.5rem 2rem; flex-wrap: wrap; }
+    .card { background: white; border-radius: 8px; padding: 1.5rem; flex: 1; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+    .card .value { font-size: 2.5rem; font-weight: bold; }
+    .card .label { color: #718096; font-size: 0.875rem; margin-top: 0.25rem; }
+    .card.passed .value { color: #38a169; }
+    .card.failed .value { color: #e53e3e; }
+    .card.rate .value { color: #3182ce; }
+    .features { padding: 0 2rem 2rem; }
+    .feature { background: white; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+    .feature-header { padding: 1rem 1.5rem; background: #2d3748; color: white; }
+    .feature-header h2 { font-size: 1.1rem; }
+    .scenario { border-bottom: 1px solid #e2e8f0; }
+    .scenario:last-child { border-bottom: none; }
+    .scenario-header { padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
+    .scenario-header:hover { background: #f7fafc; }
+    .scenario-name { flex: 1; font-weight: 500; }
+    .scenario-duration { color: #718096; font-size: 0.875rem; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-passed { background: #c6f6d5; color: #276749; }
+    .badge-failed { background: #fed7d7; color: #9b2c2c; }
+    .badge-skipped { background: #e2e8f0; color: #4a5568; }
+    .steps { padding: 0 1.5rem 1rem; display: none; }
+    .steps.open { display: block; }
+    .step { padding: 0.5rem 0.75rem; display: flex; align-items: flex-start; gap: 0.75rem; border-radius: 4px; margin-bottom: 0.25rem; }
+    .step-passed { background: #f0fff4; }
+    .step-failed { background: #fff5f5; }
+    .step-skipped { background: #f7fafc; }
+    .step-icon { font-size: 1rem; flex-shrink: 0; }
+    .step-content { flex: 1; }
+    .step-text { font-size: 0.9rem; }
+    .step-keyword { color: #6b46c1; font-weight: 600; }
+    .step-duration { font-size: 0.75rem; color: #718096; }
+    .step-error { margin-top: 0.25rem; font-size: 0.8rem; color: #e53e3e; font-family: monospace; }
+    .reasoning { margin-top: 0.25rem; font-size: 0.8rem; color: #4a5568; }
+    details summary { cursor: pointer; color: #3182ce; font-size: 0.8rem; }
+    details p { margin-top: 0.25rem; font-size: 0.8rem; color: #4a5568; padding: 0.5rem; background: #f7fafc; border-radius: 4px; }
+    .meta { padding: 1rem 2rem; color: #718096; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🧪 CopilotTest Report</h1>
+    <p>AI-Driven BDD Testing — ${testRun.startedAt.toISOString()} — ${duration}ms</p>
+  </div>
+  <div class="summary">
+    <div class="card">
+      <div class="value">${testRun.summary.total}</div>
+      <div class="label">Total Scenarios</div>
+    </div>
+    <div class="card passed">
+      <div class="value">${testRun.summary.passed}</div>
+      <div class="label">Passed ✅</div>
+    </div>
+    <div class="card failed">
+      <div class="value">${testRun.summary.failed}</div>
+      <div class="label">Failed ❌</div>
+    </div>
+    <div class="card">
+      <div class="value">${testRun.summary.skipped}</div>
+      <div class="label">Skipped ⊘</div>
+    </div>
+    <div class="card rate">
+      <div class="value">${passRate}%</div>
+      <div class="label">Pass Rate</div>
+    </div>
+  </div>
+  <div class="features">
+    ${featuresHtml}
+  </div>
+  <div class="meta">
+    Generated by CopilotTest — AI-Driven BDD Testing Framework
+  </div>
+  <script>
+    document.querySelectorAll('.scenario-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const steps = header.nextElementSibling;
+        if (steps) steps.classList.toggle('open');
+      });
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function renderFeature(featureResult: FeatureResult): string {
+  const scenariosHtml = featureResult.scenarios.map(renderScenario).join("\n");
+  return `<div class="feature">
+  <div class="feature-header">
+    <h2>📋 ${escapeHtml(featureResult.feature.name)}</h2>
+    ${featureResult.feature.description ? `<p style="color:#a0aec0;font-size:0.875rem;margin-top:0.25rem">${escapeHtml(featureResult.feature.description)}</p>` : ""}
+  </div>
+  ${scenariosHtml}
+</div>`;
+}
+
+function renderScenario(scenarioResult: ScenarioResult): string {
+  const badgeClass = `badge-${scenarioResult.status}`;
+  const stepsHtml = scenarioResult.steps.map(renderStep).join("\n");
+
+  return `<div class="scenario">
+  <div class="scenario-header">
+    <span class="badge ${badgeClass}">${scenarioResult.status}</span>
+    <span class="scenario-name">${escapeHtml(scenarioResult.scenario.name)}</span>
+    <span class="scenario-duration">${scenarioResult.duration}ms</span>
+  </div>
+  <div class="steps">
+    ${stepsHtml}
+  </div>
+</div>`;
+}
+
+function renderStep(stepResult: StepResult): string {
+  const icon =
+    stepResult.status === "passed"
+      ? "✔️"
+      : stepResult.status === "failed"
+      ? "❌"
+      : "⊘";
+  const cssClass = `step step-${stepResult.status}`;
+
+  return `<div class="${cssClass}">
+  <span class="step-icon">${icon}</span>
+  <div class="step-content">
+    <div class="step-text">
+      <span class="step-keyword">${escapeHtml(stepResult.step.keyword)}</span>
+      ${escapeHtml(stepResult.step.text)}
+    </div>
+    <div class="step-duration">${stepResult.duration}ms</div>
+    ${stepResult.error ? `<div class="step-error">Error: ${escapeHtml(stepResult.error)}</div>` : ""}
+    ${
+      stepResult.aiReasoning
+        ? `<details>
+      <summary>AI Reasoning</summary>
+      <p>${escapeHtml(stepResult.aiReasoning)}</p>
+    </details>`
+        : ""
+    }
+  </div>
+</div>`;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
