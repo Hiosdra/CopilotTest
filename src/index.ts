@@ -16,6 +16,10 @@ export {
   createAccessibilityTester,
   defaultAccessibilityConfig,
 } from "./a11y.js";
+export {
+  registerAccessibilitySteps,
+  clearAccessibilitySteps,
+} from "./a11y-steps.js";
 
 export type {
   Platform,
