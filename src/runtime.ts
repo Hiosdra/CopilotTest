@@ -27,11 +27,31 @@ Rules:
 
 ## Context Management
 You have access to a shared context object that persists across steps within a scenario.
-- Use the "context" field in your response to store values for later steps.
-- The context from previous steps will be provided to you in each step prompt.
-- Common use cases: storing IDs, tokens, user data, or any values needed in subsequent steps.
-- Example: {"status": "passed", "reasoning": "User created", "context": {"userId": "12345"}}
-- You can reference context values in your reasoning and decision-making.`;
+
+**When to store data in context:**
+- After creating a resource (store the ID, e.g., userId, orderId, cartId)
+- After authentication (store tokens, session IDs)
+- When extracting data from responses that will be referenced in later steps
+- When you see step text mentioning "for later use", "from previous step", "using the ID from context", etc.
+
+**What to store:**
+- Resource IDs (userId, productId, orderId, etc.)
+- Authentication tokens and credentials
+- Status codes or important response values
+- Any data explicitly mentioned in the step that should be remembered
+
+**How to store:**
+- Use the "context" field in your JSON response
+- Use descriptive key names (e.g., "userId" not just "id")
+- Store primitive values and objects, not complex structures
+- Example: {"status": "passed", "reasoning": "User created with ID 12345", "context": {"userId": "12345", "username": "alice"}}
+
+**Reading from context:**
+- The context from previous steps will be provided to you in each step prompt
+- When a step mentions "using the ID from context" or "from previous step", look for the relevant value in the context
+- If context is empty but the step expects it, mark the step as failed
+
+**Always think:** "Will any data from this step be needed later? If yes, store it in context with a clear name."`;
 
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
@@ -401,7 +421,10 @@ export class CopilotTestRuntime {
       '\nRespond with JSON only: {"status": "passed"|"failed", "reasoning": "<what you did>", "error": "<error if failed>", "context": {"key": "value"}}'
     );
     parts.push(
-      'Use the "context" field to store any values needed in later steps (e.g., IDs, tokens, data).'
+      '\nIMPORTANT: In the "context" field, store any data from this step that might be needed in future steps.'
+    );
+    parts.push(
+      'Ask yourself: "Did I create a resource? Extract an ID? Get a token? If yes, add it to context with a descriptive key name."'
     );
 
     return parts.join("\n");
