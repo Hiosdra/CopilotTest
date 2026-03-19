@@ -1,6 +1,7 @@
 import type { Feature, CopilotTestConfig, FeatureResult, TestRun, ScenarioResult } from "./types.js";
 import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
+import { generatePerformanceReport } from "./performance.js";
 import { cpus } from "os";
 
 /**
@@ -228,6 +229,11 @@ class TestRunner {
       }%`
     );
     console.log(`  Duration: ${duration}ms\n`);
+
+    // Print performance report if enabled
+    if (this.config.performance) {
+      console.log(generatePerformanceReport(testRun));
+    }
 
     const outputDir = this.config.outputDir ?? "copilot-test-results";
     await generateReport(testRun, outputDir);

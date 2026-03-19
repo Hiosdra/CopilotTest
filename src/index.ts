@@ -19,6 +19,13 @@ export {
   reportFlakyTest,
   DEFAULT_RETRY_CONFIG,
 } from "./retry.js";
+export {
+  analyzePerformance,
+  getStepPerformanceBreakdown,
+  generatePerformanceReport,
+  comparePerformance,
+  formatDuration,
+} from "./performance.js";
 
 export type {
   Platform,
@@ -42,5 +49,12 @@ export type {
   RetryAttempt,
   ShouldRetryFn,
   DelayFn,
+  PerformanceConfig,
+  StepMetrics,
+  ResourceMetrics,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+export type {
+  PerformanceSummary,
+  StepPerformance,
+} from "./performance.js";
