@@ -55,8 +55,9 @@ export async function run(): Promise<TestRun> {
   const runtime = new CopilotTestRuntime(config);
   await runtime.start();
 
+  const startDate = new Date();
   const testRun: TestRun = {
-    startedAt: new Date(),
+    startedAt: startDate,
     features: [],
     summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
   };
@@ -117,6 +118,24 @@ export async function run(): Promise<TestRun> {
 
   testRun.finishedAt = new Date();
   const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
+
+  // Add metadata
+  testRun.metadata = {
+    timestamp: testRun.startedAt.toISOString(),
+    duration,
+    environment: process.env.NODE_ENV || process.env.ENVIRONMENT,
+    git: {
+      branch: process.env.GITHUB_REF_NAME || process.env.GIT_BRANCH,
+      commit: process.env.GITHUB_SHA || process.env.GIT_COMMIT,
+      author: process.env.GITHUB_ACTOR || process.env.GIT_AUTHOR,
+    },
+    ci: {
+      buildNumber: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_NUMBER,
+      jobUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+        : process.env.BUILD_URL,
+    },
+  };
 
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results:`);
