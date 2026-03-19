@@ -14,6 +14,7 @@ import {
   clearStepDefinitions,
   getStepDefinitions,
 } from "../src/step-registry.js";
+import { configure, run, test } from "../src/runner.js";
 import type { Feature, TestRun, StepContext } from "../src/types.js";
 
 let failures = 0;
@@ -144,6 +145,172 @@ const chainedFeat: Feature = feature("Chaining")
 assertEqual(chainedFeat.scenarios.length, 2, "chained feature has 2 scenarios");
 assertEqual(chainedFeat.scenarios[0].name, "First", "first chained scenario name");
 assertEqual(chainedFeat.scenarios[1].name, "Second", "second chained scenario name");
+
+// ── DSL — scenario outline with examples ────────────
+
+section("DSL — scenario outline with examples");
+
+const outlineFeat: Feature = feature("User Login")
+  .scenarioOutline("Login with different credentials")
+    .given("I am on the login page")
+    .when('I enter username "<username>" and password "<password>"')
+    .then('I should see "<message>"')
+    .examples([
+      { username: "admin", password: "admin123", message: "Welcome Admin" },
+      { username: "user", password: "wrong", message: "Invalid credentials" },
+      { username: "", password: "", message: "Please fill all fields" },
+    ])
+    .done()
+  ._build();
+
+assertEqual(outlineFeat.scenarios.length, 1, "outline feature has 1 scenario");
+const outline = outlineFeat.scenarios[0];
+assertEqual(outline.name, "Login with different credentials", "outline scenario name");
+assert(outline.isOutline === true, "scenario is marked as outline");
+assert(outline.examples !== undefined, "scenario has examples");
+assertEqual(outline.examples!.length, 3, "scenario has 3 examples");
+assertEqual(outline.examples![0].username, "admin", "first example has username");
+assertEqual(outline.examples![1].message, "Invalid credentials", "second example has message");
+assertEqual(outline.steps.length, 3, "outline has 3 steps");
+assert(outline.steps[1].text.includes("<username>"), "step text contains placeholder");
+assert(outline.steps[1].text.includes("<password>"), "step text contains placeholder");
+
+// ── DSL — mixing scenario outline and regular scenario ─────
+
+section("DSL — mixing scenario outline and regular scenario");
+
+const mixedFeat: Feature = feature("Mixed")
+  .scenarioOutline("Parameterized test")
+    .given('I have "<count>" items')
+    .then('I should have <count> total')
+    .examples([
+      { count: "5" },
+      { count: "10" },
+    ])
+  .scenario("Regular test")
+    .given("I have a fixed value")
+    .then("I should see expected result")
+    .done()
+  ._build();
+
+assertEqual(mixedFeat.scenarios.length, 2, "mixed feature has 2 scenarios");
+assertEqual(mixedFeat.scenarios[0].isOutline, true, "first scenario is outline");
+assertEqual(mixedFeat.scenarios[1].isOutline, undefined, "second scenario is not outline");
+assertEqual(mixedFeat.scenarios[0].examples!.length, 2, "outline has 2 examples");
+assertEqual(mixedFeat.scenarios[1].examples, undefined, "regular scenario has no examples");
+
+// ── DSL — scenario outline with tags ─────────────────
+
+section("DSL — scenario outline with tags");
+
+const taggedOutline: Feature = feature("Tagged")
+  .scenarioOutline("Tagged outline")
+    .tag("@smoke", "@parameterized")
+    .given('I use value "<value>"')
+    .examples([{ value: "test" }])
+    .done()
+  ._build();
+
+assert(taggedOutline.scenarios[0].tags.includes("@smoke"), "outline has @smoke tag");
+assert(taggedOutline.scenarios[0].tags.includes("@parameterized"), "outline has @parameterized tag");
+
+// ── DSL — scenario outline validation ────────────────
+
+section("DSL — scenario outline validation");
+
+// Test that scenarioOutline without examples throws an error
+let validationError: Error | null = null;
+try {
+  feature("Validation Test")
+    .scenarioOutline("Outline without examples")
+      .given("some step")
+      .done()
+    ._build();
+} catch (err) {
+  validationError = err as Error;
+}
+assert(validationError !== null, "scenarioOutline without examples throws error");
+assert(validationError!.message.includes("must have at least one example"), "error message mentions examples requirement");
+
+// ── Runtime — expandScenarioOutlines ─────────────────
+
+section("Runtime — scenario outline expansion via public API");
+
+// Test expansion through runtime.runFeature() mock execution
+// The expanded scenarios will be reflected in the FeatureResult
+
+// First, verify that a feature with scenario outlines gets expanded correctly
+// by checking scenario names in a mock run
+const mockRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+});
+
+await mockRuntime.start();
+
+// Run the outline feature and check the expansion in results
+const outlineResult = await mockRuntime.runFeature(outlineFeat, "web");
+
+assertEqual(outlineResult.scenarios.length, 3, "outline expanded to 3 scenarios");
+assertEqual(outlineResult.scenarios[0].scenario.name, "Login with different credentials (Example 1)", "first expanded scenario name");
+assertEqual(outlineResult.scenarios[1].scenario.name, "Login with different credentials (Example 2)", "second expanded scenario name");
+assertEqual(outlineResult.scenarios[2].scenario.name, "Login with different credentials (Example 3)", "third expanded scenario name");
+
+// Check that parameters are substituted in step text
+assert(outlineResult.scenarios[0].steps[1].step.text.includes("admin"), "first example has admin username");
+assert(outlineResult.scenarios[0].steps[1].step.text.includes("admin123"), "first example has admin123 password");
+assert(outlineResult.scenarios[1].steps[1].step.text.includes("user"), "second example has user username");
+assert(outlineResult.scenarios[1].steps[1].step.text.includes("wrong"), "second example has wrong password");
+assert(outlineResult.scenarios[0].steps[2].step.text.includes("Welcome Admin"), "first example has welcome message");
+assert(outlineResult.scenarios[1].steps[2].step.text.includes("Invalid credentials"), "second example has error message");
+
+// Test that regular scenarios mixed with outlines work correctly
+const mixedResult = await mockRuntime.runFeature(mixedFeat, "web");
+assertEqual(mixedResult.scenarios.length, 3, "mixed feature expands to 3 scenarios (2 from outline + 1 regular)");
+assertEqual(mixedResult.scenarios[2].scenario.name, "Regular test", "regular scenario preserved");
+assert(!mixedResult.scenarios[2].scenario.name.includes("Example"), "regular scenario name not modified");
+
+await mockRuntime.stop();
+
+// Test edge cases with special characters in parameters
+section("Runtime — parameter substitution edge cases");
+
+const edgeCaseRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+});
+
+await edgeCaseRuntime.start();
+
+// Test regex metacharacters in parameter keys
+const regexMetaFeat = feature("Regex Meta")
+  .scenarioOutline("Test with regex metacharacters")
+    .given('I use "<key.with.dots>" and "<key(with)parens>"')
+    .examples([
+      { "key.with.dots": "value1", "key(with)parens": "value2" }
+    ])
+    .done()
+  ._build();
+
+const regexMetaResult = await edgeCaseRuntime.runFeature(regexMetaFeat, "web");
+assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value1"), "dots in key name handled");
+assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value2"), "parens in key name handled");
+assert(!regexMetaResult.scenarios[0].steps[0].step.text.includes("<key.with.dots>"), "placeholder removed");
+
+// Test $ replacement patterns in parameter values
+const dollarFeat = feature("Dollar Signs")
+  .scenarioOutline("Test with $ in values")
+    .given('I use "<value>"')
+    .examples([
+      { value: "$1 costs $100" },
+      { value: "$$special$$" }
+    ])
+    .done()
+  ._build();
+
+const dollarResult = await edgeCaseRuntime.runFeature(dollarFeat, "web");
+assert(dollarResult.scenarios[0].steps[0].step.text.includes("$1 costs $100"), "$ in value preserved");
+assert(dollarResult.scenarios[1].steps[0].step.text.includes("$$special$$"), "multiple $ preserved");
+
+await edgeCaseRuntime.stop();
 
 // ── Runtime — parseStepResponse ─────────────────────────────
 
@@ -494,6 +661,36 @@ defineStep(/^test pattern$/, async () => {});
 assertEqual(getStepDefinitions().length, 1, "normal pattern registered successfully");
 
 clearStepDefinitions();
+
+// ── Parallel Configuration ──────────────────────────────────
+
+section("Parallel Configuration");
+
+// Test parallel config options - verify TypeScript typing
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: 4,
+  workerTimeout: 300000,
+  failFast: false,
+});
+
+assert(true, "parallel config with maxWorkers as number");
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: "auto",
+});
+
+assert(true, "parallel config with maxWorkers as 'auto'");
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: false,
+});
+
+assert(true, "parallel config disabled");
 
 // ── Summary ──────────────────────────────────────────────────
 

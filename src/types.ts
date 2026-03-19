@@ -31,7 +31,8 @@ export interface Scenario {
   name: string;
   tags: string[];
   steps: Step[];
-  examples?: { headers: string[]; rows: string[][] };
+  examples?: Record<string, string>[];
+  isOutline?: boolean;
 }
 
 export interface Feature {
@@ -71,6 +72,10 @@ export interface CopilotTestConfig {
   mcpServers?: Record<string, McpServerConfig>;
   reasoningEffort?: "low" | "medium" | "high";
   useCustomStepDefinitions?: boolean;
+  parallel?: boolean;
+  maxWorkers?: number | "auto";
+  workerTimeout?: number;
+  failFast?: boolean;
 }
 
 export interface StepResult {

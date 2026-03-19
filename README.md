@@ -144,8 +144,63 @@ configure({
   mcpServers: {                       // Additional MCP servers
     database: { type: 'stdio', command: 'npx', args: ['my-db-mcp'] },
   },
+  // Parallel execution options (NEW)
+  parallel: true,                     // Enable parallel scenario execution
+  maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
+  workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
+  failFast: false,                    // Stop all workers on first failure
 });
 ```
+
+## Parallel Execution
+
+Run scenarios in parallel for significantly faster test execution:
+
+```typescript
+configure({
+  model: 'gpt-4o',
+  platforms: { web: webPlatform() },
+  parallel: true,           // Enable parallel execution
+  maxWorkers: 4,            // Run 4 scenarios concurrently
+  workerTimeout: 300000,    // 5 minute timeout per worker
+  failFast: false,          // Continue running even if one fails
+});
+```
+
+### Configuration Options
+
+- **`parallel`**: Enable/disable parallel execution (default: `false`)
+- **`maxWorkers`**: Number of concurrent workers
+  - Use a number (e.g., `4`) for fixed worker count
+  - Use `'auto'` to automatically determine based on CPU cores (CPU count - 1)
+- **`workerTimeout`**: Maximum time a scenario can run before timing out (default: `300000ms` / 5 minutes)
+- **`failFast`**: Stop all workers immediately when any scenario fails (default: `false`)
+
+### Benefits
+
+- **Faster execution**: 50+ scenarios can run in minutes instead of tens of minutes
+- **Better resource utilization**: Utilize multiple CPU cores effectively
+- **CI/CD optimization**: Reduce pipeline execution time
+- **Proper isolation**: Each scenario gets its own session and resources
+
+### Example Output
+
+```
+⚡ Running 12 scenarios with 4 workers
+
+[Worker 0] Starting scenario: User login
+[Worker 1] Starting scenario: Password reset
+[Worker 2] Starting scenario: Profile update
+[Worker 3] Starting scenario: Logout flow
+[Worker 0] ✅ User login (2341ms) [1/12]
+[Worker 0] Starting scenario: Two-factor auth
+[Worker 2] ✅ Profile update (2456ms) [2/12]
+...
+
+✨ Parallel execution complete: 11 passed, 1 failed
+```
+
+
 
 ## DSL Reference
 
