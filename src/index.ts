@@ -54,7 +54,6 @@ export type {
   DeepPartial,
   RequireAtLeastOne,
   RequireKeys,
-  Awaited,
   Mutable,
   DataOnly,
   EventMap,

@@ -5,12 +5,10 @@
 
 import {
   feature,
-  configure,
   webPlatform,
   // Type imports
   type CopilotTestConfig,
   type FeatureBuilder,
-  type ScenarioBuilder,
   type StepContext,
   type DeepPartial,
   type AsyncStep,

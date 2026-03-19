@@ -117,22 +117,6 @@ export type RequireAtLeastOne<T> = {
 export type RequireKeys<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
 /**
- * Extracts the value type from a Promise.
- * Useful for working with async functions.
- *
- * @example
- * ```typescript
- * async function fetchUser() {
- *   return { id: 1, name: 'John' };
- * }
- *
- * type User = Awaited<ReturnType<typeof fetchUser>>;
- * // User is { id: number; name: string; }
- * ```
- */
-export type Awaited<T> = T extends Promise<infer U> ? U : T;
-
-/**
  * Makes all properties in T mutable (removes readonly).
  *
  * @example
