@@ -13,6 +13,7 @@ import type {
 import { DebugController, type DebugContext } from "./debug.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
 import { findStepDefinition } from "./step-registry.js";
+import { escapeRegex, isPlainObject } from "./utils.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -146,7 +147,7 @@ export class CopilotTestRuntime {
     let result = text;
     for (const [key, value] of Object.entries(data)) {
       // Escape regex metacharacters in key to prevent incorrect matches
-      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedKey = escapeRegex(key);
       // Use callback to prevent "$" in value from being interpreted as replacement pattern
       result = result.replace(new RegExp(`<${escapedKey}>`, "g"), () => value);
     }
@@ -506,12 +507,8 @@ export class CopilotTestRuntime {
 
         // Validate context is a plain object (not array, null, or primitive)
         let validatedContext: Record<string, unknown> | undefined;
-        if (
-          parsed.context &&
-          typeof parsed.context === "object" &&
-          !Array.isArray(parsed.context)
-        ) {
-          validatedContext = parsed.context as Record<string, unknown>;
+        if (parsed.context && isPlainObject(parsed.context)) {
+          validatedContext = parsed.context;
         }
 
         return {

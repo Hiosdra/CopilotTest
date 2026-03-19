@@ -3,13 +3,19 @@ import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
 import { cpus } from "os";
 
-interface QueuedFeature {
+/**
+ * Represents a feature queued for test execution along with its platform and optional tag filters.
+ */
+interface TestFeature {
   feature: Feature;
   platform: string;
   tags?: string[];
 }
 
-interface WorkerTask {
+/**
+ * Represents a scenario task for parallel execution in the worker pool.
+ */
+interface ParallelScenarioTask {
   feature: Feature;
   scenarioIndex: number;
   platform: string;
@@ -17,22 +23,71 @@ interface WorkerTask {
   queueIndex: number; // Track which queued feature this belongs to
 }
 
-let globalConfig: CopilotTestConfig | null = null;
-const queue: QueuedFeature[] = [];
+/**
+ * TestRunner manages test configuration and execution queue.
+ * Replaces global state with instance state for better testability and concurrent usage.
+ */
+class TestRunner {
+  private config: CopilotTestConfig | null = null;
+  private queue: TestFeature[] = [];
+
+  configure(config: CopilotTestConfig): void {
+    this.config = config;
+  }
+
+  test(featureOrBuilder: Feature | { _build(): Feature }, platform: string): void {
+    const feat =
+      "_build" in featureOrBuilder
+        ? featureOrBuilder._build()
+        : featureOrBuilder;
+    this.queue.push({ feature: feat, platform });
+  }
+
+  testOnly(
+    featureOrBuilder: Feature | { _build(): Feature },
+    platform: string,
+    tags: string[]
+  ): void {
+    const feat =
+      "_build" in featureOrBuilder
+        ? featureOrBuilder._build()
+        : featureOrBuilder;
+
+    const filtered = {
+      ...feat,
+      scenarios: feat.scenarios.filter((s) =>
+        tags.some((tag) => s.tags.includes(tag) || feat.tags.includes(tag))
+      ),
+    };
+
+    this.queue.push({ feature: filtered, platform, tags });
+  }
+
+  getConfig(): CopilotTestConfig | null {
+    return this.config;
+  }
+
+  getQueue(): TestFeature[] {
+    return this.queue;
+  }
+
+  clearQueue(): void {
+    this.queue.length = 0;
+  }
+}
+
+// Singleton instance for backwards compatibility with existing API
+const defaultRunner = new TestRunner();
 
 export function configure(config: CopilotTestConfig): void {
-  globalConfig = config;
+  defaultRunner.configure(config);
 }
 
 export function test(
   featureOrBuilder: Feature | { _build(): Feature },
   platform: string
 ): void {
-  const feat =
-    "_build" in featureOrBuilder
-      ? featureOrBuilder._build()
-      : featureOrBuilder;
-  queue.push({ feature: feat, platform });
+  defaultRunner.test(featureOrBuilder, platform);
 }
 
 export function testOnly(
@@ -40,19 +95,7 @@ export function testOnly(
   platform: string,
   tags: string[]
 ): void {
-  const feat =
-    "_build" in featureOrBuilder
-      ? featureOrBuilder._build()
-      : featureOrBuilder;
-
-  const filtered = {
-    ...feat,
-    scenarios: feat.scenarios.filter((s) =>
-      tags.some((tag) => s.tags.includes(tag) || feat.tags.includes(tag))
-    ),
-  };
-
-  queue.push({ feature: filtered, platform, tags });
+  defaultRunner.testOnly(featureOrBuilder, platform, tags);
 }
 
 function getMaxWorkers(config: CopilotTestConfig): number {
@@ -117,25 +160,25 @@ async function runScenarioInWorker(
 
 async function runFeaturesInParallel(
   runtime: CopilotTestRuntime,
-  queuedFeatures: QueuedFeature[],
+  testFeatures: TestFeature[],
   config: CopilotTestConfig
 ): Promise<FeatureResult[]> {
   const maxWorkers = getMaxWorkers(config);
 
   // Pre-allocate results array for each queued feature to maintain order
-  const scenarioResultsByQueue: ScenarioResult[][] = queuedFeatures.map(
-    queued => new Array(queued.feature.scenarios.length)
+  const scenarioResultsByQueue: ScenarioResult[][] = testFeatures.map(
+    testFeature => new Array(testFeature.feature.scenarios.length)
   );
 
   // Create tasks for all scenarios across all features
-  const tasks: WorkerTask[] = [];
-  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
-    const queued = queuedFeatures[queueIndex];
-    for (let scenarioIndex = 0; scenarioIndex < queued.feature.scenarios.length; scenarioIndex++) {
+  const tasks: ParallelScenarioTask[] = [];
+  for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
+    const testFeature = testFeatures[queueIndex];
+    for (let scenarioIndex = 0; scenarioIndex < testFeature.feature.scenarios.length; scenarioIndex++) {
       tasks.push({
-        feature: queued.feature,
+        feature: testFeature.feature,
         scenarioIndex,
-        platform: queued.platform,
+        platform: testFeature.platform,
         workerId: 0, // Will be assigned dynamically
         queueIndex,
       });
@@ -243,13 +286,13 @@ async function runFeaturesInParallel(
 
   // Construct feature results from pre-ordered arrays
   const featureResults: FeatureResult[] = [];
-  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
-    const queued = queuedFeatures[queueIndex];
+  for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
+    const testFeature = testFeatures[queueIndex];
     const scenarios = scenarioResultsByQueue[queueIndex];
     const totalDuration = scenarios.reduce((sum, s) => sum + s.duration, 0);
 
     featureResults.push({
-      feature: queued.feature,
+      feature: testFeature.feature,
       scenarios,
       duration: totalDuration,
     });
@@ -259,11 +302,12 @@ async function runFeaturesInParallel(
 }
 
 export async function run(): Promise<TestRun> {
-  if (!globalConfig) {
+  const config = defaultRunner.getConfig();
+  if (!config) {
     throw new Error("No config set. Call configure() before run().");
   }
 
-  const config = globalConfig;
+  const queue = defaultRunner.getQueue();
   const runtime = new CopilotTestRuntime(config);
   await runtime.start();
 
@@ -380,7 +424,28 @@ export async function run(): Promise<TestRun> {
   console.log(`📁 Report saved to: ${outputDir}/\n`);
 
   // Clear queue for next run
-  queue.length = 0;
+  defaultRunner.clearQueue();
 
   return testRun;
+}
+
+/**
+ * Export TestRunner class for advanced use cases (testing, library usage, multiple concurrent runs)
+ */
+export { TestRunner };
+
+/**
+ * Get the current environment name from environment variables.
+ * Used for reporting and configuration.
+ */
+export function getEnvironment(): string | undefined {
+  return process.env.NODE_ENV || process.env.ENVIRONMENT;
+}
+
+/**
+ * Get the current test runner configuration.
+ * Useful for debugging and test introspection.
+ */
+export function getConfig(): CopilotTestConfig | null {
+  return defaultRunner.getConfig();
 }
