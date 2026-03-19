@@ -1,9 +1,10 @@
-import type { PlatformConfig } from "../types.js";
+import type { PlatformConfig, VideoConfig } from "../types.js";
 
 export interface WebPlatformOptions {
   browser?: "chromium" | "firefox" | "webkit";
   headless?: boolean;
   baseUrl?: string;
+  video?: VideoConfig;
 }
 
 export function webPlatform(options: WebPlatformOptions = {}): PlatformConfig {

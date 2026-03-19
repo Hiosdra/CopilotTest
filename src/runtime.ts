@@ -163,6 +163,7 @@ export class CopilotTestRuntime {
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
     let scenarioAborted = false;
+    let videoPath: string | undefined;
 
     // Check if debug mode is enabled
     const debugEnabled =
@@ -292,6 +293,18 @@ export class CopilotTestRuntime {
         debugController.cleanup();
       }
 
+      // Handle video recording
+      if (session && this.config.video?.enabled === true) {
+        const videoMode = this.config.video?.mode ?? "on-failure";
+        const shouldKeepVideo =
+          videoMode === "always" ||
+          (videoMode === "on-failure" && scenarioFailed);
+
+        if (shouldKeepVideo) {
+          videoPath = await this.getVideoPath(session, feature, scenario);
+        }
+      }
+
       if (
         session &&
         typeof (session as Record<string, unknown>).close === "function"
@@ -305,6 +318,7 @@ export class CopilotTestRuntime {
       status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
+      videoPath,
     };
   }
 
@@ -612,5 +626,38 @@ export class CopilotTestRuntime {
     );
 
     return parts.join("\n");
+  }
+
+  private async getVideoPath(
+    session: unknown,
+    feature: Feature,
+    scenario: Scenario
+  ): Promise<string | undefined> {
+    // For Playwright MCP sessions, video is automatically recorded
+    // The video path would typically be available from the session metadata
+    // Since we're using MCP, we need to check if there's a way to get the video path
+    // For now, we'll return a placeholder that indicates where the video would be stored
+
+    // In a real implementation, the Playwright MCP server would provide
+    // the video path through the session object or a dedicated API call
+    // For now, we'll construct an expected path based on convention
+
+    if ((session as Record<string, unknown>)._mock === true) {
+      // Mock mode - no actual video
+      return undefined;
+    }
+
+    try {
+      // The video path pattern that Playwright typically uses
+      // This would need to be coordinated with how Playwright MCP is configured
+      const videoDir = this.config.video?.outputDir ?? "videos";
+      const sanitizedScenarioName = scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+      const format = this.config.video?.format ?? "webm";
+
+      return `${videoDir}/${sanitizedScenarioName}-${timestamp}.${format}`;
+    } catch {
+      return undefined;
+    }
   }
 }

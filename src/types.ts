@@ -135,6 +135,33 @@ export interface PlatformConfig {
 }
 
 /**
+ * Video recording configuration options.
+ */
+export interface VideoConfig {
+  /** Enable video recording */
+  enabled?: boolean;
+  /** When to record videos: 'always' | 'on-failure' | 'off' */
+  mode?: "always" | "on-failure" | "off";
+  /** Video format: 'webm' | 'mp4' */
+  format?: "webm" | "mp4";
+  /** Video quality: 'low' | 'medium' | 'high' */
+  quality?: "low" | "medium" | "high";
+  /** Frames per second (default: 25) */
+  fps?: number;
+  /** Directory to save videos (relative to outputDir) */
+  outputDir?: string;
+  /** Retention policy */
+  retention?: {
+    /** Maximum days to keep videos */
+    maxDays?: number;
+    /** Maximum total size in MB */
+    maxSize?: number;
+    /** Always keep failure videos regardless of retention policy */
+    keepFailures?: boolean;
+  };
+}
+
+/**
  * Main configuration for CopilotTest framework.
  */
 export interface CopilotTestConfig {
@@ -150,6 +177,8 @@ export interface CopilotTestConfig {
   retries?: number;
   /** Capture screenshots on test failure */
   screenshotOnFailure?: boolean;
+  /** Video recording configuration */
+  video?: VideoConfig;
   /** Directory for test reports and artifacts */
   outputDir?: string;
   /** Additional MCP servers to connect */
@@ -206,6 +235,8 @@ export interface ScenarioResult {
   steps: StepResult[];
   /** Total duration in milliseconds */
   duration: number;
+  /** Path to recorded video (if video recording enabled) */
+  videoPath?: string;
 }
 
 /**

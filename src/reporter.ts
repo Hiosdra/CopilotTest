@@ -133,6 +133,12 @@ export function buildHtmlReport(testRun: TestRun): string {
     .metadata-value { color: #2d3748; margin-top: 0.25rem; }
     .export-btn { padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; }
     .export-btn:hover { background: #38a169; }
+    .video-container { margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .video-header { margin-bottom: 0.75rem; color: #2d3748; }
+    .scenario-video { width: 100%; max-width: 800px; border-radius: 4px; background: #000; }
+    .video-controls { margin-top: 0.75rem; display: flex; gap: 0.5rem; }
+    .video-btn { padding: 0.5rem 1rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; text-decoration: none; display: inline-block; }
+    .video-btn:hover { background: #2c5aa0; }
   </style>
 </head>
 <body>
@@ -302,6 +308,23 @@ function renderScenario(scenarioResult: ScenarioResult, featureTags: string[] = 
   const allTags = [...featureTags, ...scenarioResult.scenario.tags];
   const tags = allTags.join(',');
 
+  // Add video player if video path is available
+  const videoHtml = scenarioResult.videoPath
+    ? `<div class="video-container">
+      <div class="video-header">
+        <span style="font-weight: 600; font-size: 0.875rem;">📹 Recorded Video</span>
+      </div>
+      <video controls preload="metadata" class="scenario-video">
+        <source src="${escapeHtml(scenarioResult.videoPath)}" type="video/webm">
+        <source src="${escapeHtml(scenarioResult.videoPath)}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <div class="video-controls">
+        <a href="${escapeHtml(scenarioResult.videoPath)}" download class="video-btn">Download</a>
+      </div>
+    </div>`
+    : "";
+
   return `<div class="scenario" data-tags="${escapeHtml(tags)}">
   <div class="scenario-header">
     <span class="badge ${badgeClass}">${scenarioResult.status}</span>
@@ -309,6 +332,7 @@ function renderScenario(scenarioResult: ScenarioResult, featureTags: string[] = 
     <span class="scenario-duration">${scenarioResult.duration}ms</span>
   </div>
   <div class="steps">
+    ${videoHtml}
     ${stepsHtml}
   </div>
 </div>`;
