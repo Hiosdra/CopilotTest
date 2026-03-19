@@ -140,6 +140,117 @@ assertEqual(chainedFeat.scenarios.length, 2, "chained feature has 2 scenarios");
 assertEqual(chainedFeat.scenarios[0].name, "First", "first chained scenario name");
 assertEqual(chainedFeat.scenarios[1].name, "Second", "second chained scenario name");
 
+// ── DSL — scenario outline with examples ────────────
+
+section("DSL — scenario outline with examples");
+
+const outlineFeat: Feature = feature("User Login")
+  .scenarioOutline("Login with different credentials")
+    .given("I am on the login page")
+    .when('I enter username "<username>" and password "<password>"')
+    .then('I should see "<message>"')
+    .examples([
+      { username: "admin", password: "admin123", message: "Welcome Admin" },
+      { username: "user", password: "wrong", message: "Invalid credentials" },
+      { username: "", password: "", message: "Please fill all fields" },
+    ])
+    .done()
+  ._build();
+
+assertEqual(outlineFeat.scenarios.length, 1, "outline feature has 1 scenario");
+const outline = outlineFeat.scenarios[0];
+assertEqual(outline.name, "Login with different credentials", "outline scenario name");
+assert(outline.isOutline === true, "scenario is marked as outline");
+assert(outline.examples !== undefined, "scenario has examples");
+assertEqual(outline.examples!.length, 3, "scenario has 3 examples");
+assertEqual(outline.examples![0].username, "admin", "first example has username");
+assertEqual(outline.examples![1].message, "Invalid credentials", "second example has message");
+assertEqual(outline.steps.length, 3, "outline has 3 steps");
+assert(outline.steps[1].text.includes("<username>"), "step text contains placeholder");
+assert(outline.steps[1].text.includes("<password>"), "step text contains placeholder");
+
+// ── DSL — mixing scenario outline and regular scenario ─────
+
+section("DSL — mixing scenario outline and regular scenario");
+
+const mixedFeat: Feature = feature("Mixed")
+  .scenarioOutline("Parameterized test")
+    .given('I have "<count>" items')
+    .then('I should have <count> total')
+    .examples([
+      { count: "5" },
+      { count: "10" },
+    ])
+  .scenario("Regular test")
+    .given("I have a fixed value")
+    .then("I should see expected result")
+    .done()
+  ._build();
+
+assertEqual(mixedFeat.scenarios.length, 2, "mixed feature has 2 scenarios");
+assertEqual(mixedFeat.scenarios[0].isOutline, true, "first scenario is outline");
+assertEqual(mixedFeat.scenarios[1].isOutline, undefined, "second scenario is not outline");
+assertEqual(mixedFeat.scenarios[0].examples!.length, 2, "outline has 2 examples");
+assertEqual(mixedFeat.scenarios[1].examples, undefined, "regular scenario has no examples");
+
+// ── DSL — scenario outline with tags ─────────────────
+
+section("DSL — scenario outline with tags");
+
+const taggedOutline: Feature = feature("Tagged")
+  .scenarioOutline("Tagged outline")
+    .tag("@smoke", "@parameterized")
+    .given('I use value "<value>"')
+    .examples([{ value: "test" }])
+    .done()
+  ._build();
+
+assert(taggedOutline.scenarios[0].tags.includes("@smoke"), "outline has @smoke tag");
+assert(taggedOutline.scenarios[0].tags.includes("@parameterized"), "outline has @parameterized tag");
+
+// ── Runtime — expandScenarioOutlines ─────────────────
+
+section("Runtime — expandScenarioOutlines");
+
+const outlineRuntime = new CopilotTestRuntime({
+  platforms: { web: webPlatform() },
+});
+
+// Test parameter substitution
+const substituted = (outlineRuntime as any).substituteParameters(
+  'username is "<username>" and password is "<password>"',
+  { username: "admin", password: "secret123" }
+);
+assert(substituted.includes("admin"), "substitution includes username value");
+assert(substituted.includes("secret123"), "substitution includes password value");
+assert(!substituted.includes("<username>"), "substitution removes username placeholder");
+assert(!substituted.includes("<password>"), "substitution removes password placeholder");
+
+// Test scenario expansion
+const expandedScenarios = (outlineRuntime as any).expandScenarioOutlines(
+  outlineFeat.scenarios
+);
+assertEqual(expandedScenarios.length, 3, "outline expanded to 3 scenarios");
+assertEqual(expandedScenarios[0].name, "Login with different credentials (Example 1)", "first expanded scenario name");
+assertEqual(expandedScenarios[1].name, "Login with different credentials (Example 2)", "second expanded scenario name");
+assertEqual(expandedScenarios[2].name, "Login with different credentials (Example 3)", "third expanded scenario name");
+
+// Check that parameters are substituted
+assert(expandedScenarios[0].steps[1].text.includes("admin"), "first example has admin username");
+assert(expandedScenarios[0].steps[1].text.includes("admin123"), "first example has admin123 password");
+assert(expandedScenarios[1].steps[1].text.includes("user"), "second example has user username");
+assert(expandedScenarios[1].steps[1].text.includes("wrong"), "second example has wrong password");
+assert(expandedScenarios[0].steps[2].text.includes("Welcome Admin"), "first example has welcome message");
+assert(expandedScenarios[1].steps[2].text.includes("Invalid credentials"), "second example has error message");
+
+// Test that regular scenarios are not expanded
+const mixedExpanded = (outlineRuntime as any).expandScenarioOutlines(
+  mixedFeat.scenarios
+);
+assertEqual(mixedExpanded.length, 3, "mixed feature expands to 3 scenarios (2 from outline + 1 regular)");
+assertEqual(mixedExpanded[2].name, "Regular test", "regular scenario preserved");
+assert(!mixedExpanded[2].name.includes("Example"), "regular scenario name not modified");
+
 // ── Runtime — parseStepResponse ─────────────────────────────
 
 section("Runtime — parseStepResponse");
