@@ -5,6 +5,11 @@ export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
 export { mobilePlatform } from "./platforms/mobile.js";
 export { compareTestRuns } from "./compare.js";
+export {
+  defineStep,
+  clearStepDefinitions,
+  getStepDefinitions,
+} from "./step-registry.js";
 
 export type {
   Platform,
@@ -20,4 +25,7 @@ export type {
   FeatureResult,
   TestRun,
   TestRunMetadata,
+  StepContext,
+  StepDefinition,
+  StepDefinitionHandler,
 } from "./types.js";

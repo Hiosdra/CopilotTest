@@ -7,7 +7,9 @@ import type {
   StepResult,
   ScenarioResult,
   FeatureResult,
+  StepContext,
 } from "./types.js";
+import { findStepDefinition } from "./step-registry.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -26,6 +28,9 @@ Rules:
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
   private client: unknown = null;
+  private currentFeature?: Feature;
+  private currentScenario?: Scenario;
+  private currentPlatform?: PlatformConfig;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
@@ -63,7 +68,10 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const scenarioResults: ScenarioResult[] = [];
 
-    for (const scenario of feature.scenarios) {
+    // Expand scenario outlines into multiple scenarios
+    const expandedScenarios = this.expandScenarioOutlines(feature.scenarios);
+
+    for (const scenario of expandedScenarios) {
       const result = await this.runScenario(feature, scenario, platform);
       scenarioResults.push(result);
     }
@@ -75,6 +83,44 @@ export class CopilotTestRuntime {
     };
   }
 
+  private expandScenarioOutlines(scenarios: Scenario[]): Scenario[] {
+    const expanded: Scenario[] = [];
+
+    for (const scenario of scenarios) {
+      if (scenario.examples && scenario.examples.length > 0) {
+        // Expand scenario outline into multiple scenarios
+        for (let i = 0; i < scenario.examples.length; i++) {
+          const exampleData = scenario.examples[i];
+          const expandedScenario: Scenario = {
+            name: `${scenario.name} (Example ${i + 1})`,
+            tags: [...scenario.tags],
+            steps: scenario.steps.map((step) => ({
+              ...step,
+              text: this.substituteParameters(step.text, exampleData),
+            })),
+          };
+          expanded.push(expandedScenario);
+        }
+      } else {
+        // Regular scenario, no expansion needed
+        expanded.push(scenario);
+      }
+    }
+
+    return expanded;
+  }
+
+  private substituteParameters(text: string, data: Record<string, string>): string {
+    let result = text;
+    for (const [key, value] of Object.entries(data)) {
+      // Escape regex metacharacters in key to prevent incorrect matches
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Use callback to prevent "$" in value from being interpreted as replacement pattern
+      result = result.replace(new RegExp(`<${escapedKey}>`, "g"), () => value);
+    }
+    return result;
+  }
+
   async runScenario(
     feature: Feature,
     scenario: Scenario,
@@ -83,6 +129,11 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
+
+    // Store context for custom step definitions
+    this.currentFeature = feature;
+    this.currentScenario = scenario;
+    this.currentPlatform = platform;
 
     // Build steps including background
     const allSteps: Step[] = [
@@ -222,6 +273,45 @@ export class CopilotTestRuntime {
 
   async executeStep(step: Step, session: unknown): Promise<StepResult> {
     const startTime = Date.now();
+
+    // Check if custom step definitions are enabled (default: true)
+    const useCustomSteps = this.config.useCustomStepDefinitions !== false;
+
+    // Try to match custom step definition first (if enabled)
+    if (useCustomSteps) {
+      const match = findStepDefinition(step.text);
+      if (match) {
+        try {
+          // Build context for custom step handler
+          const context: StepContext = {
+            step,
+            session,
+            feature: this.currentFeature,
+            scenario: this.currentScenario,
+            platform: this.currentPlatform,
+          };
+
+          // Execute custom step handler with captured matches
+          await match.definition.handler(context, ...match.matches);
+
+          return {
+            step,
+            status: "passed",
+            duration: Date.now() - startTime,
+            aiReasoning: `[Custom] Step "${step.keyword} ${step.text}" executed via custom definition`,
+          };
+        } catch (err) {
+          return {
+            step,
+            status: "failed",
+            duration: Date.now() - startTime,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }
+    }
+
+    // Fall back to AI execution if no custom definition matched
     const prompt = this.buildStepPrompt(step);
     const timeout = this.config.stepTimeout ?? 30000;
 
