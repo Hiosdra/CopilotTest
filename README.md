@@ -147,7 +147,7 @@ configure({
   // Parallel execution options (NEW)
   parallel: true,                     // Enable parallel scenario execution
   maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
-  workerTimeout: 300000,              // Max time per worker (ms, default: 5 minutes)
+  workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
   failFast: false,                    // Stop all workers on first failure
 });
 ```
@@ -173,7 +173,7 @@ configure({
 - **`maxWorkers`**: Number of concurrent workers
   - Use a number (e.g., `4`) for fixed worker count
   - Use `'auto'` to automatically determine based on CPU cores (CPU count - 1)
-- **`workerTimeout`**: Maximum time a worker can spend on a scenario (default: `300000ms` / 5 minutes)
+- **`workerTimeout`**: Maximum time a scenario can run before timing out (default: `300000ms` / 5 minutes)
 - **`failFast`**: Stop all workers immediately when any scenario fails (default: `false`)
 
 ### Benefits

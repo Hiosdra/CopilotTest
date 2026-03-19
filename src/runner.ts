@@ -14,6 +14,7 @@ interface WorkerTask {
   scenarioIndex: number;
   platform: string;
   workerId: number;
+  queueIndex: number; // Track which queued feature this belongs to
 }
 
 let globalConfig: CopilotTestConfig | null = null;
@@ -76,16 +77,42 @@ async function runScenarioInWorker(
   config: CopilotTestConfig
 ): Promise<ScenarioResult> {
   const platformConfig = config.platforms[platform];
-  const scenario = feature.scenarios[scenarioIndex];
+  if (!platformConfig) {
+    throw new Error(`Platform "${platform}" not found in config`);
+  }
 
+  const scenario = feature.scenarios[scenarioIndex];
   const timeout = config.workerTimeout ?? 300000; // Default 5 minutes
 
-  return Promise.race([
-    runtime.runScenario(feature, scenario, platformConfig),
-    new Promise<ScenarioResult>((_, reject) =>
-      setTimeout(() => reject(new Error(`Worker ${workerId} timeout after ${timeout}ms`)), timeout)
-    ),
-  ]);
+  let timeoutId: NodeJS.Timeout | null = null;
+  let scenarioPromise: Promise<ScenarioResult> | null = null;
+
+  try {
+    scenarioPromise = runtime.runScenario(feature, scenario, platformConfig);
+
+    const timeoutPromise = new Promise<ScenarioResult>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Worker ${workerId} timeout after ${timeout}ms`));
+      }, timeout);
+    });
+
+    const result = await Promise.race([scenarioPromise, timeoutPromise]);
+
+    // Clear timeout on success
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+
+    return result;
+  } catch (err) {
+    // Clear timeout on error
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    throw err;
+  }
 }
 
 async function runFeaturesInParallel(
@@ -94,17 +121,23 @@ async function runFeaturesInParallel(
   config: CopilotTestConfig
 ): Promise<FeatureResult[]> {
   const maxWorkers = getMaxWorkers(config);
-  const featureResults: FeatureResult[] = [];
+
+  // Pre-allocate results array for each queued feature to maintain order
+  const scenarioResultsByQueue: ScenarioResult[][] = queuedFeatures.map(
+    queued => new Array(queued.feature.scenarios.length)
+  );
 
   // Create tasks for all scenarios across all features
   const tasks: WorkerTask[] = [];
-  for (const queued of queuedFeatures) {
-    for (let i = 0; i < queued.feature.scenarios.length; i++) {
+  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
+    const queued = queuedFeatures[queueIndex];
+    for (let scenarioIndex = 0; scenarioIndex < queued.feature.scenarios.length; scenarioIndex++) {
       tasks.push({
         feature: queued.feature,
-        scenarioIndex: i,
+        scenarioIndex,
         platform: queued.platform,
         workerId: 0, // Will be assigned dynamically
+        queueIndex,
       });
     }
   }
@@ -112,12 +145,6 @@ async function runFeaturesInParallel(
   const totalScenarios = tasks.length;
   let completedScenarios = 0;
   let failedScenarios = 0;
-
-  // Track scenario results grouped by feature
-  const scenarioResultsByFeature = new Map<string, ScenarioResult[]>();
-  for (const queued of queuedFeatures) {
-    scenarioResultsByFeature.set(queued.feature.name, []);
-  }
 
   console.log(`\n⚡ Running ${totalScenarios} scenarios with ${maxWorkers} workers\n`);
 
@@ -157,8 +184,8 @@ async function runFeaturesInParallel(
           `[Worker ${workerId}] ${icon} ${scenario.name} (${duration}ms) [${completedScenarios}/${totalScenarios}]`
         );
 
-        // Store result
-        scenarioResultsByFeature.get(task.feature.name)?.push(scenarioResult);
+        // Store result at correct index to maintain order
+        scenarioResultsByQueue[task.queueIndex][task.scenarioIndex] = scenarioResult;
 
         // failFast: stop processing if a scenario fails
         if (config.failFast && scenarioResult.status === "failed") {
@@ -169,19 +196,32 @@ async function runFeaturesInParallel(
         completedScenarios++;
         failedScenarios++;
 
+        const errorMsg = err instanceof Error ? err.message : String(err);
         console.error(
-          `[Worker ${workerId}] ❌ ${scenario.name} - Error: ${err instanceof Error ? err.message : String(err)}`
+          `[Worker ${workerId}] ❌ ${scenario.name} - Error: ${errorMsg}`
         );
 
-        // Create a failed scenario result
+        // Create a failed scenario result with proper step information
+        const allSteps = [
+          ...(task.feature.background ?? []),
+          ...scenario.steps,
+        ];
+
+        const failedSteps = allSteps.map((step, idx) => ({
+          step,
+          status: idx === 0 ? ("failed" as const) : ("skipped" as const),
+          duration: idx === 0 ? 0 : 0,
+          error: idx === 0 ? errorMsg : undefined,
+        }));
+
         const failedResult: ScenarioResult = {
           scenario,
           status: "failed",
-          steps: [],
+          steps: failedSteps,
           duration: 0,
         };
 
-        scenarioResultsByFeature.get(task.feature.name)?.push(failedResult);
+        scenarioResultsByQueue[task.queueIndex][task.scenarioIndex] = failedResult;
 
         if (config.failFast) {
           taskIndex = tasks.length;
@@ -201,17 +241,11 @@ async function runFeaturesInParallel(
 
   console.log(`\n✨ Parallel execution complete: ${completedScenarios - failedScenarios} passed, ${failedScenarios} failed\n`);
 
-  // Reconstruct feature results
-  for (const queued of queuedFeatures) {
-    const scenarios = scenarioResultsByFeature.get(queued.feature.name) ?? [];
-
-    // Sort scenarios to maintain original order
-    scenarios.sort((a, b) => {
-      const aIndex = queued.feature.scenarios.findIndex(s => s.name === a.scenario.name);
-      const bIndex = queued.feature.scenarios.findIndex(s => s.name === b.scenario.name);
-      return aIndex - bIndex;
-    });
-
+  // Construct feature results from pre-ordered arrays
+  const featureResults: FeatureResult[] = [];
+  for (let queueIndex = 0; queueIndex < queuedFeatures.length; queueIndex++) {
+    const queued = queuedFeatures[queueIndex];
+    const scenarios = scenarioResultsByQueue[queueIndex];
     const totalDuration = scenarios.reduce((sum, s) => sum + s.duration, 0);
 
     featureResults.push({

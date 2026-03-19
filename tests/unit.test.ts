@@ -9,6 +9,7 @@ import { buildHtmlReport } from "../src/reporter.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
+import { configure, run, test } from "../src/runner.js";
 import type { Feature, TestRun } from "../src/types.js";
 
 let failures = 0;
@@ -311,9 +312,7 @@ assert(html.includes("50%"), "HTML report shows pass rate");
 
 section("Parallel Configuration");
 
-import { configure, run, test } from "../src/runner.js";
-
-// Test parallel config options
+// Test parallel config options - verify TypeScript typing
 configure({
   platforms: { web: webPlatform() },
   parallel: true,
@@ -322,8 +321,7 @@ configure({
   failFast: false,
 });
 
-// Verify that config accepts parallel options (TypeScript compilation is the test)
-console.log("  ✔ PASS: parallel config with maxWorkers as number");
+assert(true, "parallel config with maxWorkers as number");
 
 configure({
   platforms: { web: webPlatform() },
@@ -331,16 +329,14 @@ configure({
   maxWorkers: "auto",
 });
 
-console.log("  ✔ PASS: parallel config with maxWorkers as 'auto'");
-passes += 2;
+assert(true, "parallel config with maxWorkers as 'auto'");
 
 configure({
   platforms: { web: webPlatform() },
   parallel: false,
 });
 
-console.log("  ✔ PASS: parallel config disabled");
-passes++;
+assert(true, "parallel config disabled");
 
 // ── Summary ──────────────────────────────────────────────────
 
