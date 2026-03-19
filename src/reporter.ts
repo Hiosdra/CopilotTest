@@ -1,6 +1,6 @@
 import { mkdir, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
-import type { TestRun, FeatureResult, ScenarioResult, StepResult } from "./types.js";
+import type { TestRun, FeatureResult, ScenarioResult, StepResult, TestRunMetadata } from "./types.js";
 
 export async function generateReport(
   testRun: TestRun,
@@ -13,17 +13,21 @@ export async function generateReport(
   const runDir = join(outputDir, "runs");
   await mkdir(runDir, { recursive: true });
 
+  // Build HTML report once and reuse for all HTML outputs
+  const htmlReport = buildHtmlReport(testRun);
+  const jsonReport = JSON.stringify(testRun, null, 2);
+
   // Save JSON report with timestamp
   const jsonPath = join(runDir, `${timestamp}.json`);
-  await writeFile(jsonPath, JSON.stringify(testRun, null, 2), "utf-8");
+  await writeFile(jsonPath, jsonReport, "utf-8");
 
   // Save HTML report with timestamp
   const htmlPath = join(runDir, `${timestamp}.html`);
-  await writeFile(htmlPath, buildHtmlReport(testRun), "utf-8");
+  await writeFile(htmlPath, htmlReport, "utf-8");
 
   // Also save as report.json and report.html for backward compatibility
-  await writeFile(join(outputDir, "report.json"), JSON.stringify(testRun, null, 2), "utf-8");
-  await writeFile(join(outputDir, "report.html"), buildHtmlReport(testRun), "utf-8");
+  await writeFile(join(outputDir, "report.json"), jsonReport, "utf-8");
+  await writeFile(join(outputDir, "report.html"), htmlReport, "utf-8");
 
   // Update trends.json
   await updateTrends(outputDir, testRun);
@@ -54,12 +58,12 @@ export function buildHtmlReport(testRun: TestRun): string {
 
   const featuresHtml = testRun.features.map(renderFeature).join("\n");
 
-  // Serialize testRun data for JavaScript
+  // Serialize testRun data for JavaScript, escaping </script sequences
   const testRunJson = JSON.stringify({
     ...testRun,
     startedAt: testRun.startedAt.toISOString(),
     finishedAt: testRun.finishedAt?.toISOString(),
-  });
+  }).replace(/<\/script/gi, '<\\/script');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -281,7 +285,7 @@ export function buildHtmlReport(testRun: TestRun): string {
 }
 
 function renderFeature(featureResult: FeatureResult): string {
-  const scenariosHtml = featureResult.scenarios.map(renderScenario).join("\n");
+  const scenariosHtml = featureResult.scenarios.map(s => renderScenario(s, featureResult.feature.tags)).join("\n");
   return `<div class="feature">
   <div class="feature-header">
     <h2>📋 ${escapeHtml(featureResult.feature.name)}</h2>
@@ -291,10 +295,12 @@ function renderFeature(featureResult: FeatureResult): string {
 </div>`;
 }
 
-function renderScenario(scenarioResult: ScenarioResult): string {
+function renderScenario(scenarioResult: ScenarioResult, featureTags: string[] = []): string {
   const badgeClass = `badge-${scenarioResult.status}`;
   const stepsHtml = scenarioResult.steps.map(renderStep).join("\n");
-  const tags = scenarioResult.scenario.tags.join(',');
+  // Combine feature tags and scenario tags
+  const allTags = [...featureTags, ...scenarioResult.scenario.tags];
+  const tags = allTags.join(',');
 
   return `<div class="scenario" data-tags="${escapeHtml(tags)}">
   <div class="scenario-header">
@@ -347,7 +353,7 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function renderMetadata(metadata: any): string {
+function renderMetadata(metadata: TestRunMetadata): string {
   const items: string[] = [];
 
   if (metadata.environment) {
@@ -372,7 +378,7 @@ function renderMetadata(metadata: any): string {
   }
 
   if (metadata.ci?.jobUrl) {
-    items.push(`<div class="metadata-item"><div class="metadata-label">CI Job</div><div class="metadata-value"><a href="${escapeHtml(metadata.ci.jobUrl)}" target="_blank">View</a></div></div>`);
+    items.push(`<div class="metadata-item"><div class="metadata-label">CI Job</div><div class="metadata-value"><a href="${escapeHtml(metadata.ci.jobUrl)}" target="_blank" rel="noopener noreferrer">View</a></div></div>`);
   }
 
   if (items.length === 0) return '';
@@ -443,7 +449,6 @@ async function generateDashboard(outputDir: string): Promise<void> {
   }
 
   const htmlFiles = files.filter(f => f.endsWith(".html")).sort().reverse();
-  const jsonFiles = files.filter(f => f.endsWith(".json")).sort().reverse();
 
   // Read trends
   let trends: TrendData = { runs: [] };
@@ -454,10 +459,20 @@ async function generateDashboard(outputDir: string): Promise<void> {
     // No trends yet
   }
 
-  const runsHtml = htmlFiles.slice(0, 20).map((file, idx) => {
+  // Build a lookup from timestamp to trend entry to avoid relying on index alignment
+  const trendByTimestamp = new Map<string, any>();
+  if (Array.isArray(trends.runs)) {
+    for (const run of trends.runs as any[]) {
+      if (run && typeof run.timestamp === "string") {
+        trendByTimestamp.set(run.timestamp, run);
+      }
+    }
+  }
+
+  const runsHtml = htmlFiles.slice(0, 20).map((file) => {
     const jsonFile = file.replace(".html", ".json");
     const timestamp = file.replace(".html", "");
-    const trend = trends.runs[trends.runs.length - 1 - idx];
+    const trend = trendByTimestamp.get(timestamp);
 
     if (!trend) return "";
 

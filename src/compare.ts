@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "fs/promises";
 import type { TestRun, ScenarioResult } from "./types.js";
 
-interface ComparisonResult {
+export interface ComparisonResult {
   baseline: TestRun;
   current: TestRun;
   changes: {
@@ -208,7 +208,7 @@ function buildComparisonHtml(comparison: ComparisonResult): string {
       <div class="card ${passRateChange >= 0 ? 'positive' : 'negative'}">
         <h3>Pass Rate Change</h3>
         <div class="value">${passRateChange > 0 ? '+' : ''}${passRateChange}%</div>
-        <div class="change">${Math.round((baseline.summary.passed / baseline.summary.total) * 100)}% → ${Math.round((current.summary.passed / current.summary.total) * 100)}%</div>
+        <div class="change">${baseline.summary.total > 0 ? Math.round((baseline.summary.passed / baseline.summary.total) * 100) : 0}% → ${current.summary.total > 0 ? Math.round((current.summary.passed / current.summary.total) * 100) : 0}%</div>
       </div>
       <div class="card ${performance.durationDiff <= 0 ? 'positive' : 'negative'}">
         <h3>Duration Change</h3>

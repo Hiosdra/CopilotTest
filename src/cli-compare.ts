@@ -32,6 +32,22 @@ const baselinePath = args[baselineIdx + 1];
 const currentPath = args[currentIdx + 1];
 const outputPath = outputIdx >= 0 ? args[outputIdx + 1] : "comparison.html";
 
+// Validate that all required arguments have values
+if (!baselinePath || baselinePath.startsWith("--")) {
+  console.error("Error: --baseline requires a file path argument");
+  process.exit(1);
+}
+
+if (!currentPath || currentPath.startsWith("--")) {
+  console.error("Error: --current requires a file path argument");
+  process.exit(1);
+}
+
+if (outputIdx >= 0 && (!outputPath || outputPath.startsWith("--"))) {
+  console.error("Error: --output requires a file path argument");
+  process.exit(1);
+}
+
 console.log("🔍 Comparing test runs...\n");
 console.log(`  Baseline: ${baselinePath}`);
 console.log(`  Current:  ${currentPath}`);
