@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test": "tsx tests/unit.test.ts",
+    "test:parallel": "tsx tests/parallel.spec.ts",
     "test:web": "tsx tests/login.spec.ts",
     "test:api": "tsx tests/api-users.spec.ts",
     "test:mobile": "tsx tests/mobile-app.spec.ts",

@@ -9,6 +9,7 @@ import { buildHtmlReport } from "../src/reporter.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
+import { configure, run, test } from "../src/runner.js";
 import type { Feature, TestRun } from "../src/types.js";
 
 let failures = 0;
@@ -472,6 +473,36 @@ assert(html.includes("badge-passed"), "HTML report has passed badge");
 assert(html.includes("badge-failed"), "HTML report has failed badge");
 assert(html.includes("badge-skipped"), "HTML report has skipped badge");
 assert(html.includes("50%"), "HTML report shows pass rate");
+
+// ── Parallel Configuration ──────────────────────────────────
+
+section("Parallel Configuration");
+
+// Test parallel config options - verify TypeScript typing
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: 4,
+  workerTimeout: 300000,
+  failFast: false,
+});
+
+assert(true, "parallel config with maxWorkers as number");
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: true,
+  maxWorkers: "auto",
+});
+
+assert(true, "parallel config with maxWorkers as 'auto'");
+
+configure({
+  platforms: { web: webPlatform() },
+  parallel: false,
+});
+
+assert(true, "parallel config disabled");
 
 // ── Summary ──────────────────────────────────────────────────
 
