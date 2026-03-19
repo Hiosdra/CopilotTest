@@ -9,6 +9,7 @@ import type {
   FeatureResult,
   ScenarioContext,
   StepContext,
+  HookContext,
 } from "./types.js";
 import { DebugController, type DebugContext } from "./debug.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
@@ -103,9 +104,41 @@ export class CopilotTestRuntime {
     // Expand scenario outlines into multiple scenarios
     const expandedScenarios = this.expandScenarioOutlines(feature.scenarios);
 
-    for (const scenario of expandedScenarios) {
-      const result = await this.runScenario(feature, scenario, platform);
-      scenarioResults.push(result);
+    // Create a shared context for beforeAll/afterAll hooks
+    const featureContext = new ScenarioContextClass();
+
+    // Execute beforeAll hook if defined
+    if (feature.hooks?.beforeAll) {
+      try {
+        const hookContext: HookContext = {
+          context: featureContext,
+          feature,
+        };
+        await feature.hooks.beforeAll(hookContext);
+      } catch (error) {
+        console.error(`  ❌ beforeAll hook failed: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue execution even if beforeAll fails
+      }
+    }
+
+    try {
+      for (const scenario of expandedScenarios) {
+        const result = await this.runScenario(feature, scenario, platform, featureContext);
+        scenarioResults.push(result);
+      }
+    } finally {
+      // Execute afterAll hook if defined (even if scenarios failed)
+      if (feature.hooks?.afterAll) {
+        try {
+          const hookContext: HookContext = {
+            context: featureContext,
+            feature,
+          };
+          await feature.hooks.afterAll(hookContext);
+        } catch (error) {
+          console.error(`  ❌ afterAll hook failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
     }
 
     return {
@@ -157,7 +190,8 @@ export class CopilotTestRuntime {
   async runScenario(
     feature: Feature,
     scenario: Scenario,
-    platform: PlatformConfig
+    platform: PlatformConfig,
+    featureContext?: ScenarioContextClass
   ): Promise<ScenarioResult> {
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
@@ -187,6 +221,21 @@ export class CopilotTestRuntime {
 
     // Create scenario context
     const context = new ScenarioContextClass();
+
+    // Execute beforeEach hook if defined
+    if (feature.hooks?.beforeEach) {
+      try {
+        const hookContext: HookContext = {
+          context,
+          feature,
+          scenario,
+        };
+        await feature.hooks.beforeEach(hookContext);
+      } catch (error) {
+        console.error(`  ❌ beforeEach hook failed: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue execution even if beforeEach fails
+      }
+    }
 
     let session: unknown = null;
 
@@ -297,6 +346,20 @@ export class CopilotTestRuntime {
         typeof (session as Record<string, unknown>).close === "function"
       ) {
         await (session as { close(): Promise<void> }).close();
+      }
+
+      // Execute afterEach hook if defined
+      if (feature.hooks?.afterEach) {
+        try {
+          const hookContext: HookContext = {
+            context,
+            feature,
+            scenario,
+          };
+          await feature.hooks.afterEach(hookContext);
+        } catch (error) {
+          console.error(`  ❌ afterEach hook failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
     }
 

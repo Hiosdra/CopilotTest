@@ -1,4 +1,4 @@
-import type { Step, StepKeyword, Scenario, Feature } from "./types.js";
+import type { Step, StepKeyword, Scenario, Feature, HookHandler } from "./types.js";
 
 export class ScenarioBuilder {
   private _steps: Step[] = [];
@@ -215,6 +215,10 @@ export class FeatureBuilder {
   private _tags: string[] = [];
   private _background?: Step[];
   private _scenarios: Scenario[] = [];
+  private _beforeAll?: HookHandler;
+  private _afterAll?: HookHandler;
+  private _beforeEach?: HookHandler;
+  private _afterEach?: HookHandler;
 
   constructor(name: string) {
     this._name = name;
@@ -234,6 +238,26 @@ export class FeatureBuilder {
     return new BackgroundBuilder(this);
   }
 
+  beforeAll(handler: HookHandler): this {
+    this._beforeAll = handler;
+    return this;
+  }
+
+  afterAll(handler: HookHandler): this {
+    this._afterAll = handler;
+    return this;
+  }
+
+  beforeEach(handler: HookHandler): this {
+    this._beforeEach = handler;
+    return this;
+  }
+
+  afterEach(handler: HookHandler): this {
+    this._afterEach = handler;
+    return this;
+  }
+
   scenario(name: string): ScenarioBuilder {
     return new ScenarioBuilder(name, this);
   }
@@ -251,12 +275,19 @@ export class FeatureBuilder {
   }
 
   _build(): Feature {
+    const hooks: Feature["hooks"] = {};
+    if (this._beforeAll) hooks.beforeAll = this._beforeAll;
+    if (this._afterAll) hooks.afterAll = this._afterAll;
+    if (this._beforeEach) hooks.beforeEach = this._beforeEach;
+    if (this._afterEach) hooks.afterEach = this._afterEach;
+
     return {
       name: this._name,
       description: this._description,
       tags: this._tags,
       background: this._background,
       scenarios: this._scenarios,
+      hooks: Object.keys(hooks).length > 0 ? hooks : undefined,
     };
   }
 }

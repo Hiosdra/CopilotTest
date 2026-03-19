@@ -1112,6 +1112,249 @@ configure({
 
 assert(true, "parallel config disabled");
 
+// ── Test Data Management — Fixtures ─────────────────────────
+
+section("Test Data Management — Fixtures");
+
+import {
+  defineFixture,
+  getFixture,
+  loadFixtures,
+  clearFixtures,
+  listFixtures,
+} from "../src/fixtures.js";
+
+// Clear any existing fixtures
+clearFixtures();
+
+const userFixture = defineFixture("testUser", {
+  username: "test@example.com",
+  password: "Test123!",
+  role: "user",
+});
+
+assertEqual(userFixture.username, "test@example.com", "fixture returns data");
+assert(getFixture("testUser") !== undefined, "fixture can be retrieved");
+assertEqual(
+  (getFixture("testUser") as Record<string, unknown>).username,
+  "test@example.com",
+  "retrieved fixture has correct data"
+);
+
+const productFixture = defineFixture("testProducts", [
+  { id: 1, name: "Product 1" },
+  { id: 2, name: "Product 2" },
+]);
+
+assert(Array.isArray(productFixture), "fixture supports arrays");
+assertEqual(productFixture.length, 2, "fixture array has correct length");
+
+const fixtures = listFixtures();
+assert(fixtures.includes("testUser"), "listFixtures includes testUser");
+assert(fixtures.includes("testProducts"), "listFixtures includes testProducts");
+
+loadFixtures({
+  bulkFixture1: { data: "value1" },
+  bulkFixture2: { data: "value2" },
+});
+
+assert(getFixture("bulkFixture1") !== undefined, "loadFixtures loads fixtures");
+assertEqual(listFixtures().length, 4, "loadFixtures adds to existing fixtures");
+
+clearFixtures();
+assertEqual(listFixtures().length, 0, "clearFixtures removes all fixtures");
+
+// ── Test Data Management — Factories ────────────────────────
+
+section("Test Data Management — Factories");
+
+import { defineFactory, faker } from "../src/factory.js";
+
+const testUserFactory = defineFactory({
+  id: ({ sequence }) => sequence,
+  username: ({ sequence }) => `user${sequence}@test.com`,
+  name: ({ faker }) => faker.person.firstName(),
+  createdAt: () => "2024-01-01",
+});
+
+const user1 = testUserFactory.build();
+assert(typeof user1.id === "number", "factory generates id");
+assert(user1.username.includes("@test.com"), "factory generates username");
+assert(typeof user1.name === "string", "factory uses faker");
+assertEqual(user1.createdAt, "2024-01-01", "factory uses static values");
+
+const user2 = testUserFactory.build();
+assert(user2.id !== user1.id, "factory increments sequence");
+assert(user2.username !== user1.username, "factory generates unique usernames");
+
+const customUser = testUserFactory.build({ username: "custom@test.com" });
+assertEqual(customUser.username, "custom@test.com", "factory accepts overrides");
+assert(typeof customUser.name === "string", "factory generates other fields with overrides");
+
+const userList = testUserFactory.buildList(3);
+assertEqual(userList.length, 3, "buildList creates correct number of items");
+assert(userList[0].username !== userList[1].username, "buildList creates unique items");
+
+testUserFactory.resetSequence();
+const resetUser = testUserFactory.build();
+assertEqual(resetUser.id, 0, "resetSequence resets to 0");
+
+testUserFactory.setSequence(100);
+const offsetUser = testUserFactory.build();
+assertEqual(offsetUser.id, 100, "setSequence sets custom sequence");
+
+// ── Test Data Management — Seeding ──────────────────────────
+
+section("Test Data Management — Seeding");
+
+import {
+  seed,
+  registerSeedHandler,
+  registerDefaultSeedHandler,
+  clearSeedHandlers,
+} from "../src/seed.js";
+
+clearSeedHandlers();
+
+let seedCalled = false;
+let seedData: unknown = null;
+
+registerSeedHandler("testCollection", async (collection, data) => {
+  seedCalled = true;
+  seedData = data;
+});
+
+await seed("testCollection", [{ id: 1 }, { id: 2 }]);
+assert(seedCalled, "seed handler is called");
+assert(Array.isArray(seedData), "seed handler receives data");
+assertEqual((seedData as unknown[]).length, 2, "seed handler receives correct data");
+
+// Test default handler
+let defaultHandlerCalled = false;
+registerDefaultSeedHandler(async (collection, data) => {
+  defaultHandlerCalled = true;
+});
+
+await seed("anyCollection", { id: 1 });
+assert(defaultHandlerCalled, "default handler is called for unregistered collections");
+
+// Test error when no handler
+clearSeedHandlers();
+let seedError: Error | null = null;
+try {
+  await seed("noHandler", []);
+} catch (err) {
+  seedError = err as Error;
+}
+assert(seedError !== null, "seed throws error when no handler registered");
+assert(seedError!.message.includes("No seed handler"), "error message is descriptive");
+
+// ── Test Data Management — API Mocking ──────────────────────
+
+section("Test Data Management — API Mocking");
+
+import { mockApi, createMockApi } from "../src/mock.js";
+
+mockApi.clear();
+
+mockApi.get("/api/users", {
+  status: 200,
+  body: [{ id: 1, name: "User 1" }],
+});
+
+const getMock = mockApi.findMock("GET", "/api/users");
+assert(getMock !== undefined, "mockApi registers GET mock");
+assertEqual(getMock!.status, 200, "mock has correct status");
+assert(Array.isArray(getMock!.body), "mock has correct body");
+
+mockApi.post("/api/users", {
+  status: 201,
+  body: { id: 2, name: "New User" },
+});
+
+const postMock = mockApi.findMock("POST", "/api/users");
+assert(postMock !== undefined, "mockApi registers POST mock");
+assertEqual(postMock!.status, 201, "POST mock has correct status");
+
+// Test wildcard matching
+mockApi.get("/api/users/*", {
+  status: 200,
+  body: { id: 123 },
+});
+
+const wildcardMock = mockApi.findMock("GET", "/api/users/123");
+assert(wildcardMock !== undefined, "mockApi supports wildcard matching");
+
+// Test regex matching
+mockApi.get(/^\/api\/products\/\d+$/, {
+  status: 200,
+  body: { id: 1, name: "Product" },
+});
+
+const regexMock = mockApi.findMock("GET", "/api/products/456");
+assert(regexMock !== undefined, "mockApi supports regex matching");
+
+const mockList = mockApi.list();
+assert(mockList.length > 0, "mockApi.list returns registered mocks");
+
+mockApi.clear();
+assertEqual(mockApi.list().length, 0, "mockApi.clear removes all mocks");
+
+// Test isolated mock API
+const isolatedMock = createMockApi();
+isolatedMock.get("/test", { status: 200, body: {} });
+assert(isolatedMock.findMock("GET", "/test") !== undefined, "createMockApi creates isolated instance");
+assert(mockApi.findMock("GET", "/test") === undefined, "isolated mock doesn't affect global mock");
+
+// ── Test Data Management — Lifecycle Hooks ──────────────────
+
+section("Test Data Management — Lifecycle Hooks");
+
+let beforeAllCalled = false;
+let afterAllCalled = false;
+let beforeEachCount = 0;
+let afterEachCount = 0;
+
+const hooksFeature = feature("Hooks Test")
+  .beforeAll(async ({ context }) => {
+    beforeAllCalled = true;
+    context.set("sharedData", "fromBeforeAll");
+  })
+  .afterAll(async ({ context }) => {
+    afterAllCalled = true;
+    const data = context.get("sharedData");
+    assert(data === "fromBeforeAll", "afterAll can access beforeAll context");
+  })
+  .beforeEach(async ({ context }) => {
+    beforeEachCount++;
+    context.set("scenarioData", `scenario${beforeEachCount}`);
+  })
+  .afterEach(async ({ context }) => {
+    afterEachCount++;
+    const data = context.get("scenarioData");
+    assert(data === `scenario${afterEachCount}`, "afterEach can access beforeEach context");
+  })
+  .scenario("First scenario")
+    .given("a step")
+    .then("another step")
+  .scenario("Second scenario")
+    .given("a step")
+    .then("another step")
+  .done()
+  ._build();
+
+assert(hooksFeature.hooks !== undefined, "feature has hooks");
+assert(hooksFeature.hooks?.beforeAll !== undefined, "beforeAll hook is defined");
+assert(hooksFeature.hooks?.afterAll !== undefined, "afterAll hook is defined");
+assert(hooksFeature.hooks?.beforeEach !== undefined, "beforeEach hook is defined");
+assert(hooksFeature.hooks?.afterEach !== undefined, "afterEach hook is defined");
+
+// Test that hooks are functions
+assert(typeof hooksFeature.hooks?.beforeAll === "function", "beforeAll is a function");
+assert(typeof hooksFeature.hooks?.afterAll === "function", "afterAll is a function");
+assert(typeof hooksFeature.hooks?.beforeEach === "function", "beforeEach is a function");
+assert(typeof hooksFeature.hooks?.afterEach === "function", "afterEach is a function");
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));
@@ -1120,3 +1363,4 @@ console.log(`\n📊 Test Results: ${passes} passed, ${failures} failed\n`);
 if (failures > 0) {
   process.exit(1);
 }
+

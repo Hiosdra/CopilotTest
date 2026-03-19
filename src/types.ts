@@ -65,6 +65,38 @@ export interface StepDefinition {
 }
 
 /**
+ * Context provided to lifecycle hooks.
+ */
+export interface HookContext {
+  /** Shared scenario context for cross-step state */
+  context: ScenarioContext;
+  /** The feature being executed */
+  feature?: Feature;
+  /** The scenario being executed (not available in beforeAll/afterAll) */
+  scenario?: Scenario;
+}
+
+/**
+ * Lifecycle hook handler function.
+ * @param context - Hook execution context
+ */
+export type HookHandler = (context: HookContext) => Promise<void> | void;
+
+/**
+ * Lifecycle hooks for features.
+ */
+export interface LifecycleHooks {
+  /** Runs once before all scenarios in the feature */
+  beforeAll?: HookHandler;
+  /** Runs once after all scenarios in the feature */
+  afterAll?: HookHandler;
+  /** Runs before each scenario in the feature */
+  beforeEach?: HookHandler;
+  /** Runs after each scenario in the feature */
+  afterEach?: HookHandler;
+}
+
+/**
  * Represents a test scenario with steps and optional examples.
  */
 export interface Scenario {
@@ -96,6 +128,8 @@ export interface Feature {
   background?: Step[];
   /** Scenarios in this feature */
   scenarios: Scenario[];
+  /** Lifecycle hooks for the feature */
+  hooks?: LifecycleHooks;
 }
 
 /**
