@@ -144,11 +144,18 @@ configure({
   mcpServers: {                       // Additional MCP servers
     database: { type: 'stdio', command: 'npx', args: ['my-db-mcp'] },
   },
-  // Parallel execution options (NEW)
+  // Parallel execution options
   parallel: true,                     // Enable parallel scenario execution
   maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
   workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
   failFast: false,                    // Stop all workers on first failure
+  // Cost tracking options (NEW)
+  costTracking: {
+    enabled: true,                    // Enable AI cost tracking
+    pricing: { ... },                 // Model pricing configuration
+    budget: { ... },                  // Budget limits
+    alerts: { ... },                  // Alert handlers
+  },
 });
 ```
 
@@ -200,6 +207,112 @@ configure({
 ✨ Parallel execution complete: 11 passed, 1 failed
 ```
 
+## 💰 AI Cost Tracking
+
+Track and optimize AI model usage costs with built-in cost monitoring and budget management.
+
+### Enable Cost Tracking
+
+```typescript
+configure({
+  model: 'gpt-4o',
+  platforms: { web: webPlatform() },
+
+  costTracking: {
+    enabled: true,
+
+    // Model pricing (cost per token in USD)
+    pricing: {
+      'gpt-4o': { input: 0.0025 / 1000, output: 0.01 / 1000 },
+      'gpt-4o-mini': { input: 0.00015 / 1000, output: 0.0006 / 1000 },
+    },
+
+    // Budget limits
+    budget: {
+      perTest: 0.50,      // Max $0.50 per test scenario
+      daily: 10.00,       // Max $10 per day
+      monthly: 200.00,    // Max $200 per month
+    },
+
+    // Alert handlers
+    alerts: {
+      onThresholdReached: (cost, limit) => {
+        console.warn(`⚠️  Cost ${cost.toFixed(4)} approaching limit ${limit.toFixed(4)}`);
+      },
+      onBudgetExceeded: (cost, limit) => {
+        throw new Error(`Budget exceeded: ${cost.toFixed(4)} > ${limit.toFixed(4)}`);
+      },
+    },
+  },
+});
+```
+
+### Cost Report Output
+
+After test execution, you'll see cost metrics in:
+
+**Console Output:**
+```
+📊 Results:
+  Total:   3
+  Passed:  3 ✅
+  Failed:  0 ❌
+  Pass rate: 100%
+  Duration: 5432ms
+
+💰 AI Cost Summary:
+  Total Cost: $0.0234
+  Total Tokens: 2.34K
+    - Input:  1.89K ($0.0047)
+    - Output: 451 ($0.0045)
+  Average cost per scenario: $0.0078
+  Most expensive: Login Tests::Complex validation ($0.0098)
+```
+
+**HTML Report:**
+- Cost summary card on dashboard
+- Token usage breakdown in metadata section
+- Cost per step in detailed view
+- Most expensive scenarios highlighted
+
+**JSON Report:**
+```json
+{
+  "metadata": {
+    "cost": {
+      "inputTokens": 1890,
+      "outputTokens": 451,
+      "costUSD": 0.0234,
+      "avgCostPerScenario": 0.0078,
+      "mostExpensiveScenario": {
+        "name": "Login Tests::Complex validation",
+        "cost": 0.0098
+      },
+      "byFeature": [
+        { "name": "Login Tests", "cost": 0.0156, "percentage": 66.7 },
+        { "name": "API Tests", "cost": 0.0078, "percentage": 33.3 }
+      ]
+    }
+  }
+}
+```
+
+### Budget Alerts
+
+Cost tracking includes automatic budget monitoring:
+
+- **Threshold Alerts (80%)**: Warning when approaching budget limits
+- **Budget Exceeded**: Error when limits are exceeded
+- **Multi-Level Budgets**: Per-test, daily, and monthly limits
+
+### Cost Optimization Tips
+
+1. **Use appropriate models**: `gpt-4o-mini` for simple scenarios, `gpt-4o` for complex validations
+2. **Optimize step descriptions**: Concise steps use fewer tokens
+3. **Monitor trends**: Track cost over time to identify expensive patterns
+4. **Set budgets**: Use budget limits to prevent runaway costs
+
+See `examples/cost-tracking-example.ts` for a complete working example.
 
 
 ## DSL Reference
