@@ -9,11 +9,20 @@ import type {
   FeatureResult,
   ScenarioContext,
   StepContext,
+  RetryAttempt,
 } from "./types.js";
 import { DebugController, type DebugContext } from "./debug.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
 import { findStepDefinition } from "./step-registry.js";
 import { escapeRegex, isPlainObject } from "./utils.js";
+import {
+  calculateRetryDelay,
+  shouldRetryStep,
+  sleep,
+  isFlaky,
+  reportFlakyTest,
+  DEFAULT_RETRY_CONFIG,
+} from "./retry.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -253,7 +262,7 @@ export class CopilotTestRuntime {
               console.log("\n🔄 Retrying step...");
             }
             // Execute step with optional override input
-            const stepResult = await this.executeStep(step, session, context, action.input);
+            const stepResult = await this.executeStep(step, session, context, action.input, scenario);
             stepResults.push(stepResult);
 
             // Track resource usage from step
@@ -271,7 +280,7 @@ export class CopilotTestRuntime {
           }
         }
 
-        const stepResult = await this.executeStep(step, session, context);
+        const stepResult = await this.executeStep(step, session, context, undefined, scenario);
         stepResults.push(stepResult);
 
         // Track resource usage from step
@@ -404,6 +413,133 @@ export class CopilotTestRuntime {
   }
 
   async executeStep(
+    step: Step,
+    session: unknown,
+    context: ScenarioContext,
+    overrideInput?: string,
+    scenario?: Scenario
+  ): Promise<StepResult> {
+    const retryConfig = this.config.retry ?? {};
+    const enabled = retryConfig.enabled ?? DEFAULT_RETRY_CONFIG.enabled;
+    const maxRetries = enabled
+      ? (retryConfig.stepRetries ?? DEFAULT_RETRY_CONFIG.stepRetries)
+      : 0;
+
+    // If retries are disabled or maxRetries is 0, execute normally
+    if (!enabled || maxRetries === 0) {
+      return this.executeStepOnce(step, session, context, overrideInput);
+    }
+
+    // Execute with retry logic
+    const retryAttempts: RetryAttempt[] = [];
+    let attempt = 0;
+    let lastError: string | undefined;
+
+    while (attempt <= maxRetries) {
+      attempt++;
+      const attemptStartTime = Date.now();
+
+      try {
+        const result = await this.executeStepOnce(step, session, context, overrideInput);
+
+        // Record this attempt
+        retryAttempts.push({
+          attemptNumber: attempt,
+          status: result.status,
+          duration: Date.now() - attemptStartTime,
+          error: result.error,
+        });
+
+        if (result.status === "passed") {
+          // Success! Check if this test is flaky
+          const retryCount = attempt - 1;
+          if (retryCount > 0 && isFlaky(retryCount, retryConfig)) {
+            // Report flaky test - use passed scenario parameter for thread safety
+            const scenarioName = scenario?.name ?? "Unknown scenario";
+            reportFlakyTest(scenarioName, attempt, retryConfig);
+          }
+
+          // Return successful result with retry metadata
+          return {
+            ...result,
+            retryCount,
+            retryAttempts,
+          };
+        }
+
+        // Step failed - check if we should retry
+        lastError = result.error ?? "Step failed";
+
+        if (attempt > maxRetries) {
+          // No more retries left
+          return {
+            ...result,
+            retryCount: attempt - 1,
+            retryAttempts,
+          };
+        }
+
+        // Check if we should retry based on error
+        if (!shouldRetryStep(lastError, attempt, retryConfig, maxRetries)) {
+          // Don't retry this error
+          return {
+            ...result,
+            retryCount: attempt - 1,
+            retryAttempts,
+          };
+        }
+
+        // Calculate delay before retry
+        const delay = calculateRetryDelay(attempt, retryConfig);
+        console.log(
+          `  ⚠️  Step failed (attempt ${attempt}/${maxRetries + 1}): ${lastError}`
+        );
+        console.log(`  ⏳ Retrying in ${delay}ms...`);
+
+        // Wait before retrying
+        await sleep(delay);
+      } catch (err) {
+        // Unexpected error during execution
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        retryAttempts.push({
+          attemptNumber: attempt,
+          status: "failed",
+          duration: Date.now() - attemptStartTime,
+          error: errorMsg,
+        });
+
+        lastError = errorMsg;
+
+        if (attempt > maxRetries || !shouldRetryStep(errorMsg, attempt, retryConfig, maxRetries)) {
+          return {
+            step,
+            status: "failed",
+            duration: Date.now() - attemptStartTime,
+            error: errorMsg,
+            retryCount: attempt - 1,
+            retryAttempts,
+          };
+        }
+
+        const delay = calculateRetryDelay(attempt, retryConfig);
+        console.log(`  ⚠️  Step error (attempt ${attempt}/${maxRetries + 1}): ${errorMsg}`);
+        console.log(`  ⏳ Retrying in ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+
+    // Should not reach here, but just in case
+    return {
+      step,
+      status: "failed",
+      duration: 0,
+      error: lastError ?? "Step failed after all retries",
+      retryCount: maxRetries,
+      retryAttempts,
+    };
+  }
+
+  private async executeStepOnce(
     step: Step,
     session: unknown,
     context: ScenarioContext,

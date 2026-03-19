@@ -14,6 +14,13 @@ export {
   getStepDefinitions,
 } from "./step-registry.js";
 export {
+  calculateRetryDelay,
+  shouldRetryStep,
+  isFlaky,
+  reportFlakyTest,
+  DEFAULT_RETRY_CONFIG,
+} from "./retry.js";
+export {
   analyzePerformance,
   getStepPerformanceBreakdown,
   generatePerformanceReport,
@@ -40,6 +47,11 @@ export type {
   StepContext,
   StepDefinition,
   StepDefinitionHandler,
+  RetryConfig,
+  RetryStrategy,
+  RetryAttempt,
+  ShouldRetryFn,
+  DelayFn,
   PerformanceConfig,
   StepMetrics,
   ResourceMetrics,

@@ -122,6 +122,12 @@ export function buildHtmlReport(testRun: TestRun): string {
     .step-duration { font-size: 0.75rem; color: #718096; }
     .step-error { margin-top: 0.25rem; font-size: 0.8rem; color: #e53e3e; font-family: monospace; }
     .reasoning { margin-top: 0.25rem; font-size: 0.8rem; color: #4a5568; }
+    .retry-badge { display: inline-block; padding: 0.125rem 0.5rem; background: #fef5e7; color: #d68910; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-left: 0.5rem; }
+    .retry-details { margin-top: 0.5rem; padding: 0.5rem; background: #fef5e7; border-left: 3px solid #f39c12; border-radius: 4px; font-size: 0.75rem; }
+    .retry-attempt { padding: 0.25rem 0; display: flex; justify-content: space-between; }
+    .retry-attempt .status { font-weight: 600; }
+    .retry-attempt.success .status { color: #38a169; }
+    .retry-attempt.failed .status { color: #e53e3e; }
     details { margin-top: 0.25rem; }
     details summary { cursor: pointer; color: #3182ce; font-size: 0.8rem; user-select: none; }
     details p { margin-top: 0.25rem; font-size: 0.8rem; color: #4a5568; padding: 0.5rem; background: #f7fafc; border-radius: 4px; }
@@ -323,6 +329,53 @@ function renderStep(stepResult: StepResult): string {
       : "⊘";
   const cssClass = `step step-${stepResult.status}`;
 
+  // Build retry badge if retries occurred
+  const retryBadge = stepResult.retryCount && stepResult.retryCount > 0
+    ? `<span class="retry-badge">Retried ${stepResult.retryCount}x</span>`
+    : "";
+
+  // Build retry details if retries actually occurred (not just first attempt)
+  let retryDetailsHtml = "";
+  if (stepResult.retryCount && stepResult.retryCount > 0 && stepResult.retryAttempts) {
+    const attemptsHtml = stepResult.retryAttempts.map(attempt => {
+      let statusClass: string;
+      let statusLabel: string;
+
+      switch (attempt.status) {
+        case "passed":
+          statusClass = "success";
+          statusLabel = "Passed";
+          break;
+        case "failed":
+          statusClass = "failed";
+          statusLabel = "Failed";
+          break;
+        case "skipped":
+          statusClass = "skipped";
+          statusLabel = "Skipped";
+          break;
+        case "pending":
+          statusClass = "pending";
+          statusLabel = "Pending";
+          break;
+        default:
+          statusClass = "unknown";
+          statusLabel = String(attempt.status);
+          break;
+      }
+
+      return `<div class="retry-attempt ${statusClass}">
+        <span>Attempt ${attempt.attemptNumber}:</span>
+        <span class="status">${statusLabel} (${attempt.duration}ms)${attempt.error ? ` - ${escapeHtml(attempt.error)}` : ""}</span>
+      </div>`;
+    }).join("");
+
+    retryDetailsHtml = `<div class="retry-details">
+      <strong>Retry Attempts:</strong>
+      ${attemptsHtml}
+    </div>`;
+  }
+
   // Format performance metrics
   let metricsHtml = "";
   if (stepResult.metrics) {
@@ -343,9 +396,11 @@ function renderStep(stepResult: StepResult): string {
     <div class="step-text">
       <span class="step-keyword">${escapeHtml(stepResult.step.keyword)}</span>
       ${escapeHtml(stepResult.step.text)}
+      ${retryBadge}
     </div>
     <div class="step-duration">${stepResult.duration}ms${metricsHtml}</div>
     ${stepResult.error ? `<div class="step-error">Error: ${escapeHtml(stepResult.error)}</div>` : ""}
+    ${retryDetailsHtml}
     ${
       stepResult.aiReasoning
         ? `<details>

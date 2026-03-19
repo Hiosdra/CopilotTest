@@ -132,12 +132,45 @@ class TestRunner {
                   : stepResult.status === "failed"
                   ? "  ✘"
                   : "  ⊘";
+
+              // Add retry indicator if step was retried
+              const retryInfo = stepResult.retryCount && stepResult.retryCount > 0
+                ? ` ⚠️ (retried ${stepResult.retryCount}x)`
+                : "";
+
               console.log(
-                `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)`
+                `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)${retryInfo}`
               );
 
               if (stepResult.error) {
                 console.log(`       💬 ${stepResult.error}`);
+              }
+
+              // Show retry attempts only if retries actually occurred
+              if (stepResult.retryCount && stepResult.retryCount > 0 && stepResult.retryAttempts) {
+                for (const attempt of stepResult.retryAttempts) {
+                  let attemptIcon: string;
+                  switch (attempt.status) {
+                    case "passed":
+                      attemptIcon = "✓";
+                      break;
+                    case "failed":
+                      attemptIcon = "✗";
+                      break;
+                    case "skipped":
+                      attemptIcon = "⊘";
+                      break;
+                    case "pending":
+                      attemptIcon = "…";
+                      break;
+                    default:
+                      attemptIcon = "?";
+                      break;
+                  }
+                  console.log(
+                    `       ${attemptIcon} Attempt ${attempt.attemptNumber}: ${attempt.status} (${attempt.duration}ms)`
+                  );
+                }
               }
             }
           }
