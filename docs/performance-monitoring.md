@@ -24,12 +24,14 @@ Track resource usage at the scenario level:
 
 ```typescript
 interface ResourceMetrics {
-  memoryUsed?: number;      // Peak memory usage (MB)
-  cpuTime?: number;         // CPU time (ms)
-  networkRequests?: number; // Number of network requests
+  memoryUsed?: number;      // Peak memory usage (MB) - reserved for future use
+  cpuTime?: number;         // CPU time (ms) - reserved for future use
+  networkRequests?: number; // Number of network requests - reserved for future use
   screenshots?: number;     // Number of screenshots taken
 }
 ```
+
+**Note**: Currently only `screenshots` is actively tracked. Other fields are reserved for future implementation.
 
 ### 3. Performance Configuration
 
@@ -41,8 +43,7 @@ configure({
   performance: {
     warnThreshold: 5000,      // Warn if step > 5s
     failThreshold: 10000,     // Fail if step > 10s
-    trackTrends: true,        // Track performance trends
-    trendsFile: 'performance-trends.json',
+    // Note: trackTrends and trendsFile are reserved for future use
   },
 });
 ```
@@ -64,6 +65,8 @@ configure({
   },
 });
 ```
+
+**Note**: The `trackTrends` and `trendsFile` options are defined in the interface but not yet implemented. They are reserved for future use.
 
 ### Analyzing Performance
 
@@ -113,7 +116,7 @@ Performance metrics are automatically included in the HTML report:
 
 - Step duration breakdown (Total, AI Time, Execution Time)
 - Inline metrics display for each step
-- Resource usage statistics (screenshots, network requests)
+- Screenshot count (other resource metrics reserved for future use)
 
 ### Comparing Performance
 
@@ -157,10 +160,11 @@ configure({
 ## Best Practices
 
 1. **Set Realistic Thresholds**: Based on your application's performance characteristics
-2. **Track Trends**: Enable trend tracking to monitor performance over time
-3. **Review Slow Steps**: Use the performance report to identify and optimize slow tests
-4. **Resource Monitoring**: Track screenshots and network requests to understand test overhead
-5. **CI Integration**: Use performance data in CI to detect regressions
+2. **Review Slow Steps**: Use the performance report to identify and optimize slow tests
+3. **Resource Monitoring**: Track screenshots to understand test overhead
+4. **CI Integration**: Use performance data in CI to detect regressions
+
+**Note**: Trend tracking and some resource metrics (network requests, memory, CPU) are defined in the API but not yet implemented. They are reserved for future enhancements.
 
 ## API Reference
 

@@ -29,8 +29,7 @@ configure({
   performance: {
     warnThreshold: 5000,   // Warn if step takes > 5s
     failThreshold: 10000,  // Fail if step takes > 10s
-    trackTrends: true,     // Track performance trends over time
-    trendsFile: "performance-trends.json",
+    // Note: trackTrends and trendsFile are defined but not yet implemented
   },
 });
 

@@ -18,6 +18,12 @@ import {
   getStepDefinitions,
 } from "../src/step-registry.js";
 import { configure, run, test } from "../src/runner.js";
+import {
+  analyzePerformance,
+  getStepPerformanceBreakdown,
+  formatDuration,
+  comparePerformance,
+} from "../src/performance.js";
 import type { Feature, TestRun, Scenario, Step, StepContext } from "../src/types.js";
 import { writeFile, mkdir, rm } from "fs/promises";
 
@@ -1115,13 +1121,6 @@ assert(true, "parallel config disabled");
 // ── Performance Monitoring ─────────────────────────────────
 
 section("Performance — analyzePerformance");
-
-import {
-  analyzePerformance,
-  getStepPerformanceBreakdown,
-  formatDuration,
-  comparePerformance,
-} from "../src/performance.js";
 
 const perfTestRun: TestRun = {
   startedAt: new Date(),

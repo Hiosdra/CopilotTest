@@ -166,8 +166,8 @@ export class CopilotTestRuntime {
 
     // Track resource metrics
     const resourceMetrics: import("./types.js").ResourceMetrics = {
-      networkRequests: 0,
       screenshots: 0,
+      // Note: networkRequests tracking not yet implemented
     };
 
     // Check if debug mode is enabled
@@ -491,12 +491,11 @@ export class CopilotTestRuntime {
         ): Promise<{ data: { content: string } } | undefined>;
       };
 
-      const aiEndTime = Date.now();
       const response = await sessionWithSend.sendAndWait(
         { prompt },
         timeout
       );
-      const executionStartTime = Date.now();
+      const aiEndTime = Date.now();
 
       if (!response) {
         const duration = Date.now() - startTime;
@@ -514,9 +513,10 @@ export class CopilotTestRuntime {
       }
 
       const parsed = this.parseStepResponse(response.data.content);
-      const duration = Date.now() - startTime;
-      const aiThinkTime = executionStartTime - aiEndTime;
-      const executionTime = Date.now() - executionStartTime;
+      const executionEndTime = Date.now();
+      const duration = executionEndTime - startTime;
+      const aiThinkTime = aiEndTime - aiStartTime;
+      const executionTime = executionEndTime - aiEndTime;
 
       // Check performance thresholds
       if (this.config.performance) {

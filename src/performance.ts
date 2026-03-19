@@ -1,10 +1,10 @@
-import type { TestRun, ScenarioResult, StepResult } from "./types.js";
+import type { TestRun } from "./types.js";
 
 /**
  * Performance summary statistics for a test run.
  */
 export interface PerformanceSummary {
-  /** Total duration of all scenarios */
+  /** Total duration from test run metadata (or 0 if not available) */
   totalDuration: number;
   /** Average step duration */
   avgStepDuration: number;
