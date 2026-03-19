@@ -4,6 +4,9 @@ import type { Step, StepResult, Scenario } from "./types.js";
 export interface DebugContext {
   scenario: Scenario;
   currentStepIndex: number;
+  currentStep: Step;
+  allSteps: Step[];
+  backgroundStepCount: number;
   stepResults: StepResult[];
   session: unknown;
 }
@@ -22,31 +25,44 @@ export type DebugAction =
   | { type: "step" };
 
 export class DebugController {
-  private breakpoints: Set<string>;
+  private breakpoints: string[];
   private stepThrough: boolean;
   private rl: readline.Interface | null = null;
 
   constructor(breakpoints: string[] = [], stepThrough: boolean = false) {
-    this.breakpoints = new Set(
-      breakpoints.map((bp) => bp.toLowerCase().trim())
-    );
+    this.breakpoints = breakpoints.map((bp) => bp.toLowerCase().trim());
     this.stepThrough = stepThrough;
   }
 
   shouldBreak(step: Step): boolean {
-    const stepText = `${step.keyword} ${step.text}`.toLowerCase().trim();
-    return (
-      this.stepThrough ||
-      this.breakpoints.has(stepText) ||
-      this.breakpoints.has(step.text.toLowerCase().trim())
-    );
+    if (this.stepThrough) {
+      return true;
+    }
+
+    const stepTextFull = `${step.keyword} ${step.text}`.toLowerCase().trim();
+    const stepTextOnly = step.text.toLowerCase().trim();
+
+    return this.breakpoints.some((bp) => {
+      if (!bp) {
+        return false;
+      }
+      // Support substring matching for more flexible breakpoints
+      return stepTextFull.includes(bp) || stepTextOnly.includes(bp);
+    });
   }
 
   async startInteractiveConsole(context: DebugContext): Promise<DebugAction> {
-    const step = context.scenario.steps[context.currentStepIndex];
+    // Check if running in a non-interactive environment (e.g., CI)
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      console.log("\n⚠️  DEBUG MODE: Non-interactive terminal detected");
+      console.log("    Auto-continuing execution (interactive debug requires a TTY)");
+      return { type: "continue" };
+    }
+
+    const step = context.currentStep;
     console.log("\n🔍 DEBUG MODE - Breakpoint reached");
     console.log(`📍 Step: ${step.keyword} ${step.text}`);
-    console.log(`📊 Step ${context.currentStepIndex + 1}/${context.scenario.steps.length}`);
+    console.log(`📊 Step ${context.currentStepIndex + 1}/${context.allSteps.length}`);
 
     if (context.stepResults.length > 0) {
       const lastResult = context.stepResults[context.stepResults.length - 1];
@@ -155,10 +171,13 @@ export class DebugController {
     console.log("\n📋 Scenario Context:");
     console.log(`  Name: ${context.scenario.name}`);
     console.log(`  Tags: ${context.scenario.tags.join(", ") || "none"}`);
-    console.log(`  Total Steps: ${context.scenario.steps.length}`);
+    console.log(`  Total Steps: ${context.allSteps.length}`);
+    if (context.backgroundStepCount > 0) {
+      console.log(`  Background Steps: ${context.backgroundStepCount}`);
+    }
     console.log(`  Current Step: ${context.currentStepIndex + 1}`);
     console.log("\n📝 All Steps:");
-    context.scenario.steps.forEach((step, idx) => {
+    context.allSteps.forEach((step, idx) => {
       const marker = idx === context.currentStepIndex ? "→" : " ";
       const status = context.stepResults[idx]?.status || "pending";
       const statusIcon =
@@ -169,8 +188,9 @@ export class DebugController {
             : status === "skipped"
               ? "○"
               : "·";
+      const prefix = idx < context.backgroundStepCount ? "[Background] " : "";
       console.log(
-        `  ${marker} ${statusIcon} ${step.keyword} ${step.text}`
+        `  ${marker} ${statusIcon} ${prefix}${step.keyword} ${step.text}`
       );
     });
     console.log("");

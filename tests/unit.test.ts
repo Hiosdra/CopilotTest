@@ -340,6 +340,19 @@ assert(!debugController.shouldBreak(step1), "no breakpoint on Given step");
 assert(debugController.shouldBreak(step2), "breakpoint on When step");
 assert(debugController.shouldBreak(step3), "breakpoint on Then step");
 
+section("Debug — partial/substring breakpoint matching");
+
+const partialController = new DebugController(
+  ["click", "see a message"],
+  false
+);
+
+assert(!partialController.shouldBreak(step1), "no partial match on Given step");
+assert(partialController.shouldBreak(step2), "partial match on 'click' in When step");
+assert(partialController.shouldBreak(step3), "partial match on 'see a message' in Then step");
+
+partialController.cleanup();
+
 section("Debug — step-through mode");
 
 const stepController = new DebugController([], true);

@@ -243,20 +243,27 @@ copilot-debug> inspect results
 ```
 
 #### `retry [input]`
-Retries the current step, optionally with modifications.
+Retries the current step, optionally with modified input text.
 
 ```
 copilot-debug> retry
 🔄 Retrying step...
+
+copilot-debug> retry enter valid credentials
+🔄 Retrying step with input: "enter valid credentials"
 ```
 
+When retry is used with custom input, the AI receives the modified step text for that execution only. For example, if the original step was "When I enter invalid credentials" and you type `retry enter valid credentials`, the AI will execute "When enter valid credentials" with a note about the original step text.
+
 #### `exit` (or `q`)
-Exits debug mode and marks remaining steps as skipped.
+Exits debug mode and marks the scenario and all remaining steps as skipped.
 
 ```
 copilot-debug> exit
 🛑 Debug mode exited by user
 ```
+
+Note: The scenario will be marked as "skipped" in the report, not "failed", since this is a user-initiated abort.
 
 ## Configuration Reference
 
@@ -323,16 +330,18 @@ Enable debug only for problematic scenarios:
 ## Tips
 
 1. **Case-insensitive matching**: Breakpoints match step text case-insensitively
-2. **Partial matching**: Breakpoints can match partial step text
+2. **Partial matching**: Breakpoints support substring matching (e.g., "click submit" matches "When I click the submit button")
 3. **Cleanup on exit**: Debug controller automatically cleans up readline interface
-4. **Non-interactive CI**: Debug mode is disabled in CI environments by default
+4. **Non-interactive CI**: Debug mode auto-continues in non-TTY environments (no hang in CI)
+5. **Exit vs Fail**: Using "exit" command marks scenario as skipped, not failed
 
 ## Limitations
 
-- Debug mode requires an interactive terminal (TTY)
-- Not suitable for automated CI/CD pipelines (disable in CI)
-- Background steps are included in debug flow
+- Debug mode requires an interactive terminal (TTY) for full functionality
+- In CI/CD pipelines without TTY, debug mode auto-continues (no interactive prompts)
+- Background steps are included in debug flow and shown with [Background] prefix
 - Session state is preserved between debugged steps
+- Retry with custom input modifies the step text sent to AI for that execution only
 
 ## Examples
 

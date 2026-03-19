@@ -84,6 +84,7 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
+    let scenarioAborted = false;
 
     // Check if debug mode is enabled
     const debugEnabled =
@@ -123,6 +124,9 @@ export class CopilotTestRuntime {
           const debugContext: DebugContext = {
             scenario,
             currentStepIndex: i,
+            currentStep: step,
+            allSteps,
+            backgroundStepCount: feature.background?.length ?? 0,
             stepResults: [...stepResults],
             session,
           };
@@ -132,7 +136,7 @@ export class CopilotTestRuntime {
 
           if (action.type === "exit") {
             console.log("\n🛑 Debug mode exited by user");
-            scenarioFailed = true;
+            scenarioAborted = true;
             // Mark remaining steps as skipped
             for (let j = i; j < allSteps.length; j++) {
               stepResults.push({
@@ -151,8 +155,18 @@ export class CopilotTestRuntime {
             });
             continue;
           } else if (action.type === "retry") {
-            console.log("\n🔄 Retrying step...");
-            // Continue to execute the step below
+            if (action.input) {
+              console.log(`\n🔄 Retrying step with input: "${action.input}"`);
+            } else {
+              console.log("\n🔄 Retrying step...");
+            }
+            // Execute step with optional override input
+            const stepResult = await this.executeStep(step, session, action.input);
+            stepResults.push(stepResult);
+            if (stepResult.status === "failed") {
+              scenarioFailed = true;
+            }
+            continue;
           } else if (action.type === "step" || action.type === "continue") {
             console.log("\n▶️  Continuing...");
             // Continue to execute the step below
@@ -195,7 +209,7 @@ export class CopilotTestRuntime {
 
     return {
       scenario,
-      status: scenarioFailed ? "failed" : "passed",
+      status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
     };
@@ -278,9 +292,13 @@ export class CopilotTestRuntime {
     }
   }
 
-  async executeStep(step: Step, session: unknown): Promise<StepResult> {
+  async executeStep(
+    step: Step,
+    session: unknown,
+    overrideInput?: string
+  ): Promise<StepResult> {
     const startTime = Date.now();
-    const prompt = this.buildStepPrompt(step);
+    const prompt = this.buildStepPrompt(step, overrideInput);
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
@@ -404,8 +422,15 @@ export class CopilotTestRuntime {
     return parts.join("\n");
   }
 
-  buildStepPrompt(step: Step): string {
-    const parts = [`Execute this BDD step: ${step.keyword} ${step.text}`];
+  buildStepPrompt(step: Step, overrideInput?: string): string {
+    const stepText = overrideInput ?? step.text;
+    const parts = [`Execute this BDD step: ${step.keyword} ${stepText}`];
+
+    if (overrideInput) {
+      parts.push(
+        `\nNote: Original step text was "${step.text}" but user requested retry with: "${overrideInput}"`
+      );
+    }
 
     if (step.table) {
       parts.push("\nData table:");
