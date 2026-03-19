@@ -18,6 +18,10 @@ import {
   getStepDefinitions,
 } from "../src/step-registry.js";
 import { configure, run, test } from "../src/runner.js";
+import {
+  createAccessibilityTester,
+  defaultAccessibilityConfig,
+} from "../src/a11y.js";
 import type { Feature, TestRun, Scenario, Step, StepContext } from "../src/types.js";
 import { writeFile, mkdir, rm } from "fs/promises";
 
@@ -1111,6 +1115,103 @@ configure({
 });
 
 assert(true, "parallel config disabled");
+
+// ── Accessibility Configuration ──────────────────────────────
+
+section("Accessibility Configuration");
+
+// Test default accessibility config
+assert(
+  defaultAccessibilityConfig.enabled === false,
+  "default config has enabled=false"
+);
+assertEqual(
+  defaultAccessibilityConfig.standard,
+  "WCAG2AA",
+  "default standard is WCAG2AA"
+);
+assert(
+  defaultAccessibilityConfig.integrations?.axe === true,
+  "default has axe integration enabled"
+);
+assert(
+  defaultAccessibilityConfig.modes?.automated === true,
+  "default has automated mode enabled"
+);
+
+// Test createAccessibilityTester
+const a11yTester = createAccessibilityTester({
+  enabled: true,
+  standard: "WCAG2AA",
+  integrations: { axe: true },
+});
+
+assert(a11yTester !== null, "createAccessibilityTester returns instance");
+assert(
+  typeof a11yTester.scan === "function",
+  "accessibility tester has scan method"
+);
+assert(
+  typeof a11yTester.testKeyboardNavigation === "function",
+  "accessibility tester has testKeyboardNavigation method"
+);
+assert(
+  typeof a11yTester.testScreenReader === "function",
+  "accessibility tester has testScreenReader method"
+);
+assert(
+  typeof a11yTester.getHeadingStructure === "function",
+  "accessibility tester has getHeadingStructure method"
+);
+assert(
+  typeof a11yTester.checkFormLabels === "function",
+  "accessibility tester has checkFormLabels method"
+);
+assert(
+  typeof a11yTester.checkColorContrast === "function",
+  "accessibility tester has checkColorContrast method"
+);
+
+// Test accessibility config in CopilotTestConfig
+configure({
+  platforms: { web: webPlatform() },
+  accessibility: {
+    enabled: true,
+    standard: "WCAG2AA",
+    rules: {
+      "color-contrast": "error",
+      "image-alt": "error",
+    },
+    failOnViolations: true,
+    includeInReport: true,
+    integrations: {
+      axe: true,
+      lighthouse: false,
+    },
+    modes: {
+      automated: true,
+      keyboard: true,
+      screenReader: false,
+    },
+  },
+});
+
+assert(true, "accessibility config accepted in configure()");
+
+// Test WCAG standards
+const wcag2a = createAccessibilityTester({
+  enabled: true,
+  standard: "WCAG2A",
+  integrations: { axe: true },
+});
+assert(wcag2a !== null, "WCAG2A standard accepted");
+
+const wcag2aaa = createAccessibilityTester({
+  enabled: true,
+  standard: "WCAG2AAA",
+  integrations: { axe: true },
+});
+assert(wcag2aaa !== null, "WCAG2AAA standard accepted");
 
 // ── Summary ──────────────────────────────────────────────────
 

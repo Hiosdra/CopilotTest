@@ -133,6 +133,52 @@ export function buildHtmlReport(testRun: TestRun): string {
     .metadata-value { color: #2d3748; margin-top: 0.25rem; }
     .export-btn { padding: 0.5rem 1rem; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; }
     .export-btn:hover { background: #38a169; }
+
+    /* Accessibility Results Styles */
+    .a11y-results { margin-top: 0.75rem; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 0; }
+    .a11y-summary { padding: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 4px; }
+    .a11y-summary:hover { opacity: 0.9; }
+    .a11y-icon { font-size: 1.2rem; }
+    .a11y-score { margin-left: auto; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.9rem; font-weight: bold; }
+    .a11y-score-good { background: #48bb78; color: white; }
+    .a11y-score-medium { background: #ed8936; color: white; }
+    .a11y-score-poor { background: #f56565; color: white; }
+    .a11y-content { padding: 1rem; }
+    .a11y-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+    .a11y-stat { background: white; padding: 0.75rem; border-radius: 4px; text-align: center; border: 1px solid #e2e8f0; }
+    .a11y-stat-value { display: block; font-size: 1.5rem; font-weight: bold; color: #2d3748; }
+    .a11y-stat-label { display: block; font-size: 0.75rem; color: #718096; margin-top: 0.25rem; }
+    .a11y-stat.a11y-critical .a11y-stat-value { color: #c53030; }
+    .a11y-stat.a11y-serious .a11y-stat-value { color: #dd6b20; }
+    .a11y-stat.a11y-moderate .a11y-stat-value { color: #d69e2e; }
+    .a11y-stat.a11y-minor .a11y-stat-value { color: #3182ce; }
+    .a11y-standard { font-size: 0.85rem; color: #718096; margin-bottom: 1rem; text-align: center; }
+    .a11y-violations { margin-top: 1rem; }
+    .a11y-violations h4 { font-size: 1rem; margin-bottom: 0.75rem; color: #2d3748; }
+    .a11y-violation { background: white; border: 1px solid #e2e8f0; border-left: 4px solid; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.75rem; }
+    .a11y-violation.a11y-critical { border-left-color: #c53030; }
+    .a11y-violation.a11y-serious { border-left-color: #dd6b20; }
+    .a11y-violation.a11y-moderate { border-left-color: #d69e2e; }
+    .a11y-violation.a11y-minor { border-left-color: #3182ce; }
+    .a11y-violation-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .a11y-impact { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; color: white; }
+    .a11y-critical .a11y-impact { background: #c53030; }
+    .a11y-serious .a11y-impact { background: #dd6b20; }
+    .a11y-moderate .a11y-impact { background: #d69e2e; }
+    .a11y-minor .a11y-impact { background: #3182ce; }
+    .a11y-help { font-weight: 600; color: #2d3748; flex: 1; }
+    .a11y-description { font-size: 0.85rem; color: #4a5568; margin-bottom: 0.5rem; }
+    .a11y-affected { font-size: 0.8rem; color: #718096; margin-bottom: 0.5rem; }
+    .a11y-details { margin-top: 0.5rem; }
+    .a11y-details summary { font-size: 0.8rem; color: #3182ce; cursor: pointer; }
+    .a11y-node { background: #f7fafc; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem; }
+    .a11y-node code { font-size: 0.75rem; color: #2d3748; word-break: break-all; }
+    .a11y-failure { font-size: 0.75rem; color: #e53e3e; margin-top: 0.25rem; }
+    .a11y-more { font-size: 0.75rem; color: #718096; margin-top: 0.5rem; font-style: italic; }
+    .a11y-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: #3182ce; text-decoration: none; }
+    .a11y-link:hover { text-decoration: underline; }
+    .a11y-no-violations { text-align: center; padding: 1rem; color: #48bb78; font-weight: 600; font-size: 1rem; }
+    .a11y-more-violations { font-size: 0.85rem; color: #718096; margin-top: 0.75rem; text-align: center; font-style: italic; }
   </style>
 </head>
 <body>
@@ -323,6 +369,11 @@ function renderStep(stepResult: StepResult): string {
       : "⊘";
   const cssClass = `step step-${stepResult.status}`;
 
+  // Render accessibility results if present
+  const a11yHtml = stepResult.accessibilityResults
+    ? renderAccessibilityResults(stepResult.accessibilityResults)
+    : "";
+
   return `<div class="${cssClass}">
   <span class="step-icon">${icon}</span>
   <div class="step-content">
@@ -332,6 +383,7 @@ function renderStep(stepResult: StepResult): string {
     </div>
     <div class="step-duration">${stepResult.duration}ms</div>
     ${stepResult.error ? `<div class="step-error">Error: ${escapeHtml(stepResult.error)}</div>` : ""}
+    ${a11yHtml}
     ${
       stepResult.aiReasoning
         ? `<details>
@@ -342,6 +394,86 @@ function renderStep(stepResult: StepResult): string {
     }
   </div>
 </div>`;
+}
+
+function renderAccessibilityResults(a11yResults: any): string {
+  const critical = a11yResults.violations.filter((v: any) => v.impact === 'critical');
+  const serious = a11yResults.violations.filter((v: any) => v.impact === 'serious');
+  const moderate = a11yResults.violations.filter((v: any) => v.impact === 'moderate');
+  const minor = a11yResults.violations.filter((v: any) => v.impact === 'minor');
+
+  const scoreClass =
+    a11yResults.score >= 90 ? 'a11y-score-good' :
+    a11yResults.score >= 70 ? 'a11y-score-medium' :
+    'a11y-score-poor';
+
+  const violationsHtml = a11yResults.violations.length > 0
+    ? a11yResults.violations.slice(0, 10).map((violation: any) => `
+        <div class="a11y-violation a11y-${violation.impact}">
+          <div class="a11y-violation-header">
+            <span class="a11y-impact">${violation.impact.toUpperCase()}</span>
+            <span class="a11y-help">${escapeHtml(violation.help)}</span>
+          </div>
+          <p class="a11y-description">${escapeHtml(violation.description)}</p>
+          <div class="a11y-affected">Affected elements: ${violation.nodes.length}</div>
+          ${violation.nodes.length > 0 ? `
+            <details class="a11y-details">
+              <summary>Show affected elements (${violation.nodes.length})</summary>
+              ${violation.nodes.slice(0, 3).map((node: any) => `
+                <div class="a11y-node">
+                  <code>${escapeHtml(node.html)}</code>
+                  ${node.failureSummary ? `<p class="a11y-failure">${escapeHtml(node.failureSummary)}</p>` : ''}
+                </div>
+              `).join('')}
+              ${violation.nodes.length > 3 ? `<p class="a11y-more">... and ${violation.nodes.length - 3} more</p>` : ''}
+            </details>
+          ` : ''}
+          <a href="${escapeHtml(violation.helpUrl)}" target="_blank" rel="noopener noreferrer" class="a11y-link">Learn more →</a>
+        </div>
+      `).join('')
+    : '<div class="a11y-no-violations">✓ No violations found</div>';
+
+  return `
+    <details class="a11y-results" open>
+      <summary class="a11y-summary">
+        <span class="a11y-icon">♿</span>
+        <span>Accessibility Results</span>
+        <span class="a11y-score ${scoreClass}">${a11yResults.score}/100</span>
+      </summary>
+      <div class="a11y-content">
+        <div class="a11y-stats">
+          <div class="a11y-stat">
+            <span class="a11y-stat-value">${a11yResults.passes}</span>
+            <span class="a11y-stat-label">Passes</span>
+          </div>
+          <div class="a11y-stat a11y-critical">
+            <span class="a11y-stat-value">${critical.length}</span>
+            <span class="a11y-stat-label">Critical</span>
+          </div>
+          <div class="a11y-stat a11y-serious">
+            <span class="a11y-stat-value">${serious.length}</span>
+            <span class="a11y-stat-label">Serious</span>
+          </div>
+          <div class="a11y-stat a11y-moderate">
+            <span class="a11y-stat-value">${moderate.length}</span>
+            <span class="a11y-stat-label">Moderate</span>
+          </div>
+          <div class="a11y-stat a11y-minor">
+            <span class="a11y-stat-value">${minor.length}</span>
+            <span class="a11y-stat-label">Minor</span>
+          </div>
+        </div>
+        <div class="a11y-standard">Standard: ${escapeHtml(a11yResults.standard)}</div>
+        ${a11yResults.violations.length > 0 ? `
+          <div class="a11y-violations">
+            <h4>Violations (${a11yResults.violations.length})</h4>
+            ${violationsHtml}
+            ${a11yResults.violations.length > 10 ? `<p class="a11y-more-violations">Showing 10 of ${a11yResults.violations.length} violations</p>` : ''}
+          </div>
+        ` : violationsHtml}
+      </div>
+    </details>
+  `;
 }
 
 function escapeHtml(text: string): string {
