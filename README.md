@@ -235,7 +235,3 @@ tests/
   mobile-app.spec.ts # Mobile test example
 copilot-test.config.ts  # Global config example
 ```
-
-## License
-
-MIT
