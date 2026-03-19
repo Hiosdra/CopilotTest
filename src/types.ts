@@ -135,6 +135,75 @@ export interface PlatformConfig {
 }
 
 /**
+ * Model pricing configuration for cost tracking.
+ * Prices are in USD per token.
+ */
+export interface ModelPricing {
+  /** Cost per input token */
+  input: number;
+  /** Cost per output token */
+  output: number;
+}
+
+/**
+ * Budget limits for cost control.
+ */
+export interface BudgetLimits {
+  /** Maximum cost per test scenario */
+  perTest?: number;
+  /** Maximum cost per day */
+  daily?: number;
+  /** Maximum cost per month */
+  monthly?: number;
+}
+
+/**
+ * Alert handlers for budget monitoring.
+ */
+export interface CostAlerts {
+  /** Called when cost approaches limit (e.g., 80% threshold) */
+  onThresholdReached?: (cost: number, limit: number) => void;
+  /** Called when budget is exceeded */
+  onBudgetExceeded?: (cost: number, limit: number) => void;
+}
+
+/**
+ * Configuration for AI cost tracking and optimization.
+ */
+export interface CostTrackingConfig {
+  /** Enable cost tracking */
+  enabled: boolean;
+  /** Model pricing configuration (cost per token in USD) */
+  pricing?: Record<string, ModelPricing>;
+  /** Budget limits */
+  budget?: BudgetLimits;
+  /** Alert handlers */
+  alerts?: CostAlerts;
+}
+
+/**
+ * Configuration for cost optimization strategies.
+ */
+export interface OptimizationConfig {
+  /** Use cheaper models for simple steps */
+  adaptiveModel?: {
+    enabled: boolean;
+    /** Model to use for simple steps (Given/When) */
+    simpleSteps?: string;
+    /** Model to use for validations (Then) */
+    validations?: string;
+  };
+  /** Cache AI responses */
+  cache?: {
+    enabled: boolean;
+    /** Time to live in seconds */
+    ttl?: number;
+  };
+  /** Reuse sessions across scenarios */
+  sessionReuse?: boolean;
+}
+
+/**
  * Main configuration for CopilotTest framework.
  */
 export interface CopilotTestConfig {
@@ -172,6 +241,24 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** AI cost tracking configuration */
+  costTracking?: CostTrackingConfig;
+  /** Cost optimization configuration */
+  optimization?: OptimizationConfig;
+}
+
+/**
+ * Cost metrics for AI model usage.
+ */
+export interface CostMetrics {
+  /** Number of input tokens used */
+  inputTokens: number;
+  /** Number of output tokens used */
+  outputTokens: number;
+  /** Total cost in USD */
+  costUSD: number;
+  /** Model used for this request */
+  model?: string;
 }
 
 /**
@@ -192,6 +279,8 @@ export interface StepResult {
   aiReasoning?: string;
   /** Context updates from this step */
   contextUpdates?: Record<string, unknown>;
+  /** Cost metrics for AI usage (if cost tracking is enabled) */
+  cost?: CostMetrics;
 }
 
 /**
@@ -206,6 +295,8 @@ export interface ScenarioResult {
   steps: StepResult[];
   /** Total duration in milliseconds */
   duration: number;
+  /** Aggregated cost metrics (if cost tracking is enabled) */
+  cost?: CostMetrics;
 }
 
 /**
@@ -218,6 +309,8 @@ export interface FeatureResult {
   scenarios: ScenarioResult[];
   /** Total duration in milliseconds */
   duration: number;
+  /** Aggregated cost metrics (if cost tracking is enabled) */
+  cost?: CostMetrics;
 }
 
 /**
@@ -245,6 +338,22 @@ export interface TestRunMetadata {
     buildNumber?: string;
     /** URL to CI job */
     jobUrl?: string;
+  };
+  /** Aggregated cost metrics for the entire test run */
+  cost?: CostMetrics & {
+    /** Average cost per scenario */
+    avgCostPerScenario?: number;
+    /** Most expensive scenario */
+    mostExpensiveScenario?: {
+      name: string;
+      cost: number;
+    };
+    /** Cost breakdown by feature */
+    byFeature?: Array<{
+      name: string;
+      cost: number;
+      percentage: number;
+    }>;
   };
 }
 

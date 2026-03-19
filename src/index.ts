@@ -12,6 +12,7 @@ export {
   clearStepDefinitions,
   getStepDefinitions,
 } from "./step-registry.js";
+export { CostTracker, aggregateCostMetrics } from "./cost-tracker.js";
 
 export type {
   Platform,
@@ -30,5 +31,11 @@ export type {
   StepContext,
   StepDefinition,
   StepDefinitionHandler,
+  CostTrackingConfig,
+  CostMetrics,
+  ModelPricing,
+  BudgetLimits,
+  CostAlerts,
+  OptimizationConfig,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";

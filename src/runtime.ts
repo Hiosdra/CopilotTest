@@ -14,6 +14,7 @@ import { DebugController, type DebugContext } from "./debug.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
 import { findStepDefinition } from "./step-registry.js";
 import { escapeRegex, isPlainObject } from "./utils.js";
+import { CostTracker, aggregateCostMetrics } from "./cost-tracker.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
 Your job is to execute BDD test steps by interacting with the provided tools.
@@ -63,9 +64,18 @@ export class CopilotTestRuntime {
   private currentFeature?: Feature;
   private currentScenario?: Scenario;
   private currentPlatform?: PlatformConfig;
+  private costTracker?: CostTracker;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
+
+    // Initialize cost tracker if enabled
+    if (config.costTracking?.enabled) {
+      this.costTracker = new CostTracker(
+        config.costTracking,
+        config.model || "gpt-4o"
+      );
+    }
   }
 
   async start(): Promise<void> {
@@ -88,6 +98,13 @@ export class CopilotTestRuntime {
     this.client = null;
   }
 
+  /**
+   * Get the cost tracker instance (if cost tracking is enabled).
+   */
+  getCostTracker(): CostTracker | undefined {
+    return this.costTracker;
+  }
+
   async runFeature(
     feature: Feature,
     platformKey: string
@@ -108,10 +125,16 @@ export class CopilotTestRuntime {
       scenarioResults.push(result);
     }
 
+    // Aggregate cost metrics from all scenarios
+    const featureCost = this.costTracker
+      ? aggregateCostMetrics(scenarioResults.map((r) => r.cost))
+      : undefined;
+
     return {
       feature,
       scenarios: scenarioResults,
       duration: Date.now() - startTime,
+      cost: featureCost,
     };
   }
 
@@ -305,6 +328,9 @@ export class CopilotTestRuntime {
       status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
+      cost: this.costTracker
+        ? aggregateCostMetrics(stepResults.map((r) => r.cost))
+        : undefined,
     };
   }
 
@@ -439,11 +465,20 @@ export class CopilotTestRuntime {
       if ((session as Record<string, unknown>)._mock === true) {
         // Mock mode - simulate step execution
         await new Promise((resolve) => setTimeout(resolve, 50));
+
+        // Track cost for mock mode (for testing)
+        const mockCost = this.costTracker?.trackStep(
+          prompt,
+          `[Mock] Step "${step.keyword} ${step.text}" executed successfully`,
+          this.config.model || "gpt-4o"
+        );
+
         return {
           step,
           status: "passed",
           duration: Date.now() - startTime,
           aiReasoning: `[Mock] Step "${step.keyword} ${step.text}" executed successfully`,
+          cost: mockCost,
         };
       }
 
@@ -470,6 +505,13 @@ export class CopilotTestRuntime {
 
       const parsed = this.parseStepResponse(response.data.content);
 
+      // Track cost if enabled
+      const stepCost = this.costTracker?.trackStep(
+        prompt,
+        response.data.content,
+        this.config.model || "gpt-4o"
+      );
+
       return {
         step,
         status: parsed.status,
@@ -477,6 +519,7 @@ export class CopilotTestRuntime {
         error: parsed.error,
         aiReasoning: parsed.reasoning,
         contextUpdates: parsed.context,
+        cost: stepCost,
       };
     } catch (err) {
       return {

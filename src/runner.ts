@@ -2,6 +2,7 @@ import type { Feature, CopilotTestConfig, FeatureResult, TestRun, ScenarioResult
 import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
 import { cpus } from "os";
+import { aggregateCostMetrics, CostTracker } from "./cost-tracker.js";
 
 /**
  * Represents a feature queued for test execution along with its platform and optional tag filters.
@@ -163,6 +164,44 @@ class TestRunner {
     testRun.finishedAt = new Date();
     const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
 
+    // Aggregate cost metrics from all features
+    const totalCost = aggregateCostMetrics(testRun.features.map((f) => f.cost));
+
+    // Calculate cost statistics
+    let costMetadata = undefined;
+    if (this.config.costTracking?.enabled && totalCost.costUSD > 0) {
+      const scenarioCosts = testRun.features.flatMap((f) =>
+        f.scenarios.map((s) => ({
+          name: `${f.feature.name}::${s.scenario.name}`,
+          cost: s.cost?.costUSD || 0,
+        }))
+      );
+
+      const mostExpensive = scenarioCosts.reduce(
+        (max, s) => (s.cost > max.cost ? s : max),
+        { name: "", cost: 0 }
+      );
+
+      const avgCostPerScenario =
+        testRun.summary.total > 0 ? totalCost.costUSD / testRun.summary.total : 0;
+
+      // Group by feature
+      const byFeature = testRun.features.map((f) => ({
+        name: f.feature.name,
+        cost: f.cost?.costUSD || 0,
+        percentage: totalCost.costUSD > 0
+          ? ((f.cost?.costUSD || 0) / totalCost.costUSD) * 100
+          : 0,
+      }));
+
+      costMetadata = {
+        ...totalCost,
+        avgCostPerScenario,
+        mostExpensiveScenario: mostExpensive.cost > 0 ? mostExpensive : undefined,
+        byFeature,
+      };
+    }
+
     // Add metadata
     testRun.metadata = {
       timestamp: testRun.startedAt.toISOString(),
@@ -179,6 +218,7 @@ class TestRunner {
           ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
           : process.env.BUILD_URL,
       },
+      cost: costMetadata,
     };
 
     console.log("\n" + "=".repeat(60));
@@ -194,7 +234,23 @@ class TestRunner {
           : 0
       }%`
     );
-    console.log(`  Duration: ${duration}ms\n`);
+    console.log(`  Duration: ${duration}ms`);
+
+    // Display cost summary if cost tracking is enabled
+    if (costMetadata) {
+      console.log(`\n💰 AI Cost Summary:`);
+      console.log(`  Total Cost: ${CostTracker.formatCost(costMetadata.costUSD)}`);
+      console.log(`  Total Tokens: ${CostTracker.formatTokens(costMetadata.inputTokens + costMetadata.outputTokens)}`);
+      console.log(`    - Input:  ${CostTracker.formatTokens(costMetadata.inputTokens)} (${CostTracker.formatCost(costMetadata.inputTokens * 0.0025 / 1000)})`);
+      console.log(`    - Output: ${CostTracker.formatTokens(costMetadata.outputTokens)} (${CostTracker.formatCost(costMetadata.outputTokens * 0.01 / 1000)})`);
+      if (costMetadata.avgCostPerScenario) {
+        console.log(`  Average cost per scenario: ${CostTracker.formatCost(costMetadata.avgCostPerScenario)}`);
+      }
+      if (costMetadata.mostExpensiveScenario) {
+        console.log(`  Most expensive: ${costMetadata.mostExpensiveScenario.name} (${CostTracker.formatCost(costMetadata.mostExpensiveScenario.cost)})`);
+      }
+    }
+    console.log();
 
     const outputDir = this.config.outputDir ?? "copilot-test-results";
     await generateReport(testRun, outputDir);
