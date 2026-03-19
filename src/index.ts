@@ -1,5 +1,5 @@
 export { feature } from "./dsl.js";
-export { configure, test, testOnly, run } from "./runner.js";
+export { configure, test, testOnly, run, getEnvironment, getConfig } from "./runner.js";
 export { CopilotTestRuntime } from "./runtime.js";
 export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
@@ -14,6 +14,7 @@ export type {
   PlatformConfig,
   McpServerConfig,
   CopilotTestConfig,
+  EnvironmentConfig,
   StepResult,
   ScenarioResult,
   FeatureResult,

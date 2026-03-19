@@ -11,8 +11,68 @@ interface QueuedFeature {
 let globalConfig: CopilotTestConfig | null = null;
 const queue: QueuedFeature[] = [];
 
+function getEnvironmentName(): string {
+  return process.env.COPILOT_ENV ?? "local";
+}
+
+function mergeEnvironmentConfig(
+  config: CopilotTestConfig,
+  envName: string
+): CopilotTestConfig {
+  if (!config.environments || !config.environments[envName]) {
+    return config;
+  }
+
+  const envConfig = config.environments[envName];
+  const merged: CopilotTestConfig = { ...config };
+
+  // Merge top-level properties
+  if (envConfig.baseUrl !== undefined) merged.baseUrl = envConfig.baseUrl;
+  if (envConfig.timeout !== undefined) merged.stepTimeout = envConfig.timeout;
+  if (envConfig.screenshotOnFailure !== undefined)
+    merged.screenshotOnFailure = envConfig.screenshotOnFailure;
+
+  // Merge MCP servers
+  if (envConfig.mcpServers) {
+    merged.mcpServers = {
+      ...(merged.mcpServers ?? {}),
+      ...envConfig.mcpServers,
+    };
+  }
+
+  // Merge platform-specific overrides
+  if (envConfig.platforms) {
+    merged.platforms = { ...merged.platforms };
+    for (const [platformKey, platformOverrides] of Object.entries(
+      envConfig.platforms
+    )) {
+      if (merged.platforms[platformKey]) {
+        merged.platforms[platformKey] = {
+          ...merged.platforms[platformKey],
+          ...platformOverrides,
+        } as any;
+      }
+    }
+  }
+
+  return merged;
+}
+
 export function configure(config: CopilotTestConfig): void {
-  globalConfig = config;
+  const envName = getEnvironmentName();
+  globalConfig = mergeEnvironmentConfig(config, envName);
+
+  if (config.environments && config.environments[envName]) {
+    console.log(`🌍 Using environment: ${envName}`);
+  }
+}
+
+export function getEnvironment(): string {
+  return getEnvironmentName();
+}
+
+export function getConfig(): CopilotTestConfig | null {
+  return globalConfig;
 }
 
 export function test(

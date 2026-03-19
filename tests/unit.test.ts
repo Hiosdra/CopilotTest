@@ -9,7 +9,8 @@ import { buildHtmlReport } from "../src/reporter.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
-import type { Feature, TestRun } from "../src/types.js";
+import { configure, getEnvironment, getConfig } from "../src/index.js";
+import type { Feature, TestRun, CopilotTestConfig } from "../src/types.js";
 
 let failures = 0;
 let passes = 0;
@@ -306,6 +307,83 @@ assert(html.includes("badge-passed"), "HTML report has passed badge");
 assert(html.includes("badge-failed"), "HTML report has failed badge");
 assert(html.includes("badge-skipped"), "HTML report has skipped badge");
 assert(html.includes("50%"), "HTML report shows pass rate");
+
+// ── Environment Configuration ──────────────────────────────
+
+section("Environment Configuration");
+
+// Test environment name resolution
+const originalEnv = process.env.COPILOT_ENV;
+delete process.env.COPILOT_ENV;
+
+const testConfig: CopilotTestConfig = {
+  platforms: { web: webPlatform() },
+  baseUrl: "http://default.com",
+  stepTimeout: 10000,
+  environments: {
+    local: {
+      baseUrl: "http://localhost:3000",
+      timeout: 60000,
+      headless: false,
+    },
+    staging: {
+      baseUrl: "https://staging.example.com",
+      timeout: 30000,
+      headless: true,
+      apiKey: "staging-key",
+    },
+    production: {
+      baseUrl: "https://example.com",
+      timeout: 30000,
+      headless: true,
+      screenshotOnFailure: true,
+    },
+  },
+};
+
+// Test default environment (local)
+configure(testConfig);
+let env = getEnvironment();
+let config = getConfig();
+
+assertEqual(env, "local", "default environment is 'local'");
+assertEqual(config?.baseUrl, "http://localhost:3000", "local baseUrl applied");
+assertEqual(config?.stepTimeout, 60000, "local timeout applied");
+
+// Test staging environment
+process.env.COPILOT_ENV = "staging";
+configure(testConfig);
+env = getEnvironment();
+config = getConfig();
+
+assertEqual(env, "staging", "environment from COPILOT_ENV is 'staging'");
+assertEqual(config?.baseUrl, "https://staging.example.com", "staging baseUrl applied");
+assertEqual(config?.stepTimeout, 30000, "staging timeout applied");
+
+// Test production environment
+process.env.COPILOT_ENV = "production";
+configure(testConfig);
+env = getEnvironment();
+config = getConfig();
+
+assertEqual(env, "production", "environment from COPILOT_ENV is 'production'");
+assertEqual(config?.baseUrl, "https://example.com", "production baseUrl applied");
+assert(config?.screenshotOnFailure === true, "production screenshotOnFailure applied");
+
+// Test non-existent environment falls back to base config
+process.env.COPILOT_ENV = "nonexistent";
+configure(testConfig);
+config = getConfig();
+
+assertEqual(config?.baseUrl, "http://default.com", "non-existent env uses base config");
+assertEqual(config?.stepTimeout, 10000, "non-existent env uses base timeout");
+
+// Restore original environment
+if (originalEnv !== undefined) {
+  process.env.COPILOT_ENV = originalEnv;
+} else {
+  delete process.env.COPILOT_ENV;
+}
 
 // ── Summary ──────────────────────────────────────────────────
 

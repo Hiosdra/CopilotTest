@@ -42,6 +42,18 @@ export interface PlatformConfig {
   systemContext?: string;
 }
 
+export interface EnvironmentConfig {
+  baseUrl?: string;
+  apiUrl?: string;
+  timeout?: number;
+  headless?: boolean;
+  apiKey?: string;
+  screenshotOnFailure?: boolean;
+  platforms?: Record<string, Partial<PlatformConfig>>;
+  mcpServers?: Record<string, McpServerConfig>;
+  [key: string]: any;
+}
+
 export interface CopilotTestConfig {
   model?: string;
   platforms: Record<string, PlatformConfig>;
@@ -52,6 +64,7 @@ export interface CopilotTestConfig {
   outputDir?: string;
   mcpServers?: Record<string, McpServerConfig>;
   reasoningEffort?: "low" | "medium" | "high";
+  environments?: Record<string, EnvironmentConfig>;
 }
 
 export interface StepResult {
