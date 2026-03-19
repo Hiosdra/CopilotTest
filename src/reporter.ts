@@ -1,6 +1,7 @@
 import { mkdir, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import type { TestRun, FeatureResult, ScenarioResult, StepResult, TestRunMetadata } from "./types.js";
+import { CostTracker } from "./cost-tracker.js";
 
 export async function generateReport(
   testRun: TestRun,
@@ -58,6 +59,14 @@ export function buildHtmlReport(testRun: TestRun): string {
 
   const featuresHtml = testRun.features.map(renderFeature).join("\n");
 
+  // Generate cost summary HTML if available
+  const costSummaryHtml = testRun.metadata?.cost ? `
+    <div class="card cost">
+      <div class="value">${CostTracker.formatCost(testRun.metadata.cost.costUSD)}</div>
+      <div class="label">AI Cost 💰</div>
+    </div>
+  ` : '';
+
   // Serialize testRun data for JavaScript, escaping </script sequences
   const testRunJson = JSON.stringify({
     ...testRun,
@@ -84,6 +93,7 @@ export function buildHtmlReport(testRun: TestRun): string {
     .card.passed .value { color: #38a169; }
     .card.failed .value { color: #e53e3e; }
     .card.rate .value { color: #3182ce; }
+    .card.cost .value { color: #805ad5; }
     .controls { padding: 1rem 2rem; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
     .filter-group { display: flex; gap: 0.5rem; align-items: center; }
     .filter-btn { padding: 0.5rem 1rem; border: 1px solid #cbd5e0; background: white; border-radius: 4px; cursor: pointer; font-size: 0.875rem; }
@@ -161,6 +171,7 @@ export function buildHtmlReport(testRun: TestRun): string {
       <div class="value">${passRate}%</div>
       <div class="label">Pass Rate</div>
     </div>
+    ${costSummaryHtml}
   </div>
   ${testRun.metadata ? renderMetadata(testRun.metadata) : ""}
   <div class="controls">
@@ -323,6 +334,11 @@ function renderStep(stepResult: StepResult): string {
       : "⊘";
   const cssClass = `step step-${stepResult.status}`;
 
+  // Format cost if available
+  const costHtml = stepResult.cost && stepResult.cost.costUSD > 0
+    ? `<span style="color: #805ad5; margin-left: 0.5rem;">(${CostTracker.formatCost(stepResult.cost.costUSD)})</span>`
+    : '';
+
   return `<div class="${cssClass}">
   <span class="step-icon">${icon}</span>
   <div class="step-content">
@@ -330,7 +346,7 @@ function renderStep(stepResult: StepResult): string {
       <span class="step-keyword">${escapeHtml(stepResult.step.keyword)}</span>
       ${escapeHtml(stepResult.step.text)}
     </div>
-    <div class="step-duration">${stepResult.duration}ms</div>
+    <div class="step-duration">${stepResult.duration}ms${costHtml}</div>
     ${stepResult.error ? `<div class="step-error">Error: ${escapeHtml(stepResult.error)}</div>` : ""}
     ${
       stepResult.aiReasoning
@@ -379,6 +395,22 @@ function renderMetadata(metadata: TestRunMetadata): string {
 
   if (metadata.ci?.jobUrl) {
     items.push(`<div class="metadata-item"><div class="metadata-label">CI Job</div><div class="metadata-value"><a href="${escapeHtml(metadata.ci.jobUrl)}" target="_blank" rel="noopener noreferrer">View</a></div></div>`);
+  }
+
+  // Add cost information if available
+  if (metadata.cost && metadata.cost.costUSD > 0) {
+    const totalTokens = metadata.cost.inputTokens + metadata.cost.outputTokens;
+    items.push(`<div class="metadata-item"><div class="metadata-label">Total Tokens</div><div class="metadata-value">${CostTracker.formatTokens(totalTokens)}</div></div>`);
+    items.push(`<div class="metadata-item"><div class="metadata-label">Input Tokens</div><div class="metadata-value">${CostTracker.formatTokens(metadata.cost.inputTokens)}</div></div>`);
+    items.push(`<div class="metadata-item"><div class="metadata-label">Output Tokens</div><div class="metadata-value">${CostTracker.formatTokens(metadata.cost.outputTokens)}</div></div>`);
+
+    if (metadata.cost.avgCostPerScenario) {
+      items.push(`<div class="metadata-item"><div class="metadata-label">Avg Cost/Scenario</div><div class="metadata-value">${CostTracker.formatCost(metadata.cost.avgCostPerScenario)}</div></div>`);
+    }
+
+    if (metadata.cost.mostExpensiveScenario) {
+      items.push(`<div class="metadata-item"><div class="metadata-label">Most Expensive</div><div class="metadata-value">${escapeHtml(metadata.cost.mostExpensiveScenario.name)} (${CostTracker.formatCost(metadata.cost.mostExpensiveScenario.cost)})</div></div>`);
+    }
   }
 
   if (items.length === 0) return '';
