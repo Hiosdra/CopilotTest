@@ -149,8 +149,89 @@ configure({
   maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
   workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
   failFast: false,                    // Stop all workers on first failure
+  // Watch mode options (NEW)
+  watch: {
+    enabled: true,                    // Enable watch mode
+    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
+    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
+    debounce: 300,                    // Delay before re-running (ms)
+    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
+    failedFirst: true,                // Run failed tests first
+    clearConsole: false,              // Clear console before each run
+  },
 });
 ```
+
+## Watch Mode
+
+Run tests continuously during development with automatic re-execution on file changes:
+
+```bash
+npm run test:watch tests/login.spec.ts
+```
+
+**Note**: Watch mode CLI requires a test file path. The test file should call `configure()` and `test()` but NOT `run()` - watch mode handles test execution.
+
+### Interactive Controls
+
+When running in a terminal, watch mode provides keyboard controls:
+
+```
+Interactive Commands:
+  a - Run all tests
+  f - Run only failed tests
+  q - Quit watch mode
+  Enter - Re-run tests
+```
+
+### Watch Mode UI
+
+```
+╔════════════════════════════════════════╗
+║      COPILOT TEST - WATCH MODE         ║
+╚════════════════════════════════════════╝
+
+📁 Watching 42 files...
+
+============================================================
+🔄 Running tests... (10:30:45 AM)
+============================================================
+
+📝 Changed files:
+  • src/login.ts
+  • tests/login.spec.ts
+
+[Test execution output...]
+
+╔════════════════════════════════════════╗
+║ Status: ✓ All tests passed            ║
+║ Tests: 12 passed, 0 failed            ║
+║ Pass rate: 100%                        ║
+║ Duration: 2345ms                       ║
+╚════════════════════════════════════════╝
+
+👀 Watching for file changes...
+```
+
+### Configuration
+
+```typescript
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    enabled: true,                    // Enable watch mode
+    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
+    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
+    debounce: 300,                    // Delay before re-running (ms)
+    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
+    failedFirst: true,                // Run failed tests first
+    clearConsole: false,              // Clear console before each run
+    maxWorkers: 2,                    // Limit workers in watch mode
+  },
+});
+```
+
+See [Watch Mode Documentation](./docs/watch-mode.md) for more details.
 
 ## Parallel Execution
 

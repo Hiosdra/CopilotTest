@@ -135,6 +135,32 @@ export interface PlatformConfig {
 }
 
 /**
+ * Watch mode configuration for continuous test execution.
+ */
+export interface WatchConfig {
+  /** Enable watch mode */
+  enabled?: boolean;
+  /** File patterns to watch */
+  include?: string[];
+  /** File patterns to exclude from watching */
+  exclude?: string[];
+  /** Debounce delay in milliseconds before re-running tests */
+  debounce?: number;
+  /** Test execution mode: 'all' | 'related' | 'changed-files' */
+  runMode?: "all" | "related" | "changed-files";
+  /** Run failed tests first */
+  failedFirst?: boolean;
+  /** Clear console before each test run */
+  clearConsole?: boolean;
+  /** Enable desktop notifications */
+  notifications?: boolean;
+  /** Verbose output in watch mode */
+  verbose?: boolean;
+  /** Maximum number of workers in watch mode */
+  maxWorkers?: number;
+}
+
+/**
  * Performance monitoring configuration.
  */
 export interface PerformanceConfig {
@@ -186,6 +212,8 @@ export interface CopilotTestConfig {
   workerTimeout?: number;
   /** Stop all workers on first failure */
   failFast?: boolean;
+  /** Watch mode configuration */
+  watch?: WatchConfig;
   /** Performance monitoring configuration */
   performance?: PerformanceConfig;
 }

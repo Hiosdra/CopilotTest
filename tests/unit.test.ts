@@ -1118,6 +1118,58 @@ configure({
 
 assert(true, "parallel config disabled");
 
+// ── Watch Mode Configuration ──────────────────────────────────
+
+section("Watch Mode Configuration");
+
+// Test watch mode config options - verify TypeScript typing and structure
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    enabled: true,
+    include: ["src/**/*.ts", "tests/**/*.spec.ts"],
+    exclude: ["node_modules/**", "dist/**"],
+    debounce: 300,
+    runMode: "all",
+    clearConsole: true,
+    notifications: false,
+    verbose: true,
+    maxWorkers: 2,
+  },
+});
+
+assert(true, "watch config with all options");
+
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    enabled: true,
+    runMode: "related",
+  },
+});
+
+assert(true, "watch config with minimal options");
+
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    enabled: false,
+  },
+});
+
+assert(true, "watch config disabled");
+
+// Test runMode options
+configure({
+  platforms: { web: webPlatform() },
+  watch: {
+    runMode: "changed-files",
+    failedFirst: true,
+  },
+});
+
+assert(true, "watch config with changed-files mode");
+
 // ── Performance Monitoring ─────────────────────────────────
 
 section("Performance — analyzePerformance");
