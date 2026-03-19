@@ -74,6 +74,137 @@ class TestRunner {
   clearQueue(): void {
     this.queue.length = 0;
   }
+
+  /**
+   * Execute all queued tests with this runner's configuration.
+   * Enables multiple concurrent test runners with independent state.
+   * @returns Test run results
+   */
+  async run(): Promise<TestRun> {
+    if (!this.config) {
+      throw new Error("No config set. Call configure() before run().");
+    }
+
+    const runtime = new CopilotTestRuntime(this.config);
+    await runtime.start();
+
+    const startDate = new Date();
+    const testRun: TestRun = {
+      startedAt: startDate,
+      features: [],
+      summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
+    };
+
+    console.log("\n🧪 CopilotTest — AI-Driven BDD Testing Framework\n");
+    console.log("=".repeat(60));
+
+    try {
+      // Use parallel execution if enabled
+      if (this.config.parallel) {
+        testRun.features = await runFeaturesInParallel(runtime, this.queue, this.config);
+      } else {
+        // Sequential execution (original behavior)
+        for (const queued of this.queue) {
+          const { feature, platform } = queued;
+          console.log(`\n📋 Feature: ${feature.name}`);
+
+          let featureResult: FeatureResult;
+          try {
+            featureResult = await runtime.runFeature(feature, platform);
+          } catch (err) {
+            console.error(`  ❌ Feature failed: ${err instanceof Error ? err.message : String(err)}`);
+            continue;
+          }
+
+          testRun.features.push(featureResult);
+
+          for (const scenarioResult of featureResult.scenarios) {
+            const icon = scenarioResult.status === "passed" ? "✅" : "❌";
+            console.log(
+              `  ${icon} Scenario: ${scenarioResult.scenario.name} (${scenarioResult.duration}ms)`
+            );
+
+            for (const stepResult of scenarioResult.steps) {
+              const stepIcon =
+                stepResult.status === "passed"
+                  ? "  ✔"
+                  : stepResult.status === "failed"
+                  ? "  ✘"
+                  : "  ⊘";
+              console.log(
+                `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)`
+              );
+
+              if (stepResult.error) {
+                console.log(`       💬 ${stepResult.error}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Compute summary from all features
+      for (const featureResult of testRun.features) {
+        for (const scenarioResult of featureResult.scenarios) {
+          testRun.summary.total++;
+          if (scenarioResult.status === "passed") {
+            testRun.summary.passed++;
+          } else if (scenarioResult.status === "failed") {
+            testRun.summary.failed++;
+          } else {
+            testRun.summary.skipped++;
+          }
+        }
+      }
+    } finally {
+      await runtime.stop();
+    }
+
+    testRun.finishedAt = new Date();
+    const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
+
+    // Add metadata
+    testRun.metadata = {
+      timestamp: testRun.startedAt.toISOString(),
+      duration,
+      environment: process.env.NODE_ENV || process.env.ENVIRONMENT,
+      git: {
+        branch: process.env.GITHUB_REF_NAME || process.env.GIT_BRANCH,
+        commit: process.env.GITHUB_SHA || process.env.GIT_COMMIT,
+        author: process.env.GITHUB_ACTOR || process.env.GIT_AUTHOR,
+      },
+      ci: {
+        buildNumber: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_NUMBER,
+        jobUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+          ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+          : process.env.BUILD_URL,
+      },
+    };
+
+    console.log("\n" + "=".repeat(60));
+    console.log(`\n📊 Results:`);
+    console.log(`  Total:   ${testRun.summary.total}`);
+    console.log(`  Passed:  ${testRun.summary.passed} ✅`);
+    console.log(`  Failed:  ${testRun.summary.failed} ❌`);
+    console.log(`  Skipped: ${testRun.summary.skipped} ⊘`);
+    console.log(
+      `  Pass rate: ${
+        testRun.summary.total > 0
+          ? Math.round((testRun.summary.passed / testRun.summary.total) * 100)
+          : 0
+      }%`
+    );
+    console.log(`  Duration: ${duration}ms\n`);
+
+    const outputDir = this.config.outputDir ?? "copilot-test-results";
+    await generateReport(testRun, outputDir);
+    console.log(`📁 Report saved to: ${outputDir}/\n`);
+
+    // Clear queue for next run
+    this.clearQueue();
+
+    return testRun;
+  }
 }
 
 // Singleton instance for backwards compatibility with existing API
@@ -306,131 +437,7 @@ async function runFeaturesInParallel(
 }
 
 export async function run(): Promise<TestRun> {
-  const config = defaultRunner.getConfig();
-  if (!config) {
-    throw new Error("No config set. Call configure() before run().");
-  }
-
-  const queue = defaultRunner.getQueue();
-  const runtime = new CopilotTestRuntime(config);
-  await runtime.start();
-
-  const startDate = new Date();
-  const testRun: TestRun = {
-    startedAt: startDate,
-    features: [],
-    summary: { total: 0, passed: 0, failed: 0, skipped: 0 },
-  };
-
-  console.log("\n🧪 CopilotTest — AI-Driven BDD Testing Framework\n");
-  console.log("=".repeat(60));
-
-  try {
-    // Use parallel execution if enabled
-    if (config.parallel) {
-      testRun.features = await runFeaturesInParallel(runtime, queue, config);
-    } else {
-      // Sequential execution (original behavior)
-      for (const queued of queue) {
-        const { feature, platform } = queued;
-        console.log(`\n📋 Feature: ${feature.name}`);
-
-        let featureResult: FeatureResult;
-        try {
-          featureResult = await runtime.runFeature(feature, platform);
-        } catch (err) {
-          console.error(`  ❌ Feature failed: ${err instanceof Error ? err.message : String(err)}`);
-          continue;
-        }
-
-        testRun.features.push(featureResult);
-
-        for (const scenarioResult of featureResult.scenarios) {
-          const icon = scenarioResult.status === "passed" ? "✅" : "❌";
-          console.log(
-            `  ${icon} Scenario: ${scenarioResult.scenario.name} (${scenarioResult.duration}ms)`
-          );
-
-          for (const stepResult of scenarioResult.steps) {
-            const stepIcon =
-              stepResult.status === "passed"
-                ? "  ✔"
-                : stepResult.status === "failed"
-                ? "  ✘"
-                : "  ⊘";
-            console.log(
-              `    ${stepIcon} ${stepResult.step.keyword} ${stepResult.step.text} (${stepResult.duration}ms)`
-            );
-
-            if (stepResult.error) {
-              console.log(`       💬 ${stepResult.error}`);
-            }
-          }
-        }
-      }
-    }
-
-    // Compute summary from all features
-    for (const featureResult of testRun.features) {
-      for (const scenarioResult of featureResult.scenarios) {
-        testRun.summary.total++;
-        if (scenarioResult.status === "passed") {
-          testRun.summary.passed++;
-        } else if (scenarioResult.status === "failed") {
-          testRun.summary.failed++;
-        } else {
-          testRun.summary.skipped++;
-        }
-      }
-    }
-  } finally {
-    await runtime.stop();
-  }
-
-  testRun.finishedAt = new Date();
-  const duration = testRun.finishedAt.getTime() - testRun.startedAt.getTime();
-
-  // Add metadata
-  testRun.metadata = {
-    timestamp: testRun.startedAt.toISOString(),
-    duration,
-    environment: process.env.NODE_ENV || process.env.ENVIRONMENT,
-    git: {
-      branch: process.env.GITHUB_REF_NAME || process.env.GIT_BRANCH,
-      commit: process.env.GITHUB_SHA || process.env.GIT_COMMIT,
-      author: process.env.GITHUB_ACTOR || process.env.GIT_AUTHOR,
-    },
-    ci: {
-      buildNumber: process.env.GITHUB_RUN_NUMBER || process.env.BUILD_NUMBER,
-      jobUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : process.env.BUILD_URL,
-    },
-  };
-
-  console.log("\n" + "=".repeat(60));
-  console.log(`\n📊 Results:`);
-  console.log(`  Total:   ${testRun.summary.total}`);
-  console.log(`  Passed:  ${testRun.summary.passed} ✅`);
-  console.log(`  Failed:  ${testRun.summary.failed} ❌`);
-  console.log(`  Skipped: ${testRun.summary.skipped} ⊘`);
-  console.log(
-    `  Pass rate: ${
-      testRun.summary.total > 0
-        ? Math.round((testRun.summary.passed / testRun.summary.total) * 100)
-        : 0
-    }%`
-  );
-  console.log(`  Duration: ${duration}ms\n`);
-
-  const outputDir = config.outputDir ?? "copilot-test-results";
-  await generateReport(testRun, outputDir);
-  console.log(`📁 Report saved to: ${outputDir}/\n`);
-
-  // Clear queue for next run
-  defaultRunner.clearQueue();
-
-  return testRun;
+  return defaultRunner.run();
 }
 
 /**
