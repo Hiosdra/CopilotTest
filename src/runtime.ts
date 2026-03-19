@@ -10,6 +10,7 @@ import type {
   ScenarioContext,
   StepContext,
 } from "./types.js";
+import { DebugController, type DebugContext } from "./debug.js";
 import { ScenarioContext as ScenarioContextClass } from "./types.js";
 import { findStepDefinition } from "./step-registry.js";
 
@@ -128,6 +129,7 @@ export class CopilotTestRuntime {
               ...step,
               text: this.substituteParameters(step.text, exampleData),
             })),
+            debugMode: scenario.debugMode,
           };
           expanded.push(expandedScenario);
         }
@@ -159,6 +161,17 @@ export class CopilotTestRuntime {
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
+    let scenarioAborted = false;
+
+    // Check if debug mode is enabled
+    const debugEnabled =
+      this.config.debugMode === true || scenario.debugMode === true;
+    const debugController = debugEnabled
+      ? new DebugController(
+          this.config.breakpoints || [],
+          this.config.interactive === true
+        )
+      : null;
 
     // Store context for custom step definitions
     this.currentFeature = feature;
@@ -179,7 +192,9 @@ export class CopilotTestRuntime {
     try {
       session = await this.createSession(feature, scenario, platform);
 
-      for (const step of allSteps) {
+      for (let i = 0; i < allSteps.length; i++) {
+        const step = allSteps[i];
+
         if (scenarioFailed) {
           stepResults.push({
             step,
@@ -187,6 +202,60 @@ export class CopilotTestRuntime {
             duration: 0,
           });
           continue;
+        }
+
+        // Debug mode: check for breakpoint
+        if (debugController && debugController.shouldBreak(step)) {
+          const debugContext: DebugContext = {
+            scenario,
+            currentStepIndex: i,
+            currentStep: step,
+            allSteps,
+            backgroundStepCount: feature.background?.length ?? 0,
+            stepResults: [...stepResults],
+            session,
+          };
+
+          const action =
+            await debugController.startInteractiveConsole(debugContext);
+
+          if (action.type === "exit") {
+            console.log("\n🛑 Debug mode exited by user");
+            scenarioAborted = true;
+            // Mark remaining steps as skipped
+            for (let j = i; j < allSteps.length; j++) {
+              stepResults.push({
+                step: allSteps[j],
+                status: "skipped",
+                duration: 0,
+              });
+            }
+            break;
+          } else if (action.type === "skip") {
+            console.log("\n⏭️  Skipping step");
+            stepResults.push({
+              step,
+              status: "skipped",
+              duration: 0,
+            });
+            continue;
+          } else if (action.type === "retry") {
+            if (action.input) {
+              console.log(`\n🔄 Retrying step with input: "${action.input}"`);
+            } else {
+              console.log("\n🔄 Retrying step...");
+            }
+            // Execute step with optional override input
+            const stepResult = await this.executeStep(step, session, context, action.input);
+            stepResults.push(stepResult);
+            if (stepResult.status === "failed") {
+              scenarioFailed = true;
+            }
+            continue;
+          } else if (action.type === "step" || action.type === "continue") {
+            console.log("\n▶️  Continuing...");
+            // Continue to execute the step below
+          }
         }
 
         const stepResult = await this.executeStep(step, session, context);
@@ -218,6 +287,10 @@ export class CopilotTestRuntime {
         }
       }
     } finally {
+      if (debugController) {
+        debugController.cleanup();
+      }
+
       if (
         session &&
         typeof (session as Record<string, unknown>).close === "function"
@@ -228,7 +301,7 @@ export class CopilotTestRuntime {
 
     return {
       scenario,
-      status: scenarioFailed ? "failed" : "passed",
+      status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
     };
@@ -311,7 +384,12 @@ export class CopilotTestRuntime {
     }
   }
 
-  async executeStep(step: Step, session: unknown, context: ScenarioContext): Promise<StepResult> {
+  async executeStep(
+    step: Step,
+    session: unknown,
+    context: ScenarioContext,
+    overrideInput?: string
+  ): Promise<StepResult> {
     const startTime = Date.now();
 
     // Check if custom step definitions are enabled (default: true)
@@ -353,7 +431,7 @@ export class CopilotTestRuntime {
     }
 
     // Fall back to AI execution if no custom definition matched
-    const prompt = this.buildStepPrompt(step, context);
+    const prompt = this.buildStepPrompt(step, context, overrideInput);
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
@@ -492,8 +570,15 @@ export class CopilotTestRuntime {
     return parts.join("\n");
   }
 
-  buildStepPrompt(step: Step, context: ScenarioContext): string {
-    const parts = [`Execute this BDD step: ${step.keyword} ${step.text}`];
+  buildStepPrompt(step: Step, context: ScenarioContext, overrideInput?: string): string {
+    const stepText = overrideInput ?? step.text;
+    const parts = [`Execute this BDD step: ${step.keyword} ${stepText}`];
+
+    if (overrideInput) {
+      parts.push(
+        `\nNote: Original step text was "${step.text}" but user requested retry with: "${overrideInput}"`
+      );
+    }
 
     if (step.table) {
       parts.push("\nData table:");
@@ -532,4 +617,3 @@ export class CopilotTestRuntime {
     return parts.join("\n");
   }
 }
-

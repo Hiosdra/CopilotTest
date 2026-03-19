@@ -6,6 +6,7 @@ export class ScenarioBuilder {
   private _name: string;
   private _featureBuilder: FeatureBuilder;
   private _lastStep: Step | null = null;
+  private _debugMode: boolean = false;
 
   constructor(name: string, featureBuilder: FeatureBuilder) {
     this._name = name;
@@ -14,6 +15,11 @@ export class ScenarioBuilder {
 
   tag(...tags: string[]): this {
     this._tags.push(...tags);
+    return this;
+  }
+
+  debug(): this {
+    this._debugMode = true;
     return this;
   }
 
@@ -73,6 +79,7 @@ export class ScenarioBuilder {
       name: this._name,
       tags: this._tags,
       steps: [...this._steps],
+      debugMode: this._debugMode,
     };
   }
 }

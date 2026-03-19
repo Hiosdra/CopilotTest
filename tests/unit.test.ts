@@ -10,6 +10,7 @@ import { compareTestRuns } from "../src/compare.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
+import { DebugController } from "../src/debug.js";
 import { ScenarioContext } from "../src/types.js";
 import {
   defineStep,
@@ -17,7 +18,7 @@ import {
   getStepDefinitions,
 } from "../src/step-registry.js";
 import { configure, run, test } from "../src/runner.js";
-import type { Feature, TestRun, StepContext } from "../src/types.js";
+import type { Feature, TestRun, Scenario, Step, StepContext } from "../src/types.js";
 import { writeFile, mkdir, rm } from "fs/promises";
 
 let failures = 0;
@@ -580,6 +581,62 @@ assert(html.includes("badge-passed"), "HTML report has passed badge");
 assert(html.includes("badge-failed"), "HTML report has failed badge");
 assert(html.includes("badge-skipped"), "HTML report has skipped badge");
 assert(html.includes("50%"), "HTML report shows pass rate");
+
+// ── Debug Tests ──────────────────────────────────────────────
+
+section("Debug — scenario debug mode");
+
+const debugScenario: Feature = feature("Debug Test")
+  .scenario("With debug enabled")
+    .debug()
+    .given("I am on the homepage")
+    .when("I click the button")
+    .then("I should see a message")
+    .done()
+  ._build();
+
+assert(debugScenario.scenarios[0].debugMode === true, "scenario has debug mode enabled");
+assertEqual(debugScenario.scenarios[0].name, "With debug enabled", "debug scenario name");
+assertEqual(debugScenario.scenarios[0].steps.length, 3, "debug scenario has 3 steps");
+
+section("Debug — breakpoint detection");
+
+const debugController = new DebugController(
+  ["When I click the button", "Then I should see a message"],
+  false
+);
+
+const step1: Step = { keyword: "Given", text: "I am on the homepage" };
+const step2: Step = { keyword: "When", text: "I click the button" };
+const step3: Step = { keyword: "Then", text: "I should see a message" };
+
+assert(!debugController.shouldBreak(step1), "no breakpoint on Given step");
+assert(debugController.shouldBreak(step2), "breakpoint on When step");
+assert(debugController.shouldBreak(step3), "breakpoint on Then step");
+
+section("Debug — partial/substring breakpoint matching");
+
+const partialController = new DebugController(
+  ["click", "see a message"],
+  false
+);
+
+assert(!partialController.shouldBreak(step1), "no partial match on Given step");
+assert(partialController.shouldBreak(step2), "partial match on 'click' in When step");
+assert(partialController.shouldBreak(step3), "partial match on 'see a message' in Then step");
+
+partialController.cleanup();
+
+section("Debug — step-through mode");
+
+const stepController = new DebugController([], true);
+
+assert(stepController.shouldBreak(step1), "step-through breaks on all steps");
+assert(stepController.shouldBreak(step2), "step-through breaks on all steps");
+assert(stepController.shouldBreak(step3), "step-through breaks on all steps");
+
+stepController.cleanup();
+debugController.cleanup();
 
 // ── Comparison Tests ─────────────────────────────────────────
 
