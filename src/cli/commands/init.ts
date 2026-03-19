@@ -31,7 +31,7 @@ const API_PLATFORM_TEMPLATE = `
       defaultHeaders: { "Content-Type": "application/json" },
     })`;
 
-const WEB_TEST_TEMPLATE = `import { feature, test, run } from "copilot-test";
+const WEB_TEST_TEMPLATE = `import { feature, test } from "copilot-test";
 
 test(
   feature("User Authentication")
@@ -46,11 +46,9 @@ test(
     ._build(),
   "web"
 );
-
-await run();
 `;
 
-const API_TEST_TEMPLATE = `import { feature, test, run } from "copilot-test";
+const API_TEST_TEMPLATE = `import { feature, test } from "copilot-test";
 
 test(
   feature("User API")
@@ -65,8 +63,6 @@ test(
     ._build(),
   "api"
 );
-
-await run();
 `;
 
 const PACKAGE_JSON_TEMPLATE = {
@@ -80,6 +76,11 @@ const PACKAGE_JSON_TEMPLATE = {
   },
   dependencies: {
     "copilot-test": "^0.1.0",
+  },
+  devDependencies: {
+    typescript: "^5.0.0",
+    tsx: "^4.0.0",
+    "@types/node": "^20.0.0",
   },
 };
 
@@ -259,8 +260,7 @@ async function promptLanguage(): Promise<"typescript" | "javascript"> {
 }
 
 async function promptYesNo(question: string, defaultValue: boolean): Promise<boolean> {
-  const defaultText = defaultValue ? "Y/n" : "y/N";
-  const input = await prompt(`${question} (${defaultText}):`, defaultValue ? "yes" : "no");
+  const input = await prompt(`${question}:`, defaultValue ? "yes" : "no");
   const normalized = input.toLowerCase();
   return normalized === "yes" || normalized === "y";
 }

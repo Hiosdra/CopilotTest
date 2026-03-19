@@ -45,13 +45,21 @@ async function openReport(args: string[]) {
 
   // Try to open the report in the default browser
   try {
-    const command = process.platform === "darwin"
-      ? "open"
-      : process.platform === "win32"
-      ? "start"
-      : "xdg-open";
+    let command: string;
+    let args: string[];
 
-    execSync(`${command} ${reportPath}`, { stdio: "ignore" });
+    if (process.platform === "darwin") {
+      command = "open";
+      args = [reportPath];
+    } else if (process.platform === "win32") {
+      command = "cmd";
+      args = ["/c", "start", "", reportPath];
+    } else {
+      command = "xdg-open";
+      args = [reportPath];
+    }
+
+    execSync(`${command} ${args.map((a) => `"${a}"`).join(" ")}`, { stdio: "ignore" });
     console.log("✅ Report opened in browser");
   } catch (error) {
     console.log(`\nPlease open manually: ${path.resolve(reportPath)}`);
@@ -109,6 +117,11 @@ async function compareReports(args: string[]) {
 
   if (!currentPath || currentPath.startsWith("--")) {
     console.error("❌ --current requires a file path");
+    process.exit(1);
+  }
+
+  if (outputIdx >= 0 && (!outputPath || outputPath.startsWith("--"))) {
+    console.error("❌ --output requires a file path");
     process.exit(1);
   }
 

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { TestRunner } from "../../runner.js";
+import { run } from "../../runner.js";
 import { spinner } from "../utils/spinner.js";
 
 interface RunOptions {
@@ -20,13 +20,19 @@ export async function runCommand(args: string[]) {
 
   // Load configuration
   spinner.start("Loading configuration");
-  const configLoaded = await loadConfig();
-  if (!configLoaded) {
-    spinner.fail("Configuration file not found");
-    console.error("\nRun 'copilot-test init' to create a new project");
+  try {
+    const configLoaded = await loadConfig();
+    if (!configLoaded) {
+      spinner.fail("Configuration file not found");
+      console.error("\nRun 'copilot-test init' to create a new project");
+      process.exit(1);
+    }
+    spinner.succeed("Configuration loaded");
+  } catch (error) {
+    spinner.fail("Failed to load configuration");
+    console.error("\n" + (error instanceof Error ? error.message : String(error)));
     process.exit(1);
   }
-  spinner.succeed("Configuration loaded");
 
   // Find test files
   spinner.start("Finding test files");
@@ -43,14 +49,13 @@ export async function runCommand(args: string[]) {
   const startTime = Date.now();
 
   try {
-    // Import test files
+    // Import test files (they will register tests via test())
     for (const file of testFiles) {
       await import(pathToFileURL(path.resolve(file)).href);
     }
 
-    // Run tests
-    const runner = new TestRunner();
-    await runner.run();
+    // Run all registered tests using singleton
+    await run();
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Tests completed in ${duration}s`);
@@ -99,8 +104,11 @@ async function loadConfig(): Promise<boolean> {
         await import(pathToFileURL(path.resolve(configFile)).href);
         return true;
       } catch (error) {
-        console.error(`Error loading ${configFile}:`, error);
-        return false;
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : String(error);
+        throw new Error(`Failed to load config file "${configFile}": ${message}`);
       }
     }
   }

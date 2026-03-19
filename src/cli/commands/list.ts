@@ -1,7 +1,5 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
-import type { Feature } from "../../types.js";
 
 export async function listCommand(args: string[]) {
   console.log("📋 Listing tests...\n");
@@ -22,7 +20,7 @@ export async function listCommand(args: string[]) {
     try {
       // Parse the file to extract features
       const content = fs.readFileSync(file, "utf-8");
-      const features = parseFeatures(content, file);
+      const features = parseFeatures(content);
 
       if (features.length > 0) {
         totalFeatures += features.length;
@@ -70,14 +68,8 @@ async function findTestFiles(): Promise<string[]> {
   return testFiles;
 }
 
-function parseFeatures(content: string, filePath: string): Array<{ name: string; tags: string[]; scenarios: Array<{ name: string; tags: string[] }> }> {
+function parseFeatures(content: string): Array<{ name: string; tags: string[]; scenarios: Array<{ name: string; tags: string[] }> }> {
   const features: Array<{ name: string; tags: string[]; scenarios: Array<{ name: string; tags: string[] }> }> = [];
-
-  // Simple regex-based parsing
-  // Match feature() calls
-  const featureRegex = /feature\(['"](.*?)['"]\)/g;
-  const scenarioRegex = /\.scenario\(['"](.*?)['"]\)/g;
-  const tagRegex = /\.tag\(['"](.*?)['"]\)/g;
 
   let currentFeature: { name: string; tags: string[]; scenarios: Array<{ name: string; tags: string[] }> } | null = null;
   let currentScenario: { name: string; tags: string[] } | null = null;

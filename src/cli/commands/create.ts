@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { prompt } from "../utils/prompt.js";
 
 const TEST_TEMPLATES = {
-  web: `import { feature, test, run } from "copilot-test";
+  web: `import { feature, test } from "copilot-test";
 
 test(
   feature("<FEATURE_NAME>")
@@ -17,10 +17,8 @@ test(
     ._build(),
   "web"
 );
-
-await run();
 `,
-  api: `import { feature, test, run } from "copilot-test";
+  api: `import { feature, test } from "copilot-test";
 
 test(
   feature("<FEATURE_NAME>")
@@ -34,10 +32,8 @@ test(
     ._build(),
   "api"
 );
-
-await run();
 `,
-  mobile: `import { feature, test, run } from "copilot-test";
+  mobile: `import { feature, test } from "copilot-test";
 
 test(
   feature("<FEATURE_NAME>")
@@ -51,8 +47,6 @@ test(
     ._build(),
   "mobile"
 );
-
-await run();
 `,
 };
 
@@ -78,7 +72,13 @@ export async function createCommand(args: string[]) {
   const testType = await promptTestType();
   const featureName = await prompt("Feature name:", "My Feature");
   const scenarioName = await prompt("Scenario name:", "My Scenario");
-  const fileName = await prompt("File name:", `${featureName.toLowerCase().replace(/\s+/g, "-")}.spec.ts`);
+
+  // Detect project type
+  const baseFileName = featureName.toLowerCase().replace(/\s+/g, "-");
+  const usesTypeScript = fs.existsSync("tsconfig.json");
+  const defaultExtension = usesTypeScript ? ".spec.ts" : ".spec.js";
+  const defaultFileName = `${baseFileName}${defaultExtension}`;
+  const fileName = await prompt("File name:", defaultFileName);
 
   const filePath = path.join("tests", fileName);
 
