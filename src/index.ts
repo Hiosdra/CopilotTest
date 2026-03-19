@@ -7,6 +7,7 @@ export { mobilePlatform } from "./platforms/mobile.js";
 export { DebugController } from "./debug.js";
 export { compareTestRuns } from "./compare.js";
 export { ScenarioContext } from "./types.js";
+export { startWatchMode, WatchMode } from "./watch.js";
 export {
   defineStep,
   clearStepDefinitions,
@@ -22,6 +23,7 @@ export type {
   PlatformConfig,
   McpServerConfig,
   CopilotTestConfig,
+  WatchConfig,
   StepResult,
   ScenarioResult,
   FeatureResult,
