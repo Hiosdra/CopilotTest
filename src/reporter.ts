@@ -334,14 +334,39 @@ function renderStep(stepResult: StepResult): string {
     ? `<span class="retry-badge">Retried ${stepResult.retryCount}x</span>`
     : "";
 
-  // Build retry details if retry attempts exist
+  // Build retry details if retries actually occurred (not just first attempt)
   let retryDetailsHtml = "";
-  if (stepResult.retryAttempts && stepResult.retryAttempts.length > 0) {
+  if (stepResult.retryCount && stepResult.retryCount > 0 && stepResult.retryAttempts) {
     const attemptsHtml = stepResult.retryAttempts.map(attempt => {
-      const statusClass = attempt.status === "passed" ? "success" : "failed";
+      let statusClass: string;
+      let statusLabel: string;
+
+      switch (attempt.status) {
+        case "passed":
+          statusClass = "success";
+          statusLabel = "Passed";
+          break;
+        case "failed":
+          statusClass = "failed";
+          statusLabel = "Failed";
+          break;
+        case "skipped":
+          statusClass = "skipped";
+          statusLabel = "Skipped";
+          break;
+        case "pending":
+          statusClass = "pending";
+          statusLabel = "Pending";
+          break;
+        default:
+          statusClass = "unknown";
+          statusLabel = String(attempt.status);
+          break;
+      }
+
       return `<div class="retry-attempt ${statusClass}">
         <span>Attempt ${attempt.attemptNumber}:</span>
-        <span class="status">${attempt.status === "passed" ? "Passed" : "Failed"} (${attempt.duration}ms)${attempt.error ? ` - ${escapeHtml(attempt.error)}` : ""}</span>
+        <span class="status">${statusLabel} (${attempt.duration}ms)${attempt.error ? ` - ${escapeHtml(attempt.error)}` : ""}</span>
       </div>`;
     }).join("");
 

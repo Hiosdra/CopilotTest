@@ -256,7 +256,7 @@ export class CopilotTestRuntime {
               console.log("\n🔄 Retrying step...");
             }
             // Execute step with optional override input
-            const stepResult = await this.executeStep(step, session, context, action.input);
+            const stepResult = await this.executeStep(step, session, context, action.input, scenario);
             stepResults.push(stepResult);
             if (stepResult.status === "failed") {
               scenarioFailed = true;
@@ -268,7 +268,7 @@ export class CopilotTestRuntime {
           }
         }
 
-        const stepResult = await this.executeStep(step, session, context);
+        const stepResult = await this.executeStep(step, session, context, undefined, scenario);
         stepResults.push(stepResult);
 
         // Update context with any values returned from the step
@@ -398,7 +398,8 @@ export class CopilotTestRuntime {
     step: Step,
     session: unknown,
     context: ScenarioContext,
-    overrideInput?: string
+    overrideInput?: string,
+    scenario?: Scenario
   ): Promise<StepResult> {
     const retryConfig = this.config.retry ?? {};
     const enabled = retryConfig.enabled ?? DEFAULT_RETRY_CONFIG.enabled;
@@ -435,8 +436,8 @@ export class CopilotTestRuntime {
           // Success! Check if this test is flaky
           const retryCount = attempt - 1;
           if (retryCount > 0 && isFlaky(retryCount, retryConfig)) {
-            // Report flaky test
-            const scenarioName = this.currentScenario?.name ?? "Unknown scenario";
+            // Report flaky test - use passed scenario parameter for thread safety
+            const scenarioName = scenario?.name ?? "Unknown scenario";
             reportFlakyTest(scenarioName, attempt, retryConfig);
           }
 

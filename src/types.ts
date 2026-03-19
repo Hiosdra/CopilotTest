@@ -40,8 +40,6 @@ export interface RetryConfig {
   stepRetries?: number;
   /** Delay between step retries in milliseconds (for fixed strategy, default: 1000) */
   stepRetryDelay?: number;
-  /** Number of times to retry entire scenarios (default: 0) */
-  scenarioRetries?: number;
   /** Retry strategy: fixed, exponential, or custom */
   strategy?: RetryStrategy;
   /** Initial delay for exponential backoff (default: 1000ms) */
@@ -205,7 +203,7 @@ export interface CopilotTestConfig {
   baseUrl?: string;
   /** Timeout per step in milliseconds */
   stepTimeout?: number;
-  /** Number of times to retry failed scenarios (deprecated: use retry.scenarioRetries) */
+  /** Number of times to retry failed scenarios (deprecated: not implemented, use retry.stepRetries for step-level retries) */
   retries?: number;
   /** Capture screenshots on test failure */
   screenshotOnFailure?: boolean;

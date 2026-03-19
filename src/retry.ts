@@ -7,7 +7,6 @@ export const DEFAULT_RETRY_CONFIG: Required<Omit<RetryConfig, 'shouldRetry' | 'd
   enabled: false,
   stepRetries: 0,
   stepRetryDelay: 1000,
-  scenarioRetries: 0,
   strategy: "fixed",
   initialDelay: 1000,
   maxDelay: 10000,
@@ -66,8 +65,9 @@ function matchesPattern(error: string | Error, pattern: string | RegExp): boolea
     return errorMessage.toLowerCase().includes(pattern.toLowerCase());
   }
 
-  // RegExp pattern
-  return pattern.test(errorMessage);
+  // RegExp pattern - create a new RegExp without g/y flags to avoid stateful matching
+  const safePattern = new RegExp(pattern.source, pattern.flags.replace(/[gy]/g, ""));
+  return safePattern.test(errorMessage);
 }
 
 /**

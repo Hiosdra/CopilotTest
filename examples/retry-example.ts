@@ -1,7 +1,7 @@
-import { configure } from "./src/index.js";
-import { feature } from "./src/dsl.js";
-import { test, run } from "./src/runner.js";
-import { webPlatform } from "./src/platforms/web.js";
+import { configure } from "../src/index.js";
+import { feature } from "../src/dsl.js";
+import { test, run } from "../src/runner.js";
+import { webPlatform } from "../src/platforms/web.js";
 
 // Configure CopilotTest with retry mechanisms
 configure({
