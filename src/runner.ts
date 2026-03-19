@@ -210,6 +210,62 @@ class TestRunner {
 // Singleton instance for backwards compatibility with existing API
 const defaultRunner = new TestRunner();
 
+/**
+ * Configure the test framework with platform settings, model configuration, and test options.
+ *
+ * This function sets up the global test configuration that will be used for all test runs.
+ * It should be called before defining any tests with `test()` or `testOnly()`.
+ *
+ * @example
+ * Basic configuration with web platform:
+ * ```typescript
+ * configure({
+ *   model: 'gpt-4o',
+ *   stepTimeout: 30000,
+ *   platforms: {
+ *     web: webPlatform({ headless: true }),
+ *   },
+ * });
+ * ```
+ *
+ * @example
+ * Multi-platform configuration:
+ * ```typescript
+ * configure({
+ *   model: 'gpt-4o',
+ *   platforms: {
+ *     web: webPlatform({ headless: false }),
+ *     api: apiPlatform({ baseUrl: 'https://api.example.com' }),
+ *     mobile: mobilePlatform({ device: 'Pixel_5' }),
+ *   },
+ *   retries: 2,
+ *   screenshotOnFailure: true,
+ * });
+ * ```
+ *
+ * @example
+ * Parallel execution with debug mode:
+ * ```typescript
+ * configure({
+ *   model: 'gpt-4o',
+ *   platforms: { web: webPlatform() },
+ *   parallel: true,
+ *   maxWorkers: 4,
+ *   debugMode: true,
+ *   breakpoints: ['click the login button'],
+ * });
+ * ```
+ *
+ * @param config - Test configuration options
+ * @param config.model - AI model to use (default: 'gpt-4o')
+ * @param config.platforms - Platform configurations (web, api, mobile, desktop)
+ * @param config.stepTimeout - Timeout per step in milliseconds (default: 30000)
+ * @param config.retries - Number of retries for failed scenarios (default: 0)
+ * @param config.parallel - Enable parallel scenario execution (default: false)
+ * @param config.maxWorkers - Number of parallel workers or 'auto' for CPU-based (default: 'auto')
+ * @param config.debugMode - Enable global debug mode (default: false)
+ * @param config.breakpoints - Step text patterns to break on in debug mode
+ */
 export function configure(config: CopilotTestConfig): void {
   defaultRunner.configure(config);
 }

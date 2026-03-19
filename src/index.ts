@@ -13,6 +13,7 @@ export {
   getStepDefinitions,
 } from "./step-registry.js";
 
+// Export all types
 export type {
   Platform,
   StepKeyword,
@@ -31,4 +32,34 @@ export type {
   StepDefinition,
   StepDefinitionHandler,
 } from "./types.js";
+
+// Export builder types for advanced usage
+export type {
+  FeatureBuilder,
+  ScenarioBuilder,
+  ScenarioOutlineBuilder,
+  BackgroundBuilder,
+} from "./dsl.js";
+
+// Export debug types
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+
+// Export utility types
+export type {
+  AsyncStep,
+  SyncStep,
+  StepFunction,
+  StepMatcher,
+  StepHandler,
+  DeepPartial,
+  RequireAtLeastOne,
+  RequireKeys,
+  Awaited,
+  Mutable,
+  DataOnly,
+  EventMap,
+  EventKey,
+  EventPayload,
+} from "./utility-types.js";
+
+
