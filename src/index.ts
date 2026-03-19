@@ -13,6 +13,13 @@ export {
   clearStepDefinitions,
   getStepDefinitions,
 } from "./step-registry.js";
+export {
+  analyzePerformance,
+  getStepPerformanceBreakdown,
+  generatePerformanceReport,
+  comparePerformance,
+  formatDuration,
+} from "./performance.js";
 
 export type {
   Platform,
@@ -32,5 +39,12 @@ export type {
   StepContext,
   StepDefinition,
   StepDefinitionHandler,
+  PerformanceConfig,
+  StepMetrics,
+  ResourceMetrics,
 } from "./types.js";
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+export type {
+  PerformanceSummary,
+  StepPerformance,
+} from "./performance.js";

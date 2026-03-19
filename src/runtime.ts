@@ -164,6 +164,12 @@ export class CopilotTestRuntime {
     let scenarioFailed = false;
     let scenarioAborted = false;
 
+    // Track resource metrics
+    const resourceMetrics: import("./types.js").ResourceMetrics = {
+      screenshots: 0,
+      // Note: networkRequests tracking not yet implemented
+    };
+
     // Check if debug mode is enabled
     const debugEnabled =
       this.config.debugMode === true || scenario.debugMode === true;
@@ -249,6 +255,12 @@ export class CopilotTestRuntime {
             // Execute step with optional override input
             const stepResult = await this.executeStep(step, session, context, action.input);
             stepResults.push(stepResult);
+
+            // Track resource usage from step
+            if (stepResult.screenshot) {
+              resourceMetrics.screenshots = (resourceMetrics.screenshots || 0) + 1;
+            }
+
             if (stepResult.status === "failed") {
               scenarioFailed = true;
             }
@@ -261,6 +273,11 @@ export class CopilotTestRuntime {
 
         const stepResult = await this.executeStep(step, session, context);
         stepResults.push(stepResult);
+
+        // Track resource usage from step
+        if (stepResult.screenshot) {
+          resourceMetrics.screenshots = (resourceMetrics.screenshots || 0) + 1;
+        }
 
         // Update context with any values returned from the step
         if (stepResult.contextUpdates) {
@@ -305,6 +322,7 @@ export class CopilotTestRuntime {
       status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
+      resources: resourceMetrics,
     };
   }
 
@@ -392,6 +410,7 @@ export class CopilotTestRuntime {
     overrideInput?: string
   ): Promise<StepResult> {
     const startTime = Date.now();
+    const aiStartTime = Date.now();
 
     // Check if custom step definitions are enabled (default: true)
     const useCustomSteps = this.config.useCustomStepDefinitions !== false;
@@ -414,18 +433,30 @@ export class CopilotTestRuntime {
           // Execute custom step handler with captured matches
           await match.definition.handler(stepContext, ...match.matches);
 
+          const duration = Date.now() - startTime;
           return {
             step,
             status: "passed",
-            duration: Date.now() - startTime,
+            duration,
             aiReasoning: `[Custom] Step "${step.keyword} ${step.text}" executed via custom definition`,
+            metrics: {
+              duration,
+              executionTime: duration,
+              aiThinkTime: 0,
+            },
           };
         } catch (err) {
+          const duration = Date.now() - startTime;
           return {
             step,
             status: "failed",
-            duration: Date.now() - startTime,
+            duration,
             error: err instanceof Error ? err.message : String(err),
+            metrics: {
+              duration,
+              executionTime: duration,
+              aiThinkTime: 0,
+            },
           };
         }
       }
@@ -439,11 +470,17 @@ export class CopilotTestRuntime {
       if ((session as Record<string, unknown>)._mock === true) {
         // Mock mode - simulate step execution
         await new Promise((resolve) => setTimeout(resolve, 50));
+        const duration = Date.now() - startTime;
         return {
           step,
           status: "passed",
-          duration: Date.now() - startTime,
+          duration,
           aiReasoning: `[Mock] Step "${step.keyword} ${step.text}" executed successfully`,
+          metrics: {
+            duration,
+            aiThinkTime: 25,
+            executionTime: 25,
+          },
         };
       }
 
@@ -458,32 +495,79 @@ export class CopilotTestRuntime {
         { prompt },
         timeout
       );
+      const aiEndTime = Date.now();
 
       if (!response) {
+        const duration = Date.now() - startTime;
         return {
           step,
           status: "failed",
-          duration: Date.now() - startTime,
+          duration,
           error: "No response received from AI",
+          metrics: {
+            duration,
+            aiThinkTime: aiEndTime - aiStartTime,
+            executionTime: 0,
+          },
         };
       }
 
       const parsed = this.parseStepResponse(response.data.content);
+      const executionEndTime = Date.now();
+      const duration = executionEndTime - startTime;
+      const aiThinkTime = aiEndTime - aiStartTime;
+      const executionTime = executionEndTime - aiEndTime;
+
+      // Check performance thresholds
+      if (this.config.performance) {
+        const { warnThreshold, failThreshold } = this.config.performance;
+
+        if (failThreshold && duration > failThreshold) {
+          return {
+            step,
+            status: "failed",
+            duration,
+            error: `Step exceeded fail threshold: ${duration}ms > ${failThreshold}ms`,
+            aiReasoning: parsed.reasoning,
+            contextUpdates: parsed.context,
+            metrics: {
+              duration,
+              aiThinkTime,
+              executionTime,
+            },
+          };
+        }
+
+        if (warnThreshold && duration > warnThreshold) {
+          console.warn(`⚠️  Performance warning: Step took ${duration}ms (threshold: ${warnThreshold}ms)`);
+        }
+      }
 
       return {
         step,
         status: parsed.status,
-        duration: Date.now() - startTime,
+        duration,
         error: parsed.error,
         aiReasoning: parsed.reasoning,
         contextUpdates: parsed.context,
+        metrics: {
+          duration,
+          aiThinkTime,
+          executionTime,
+        },
       };
     } catch (err) {
+      const duration = Date.now() - startTime;
       return {
         step,
         status: "failed",
-        duration: Date.now() - startTime,
+        duration,
         error: err instanceof Error ? err.message : String(err),
+        metrics: {
+          duration,
+          aiThinkTime: Date.now() - aiStartTime,
+          executionTime: 0,
+        },
       };
     }
   }

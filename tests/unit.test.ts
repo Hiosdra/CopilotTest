@@ -18,6 +18,12 @@ import {
   getStepDefinitions,
 } from "../src/step-registry.js";
 import { configure, run, test } from "../src/runner.js";
+import {
+  analyzePerformance,
+  getStepPerformanceBreakdown,
+  formatDuration,
+  comparePerformance,
+} from "../src/performance.js";
 import type { Feature, TestRun, Scenario, Step, StepContext } from "../src/types.js";
 import { writeFile, mkdir, rm } from "fs/promises";
 
@@ -1163,6 +1169,138 @@ configure({
 });
 
 assert(true, "watch config with changed-files mode");
+
+// ── Performance Monitoring ─────────────────────────────────
+
+section("Performance — analyzePerformance");
+
+const perfTestRun: TestRun = {
+  startedAt: new Date(),
+  finishedAt: new Date(Date.now() + 5000),
+  features: [
+    {
+      feature: { name: "Performance Test", tags: [], scenarios: [] },
+      scenarios: [
+        {
+          scenario: { name: "Test Scenario", tags: [], steps: [] },
+          status: "passed",
+          steps: [
+            {
+              step: { keyword: "Given", text: "step 1" },
+              status: "passed",
+              duration: 1000,
+              metrics: {
+                duration: 1000,
+                aiThinkTime: 300,
+                executionTime: 700,
+              },
+            },
+            {
+              step: { keyword: "When", text: "step 2" },
+              status: "passed",
+              duration: 2000,
+              metrics: {
+                duration: 2000,
+                aiThinkTime: 500,
+                executionTime: 1500,
+              },
+            },
+            {
+              step: { keyword: "Then", text: "step 3" },
+              status: "passed",
+              duration: 500,
+              metrics: {
+                duration: 500,
+                aiThinkTime: 100,
+                executionTime: 400,
+              },
+            },
+          ],
+          duration: 3500,
+          resources: {
+            screenshots: 2,
+            networkRequests: 5,
+          },
+        },
+      ],
+      duration: 3500,
+    },
+  ],
+  summary: { total: 1, passed: 1, failed: 0, skipped: 0 },
+  metadata: {
+    timestamp: new Date().toISOString(),
+    duration: 5000,
+  },
+};
+
+const perfSummary = analyzePerformance(perfTestRun);
+
+assertEqual(perfSummary.totalDuration, 5000, "total duration from metadata");
+assert(
+  Math.abs(perfSummary.avgStepDuration - 1166.67) < 1,
+  "average step duration is ~1166.67ms"
+);
+assertEqual(perfSummary.avgAiThinkTime, 300, "average AI think time is 300ms");
+assert(
+  Math.abs(perfSummary.avgExecutionTime - 866.67) < 1,
+  "average execution time is ~866.67ms"
+);
+assertEqual(perfSummary.totalScreenshots, 2, "total screenshots is 2");
+assertEqual(perfSummary.totalNetworkRequests, 5, "total network requests is 5");
+assert(perfSummary.slowestStep !== undefined, "slowest step is defined");
+assertEqual(
+  perfSummary.slowestStep?.duration,
+  2000,
+  "slowest step is 2000ms"
+);
+assert(perfSummary.fastestStep !== undefined, "fastest step is defined");
+assertEqual(perfSummary.fastestStep?.duration, 500, "fastest step is 500ms");
+
+section("Performance — getStepPerformanceBreakdown");
+
+const breakdown = getStepPerformanceBreakdown(perfTestRun);
+
+assertEqual(breakdown.length, 3, "breakdown has 3 steps");
+assertEqual(breakdown[0].duration, 1000, "first step duration is 1000ms");
+assertEqual(breakdown[0].aiTime, 300, "first step AI time is 300ms");
+assertEqual(breakdown[0].execTime, 700, "first step exec time is 700ms");
+assertEqual(breakdown[1].duration, 2000, "second step duration is 2000ms");
+assertEqual(breakdown[2].duration, 500, "third step duration is 500ms");
+
+section("Performance — formatDuration");
+
+assertEqual(formatDuration(500), "500ms", "formats 500ms");
+assertEqual(formatDuration(1500), "1.5s", "formats 1500ms as 1.5s");
+assertEqual(formatDuration(10234), "10.2s", "formats 10234ms as 10.2s");
+
+section("Performance — comparePerformance");
+
+const baselinePerformance = analyzePerformance({
+  ...perfTestRun,
+  metadata: { ...perfTestRun.metadata!, duration: 4000 },
+});
+
+const currentPerformance = analyzePerformance({
+  ...perfTestRun,
+  metadata: { ...perfTestRun.metadata!, duration: 5000 },
+});
+
+const comparison = comparePerformance(currentPerformance, baselinePerformance);
+
+assert(comparison.totalDurationChange > 0, "duration increased");
+assert(
+  Math.abs(comparison.totalDurationChange - 0.25) < 0.01,
+  "duration increased by 25%"
+);
+assertEqual(comparison.trend, "degraded", "trend is degraded");
+
+// Test stable trend
+const stableComparison = comparePerformance(
+  currentPerformance,
+  currentPerformance
+);
+assertEqual(stableComparison.trend, "stable", "stable trend detected");
+assertEqual(stableComparison.totalDurationChange, 0, "no change");
 
 // ── Summary ──────────────────────────────────────────────────
 
