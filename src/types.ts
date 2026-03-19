@@ -15,6 +15,7 @@ export interface StepContext {
   scenario?: Scenario;
   step: Step;
   platform?: PlatformConfig;
+  scenarioContext?: ScenarioContext;
 }
 
 export type StepDefinitionHandler = (

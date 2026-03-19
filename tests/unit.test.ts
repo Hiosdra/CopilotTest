@@ -637,9 +637,12 @@ const customRuntime = new CopilotTestRuntime({
 step1Executed = false;
 step1Args = [];
 
+const testContext = new ScenarioContext();
+
 const customStepResult = await customRuntime.executeStep(
   { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assert(step1Executed, "custom step handler was executed");
@@ -655,7 +658,8 @@ defineStep(/^I fail deliberately$/, async () => {
 
 const failedStepResult = await customRuntime.executeStep(
   { keyword: "When", text: "I fail deliberately" },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assertEqual(failedStepResult.status, "failed", "failed custom step returns failed status");
@@ -668,7 +672,8 @@ section("Custom Step Definitions — AI Fallback");
 // Step without custom definition should fall back to AI (mock mode)
 const aiFallbackResult = await customRuntime.executeStep(
   { keyword: "Then", text: "I should see the dashboard" },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assertEqual(aiFallbackResult.status, "passed", "non-custom step uses AI");
@@ -687,7 +692,8 @@ step1Executed = false;
 
 const disabledCustomResult = await noCustomRuntime.executeStep(
   { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assert(!step1Executed, "custom step not executed when disabled");

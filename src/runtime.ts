@@ -313,9 +313,6 @@ export class CopilotTestRuntime {
 
   async executeStep(step: Step, session: unknown, context: ScenarioContext): Promise<StepResult> {
     const startTime = Date.now();
-<<<<<<< HEAD
-    const prompt = this.buildStepPrompt(step, context);
-=======
 
     // Check if custom step definitions are enabled (default: true)
     const useCustomSteps = this.config.useCustomStepDefinitions !== false;
@@ -326,16 +323,17 @@ export class CopilotTestRuntime {
       if (match) {
         try {
           // Build context for custom step handler
-          const context: StepContext = {
+          const stepContext: StepContext = {
             step,
             session,
             feature: this.currentFeature,
             scenario: this.currentScenario,
             platform: this.currentPlatform,
+            scenarioContext: context, // Pass ScenarioContext to custom steps
           };
 
           // Execute custom step handler with captured matches
-          await match.definition.handler(context, ...match.matches);
+          await match.definition.handler(stepContext, ...match.matches);
 
           return {
             step,
@@ -355,8 +353,7 @@ export class CopilotTestRuntime {
     }
 
     // Fall back to AI execution if no custom definition matched
-    const prompt = this.buildStepPrompt(step);
->>>>>>> origin/main
+    const prompt = this.buildStepPrompt(step, context);
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
