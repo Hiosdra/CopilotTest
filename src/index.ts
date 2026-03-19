@@ -21,6 +21,7 @@ export {
   formatDuration,
 } from "./performance.js";
 
+// Export all types
 export type {
   Platform,
   StepKeyword,
@@ -43,7 +44,36 @@ export type {
   StepMetrics,
   ResourceMetrics,
 } from "./types.js";
+
+// Export builder types for advanced usage
+export type {
+  FeatureBuilder,
+  ScenarioBuilder,
+  ScenarioOutlineBuilder,
+  BackgroundBuilder,
+} from "./dsl.js";
+
+// Export debug types
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
+
+// Export utility types
+export type {
+  AsyncStep,
+  SyncStep,
+  StepFunction,
+  StepMatcher,
+  StepHandler,
+  DeepPartial,
+  RequireAtLeastOne,
+  RequireKeys,
+  Mutable,
+  DataOnly,
+  EventMap,
+  EventKey,
+  EventPayload,
+} from "./utility-types.js";
+
+// Export performance types
 export type {
   PerformanceSummary,
   StepPerformance,

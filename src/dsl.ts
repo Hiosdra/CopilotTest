@@ -261,6 +261,53 @@ export class FeatureBuilder {
   }
 }
 
+/**
+ * Create a new feature with BDD scenarios.
+ *
+ * Features organize related test scenarios and provide a high-level description
+ * of the functionality being tested. This is the entry point for the fluent DSL.
+ *
+ * @example
+ * Basic feature with scenarios:
+ * ```typescript
+ * feature('User Authentication')
+ *   .scenario('Successful login')
+ *     .given('I am on the login page')
+ *     .when('I enter valid credentials')
+ *     .then('I should see the dashboard')
+ *   .scenario('Failed login')
+ *     .given('I am on the login page')
+ *     .when('I enter invalid credentials')
+ *     .then('I should see an error message');
+ * ```
+ *
+ * @example
+ * Feature with tags and description:
+ * ```typescript
+ * feature('Shopping Cart')
+ *   .tag('@smoke', '@critical')
+ *   .description('Test shopping cart functionality')
+ *   .scenario('Add item to cart')
+ *     .given('I am viewing a product')
+ *     .when('I click the add to cart button')
+ *     .then('the item should be in my cart');
+ * ```
+ *
+ * @example
+ * Feature with background steps:
+ * ```typescript
+ * feature('Account Management')
+ *   .background()
+ *     .given('I am logged in as an admin')
+ *     .and('I am on the users page')
+ *   .scenario('Create new user')
+ *     .when('I click create user')
+ *     .then('a new user should be created');
+ * ```
+ *
+ * @param name - The feature name (should be descriptive and clear)
+ * @returns A new FeatureBuilder instance for chaining
+ */
 export function feature(name: string): FeatureBuilder {
   return new FeatureBuilder(name);
 }

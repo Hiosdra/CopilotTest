@@ -3,13 +3,28 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+
+    // Strict type checking
     "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Better errors and debugging
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
+
+    // Import/export handling
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+
+    // Output configuration
     "outDir": "dist",
     "rootDir": ".",
+
+    // Other options
     "skipLibCheck": true,
-    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
