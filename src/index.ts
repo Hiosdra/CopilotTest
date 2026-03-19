@@ -5,6 +5,7 @@ export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
 export { mobilePlatform } from "./platforms/mobile.js";
 export { DebugController } from "./debug.js";
+export { ScenarioContext } from "./types.js";
 export {
   defineStep,
   clearStepDefinitions,

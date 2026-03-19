@@ -10,6 +10,7 @@ import { webPlatform } from "../src/platforms/web.js";
 import { apiPlatform } from "../src/platforms/api.js";
 import { mobilePlatform } from "../src/platforms/mobile.js";
 import { DebugController } from "../src/debug.js";
+import { ScenarioContext } from "../src/types.js";
 import {
   defineStep,
   clearStepDefinitions,
@@ -350,14 +351,100 @@ const embeddedJson = runtime.parseStepResponse(
 assertEqual(embeddedJson.status, "passed", "parse embedded JSON status");
 assertEqual(embeddedJson.reasoning, "All good", "parse embedded JSON reasoning");
 
+const contextResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "User created", "context": {"userId": "12345", "username": "alice"}}'
+);
+assertEqual(contextResponse.status, "passed", "parse context response status");
+assert(contextResponse.context !== undefined, "parse context response has context");
+assertEqual(contextResponse.context!["userId"], "12345", "parse context userId");
+assertEqual(contextResponse.context!["username"], "alice", "parse context username");
+
+// Test context validation - array should be ignored
+const contextArrayResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": ["invalid", "array"]}'
+);
+assertEqual(contextArrayResponse.context, undefined, "parse context array returns undefined");
+
+// Test context validation - string should be ignored
+const contextStringResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": "invalid string"}'
+);
+assertEqual(contextStringResponse.context, undefined, "parse context string returns undefined");
+
+// Test context validation - null should be ignored
+const contextNullResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": null}'
+);
+assertEqual(contextNullResponse.context, undefined, "parse context null returns undefined");
+
+// Test context validation - number should be ignored
+const contextNumberResponse = runtime.parseStepResponse(
+  '{"status": "passed", "reasoning": "Test", "context": 123}'
+);
+assertEqual(contextNumberResponse.context, undefined, "parse context number returns undefined");
+
+// ── ScenarioContext ──────────────────────────────────────────
+
+section("ScenarioContext — state management");
+
+const ctx = new ScenarioContext();
+
+// Test set and get
+ctx.set("userId", "12345");
+ctx.set("username", "alice");
+ctx.set("isActive", true);
+ctx.set("count", 42);
+
+assertEqual(ctx.get("userId"), "12345", "get userId");
+assertEqual(ctx.get("username"), "alice", "get username");
+assertEqual(ctx.get("isActive"), true, "get isActive");
+assertEqual(ctx.get("count"), 42, "get count");
+
+// Test has
+assert(ctx.has("userId"), "has userId");
+assert(!ctx.has("nonExistent"), "has nonExistent returns false");
+
+// Test keys
+const keys = ctx.keys();
+assertEqual(keys.length, 4, "keys length");
+assert(keys.includes("userId"), "keys includes userId");
+assert(keys.includes("username"), "keys includes username");
+
+// Test toJSON
+const json = ctx.toJSON();
+assertEqual(json.userId, "12345", "toJSON userId");
+assertEqual(json.username, "alice", "toJSON username");
+assertEqual(json.isActive, true, "toJSON isActive");
+assertEqual(json.count, 42, "toJSON count");
+
+// Test delete
+const deleted = ctx.delete("count");
+assert(deleted, "delete returns true");
+assert(!ctx.has("count"), "count deleted");
+assertEqual(ctx.keys().length, 3, "keys length after delete");
+
+// Test clear
+ctx.clear();
+assertEqual(ctx.keys().length, 0, "keys length after clear");
+assert(!ctx.has("userId"), "userId cleared");
+
+// Test fromJSON
+ctx.fromJSON({ x: 1, y: 2, z: "test" });
+assertEqual(ctx.get("x"), 1, "fromJSON x");
+assertEqual(ctx.get("y"), 2, "fromJSON y");
+assertEqual(ctx.get("z"), "test", "fromJSON z");
+assertEqual(ctx.keys().length, 3, "fromJSON keys length");
+
 // ── Runtime — buildStepPrompt ────────────────────────────────
 
 section("Runtime — buildStepPrompt");
 
+const emptyContext = new ScenarioContext();
+
 const stepPrompt = runtime.buildStepPrompt({
   keyword: "Given",
   text: "I am on the login page",
-});
+}, emptyContext);
 assert(stepPrompt.includes("Given"), "step prompt includes keyword");
 assert(stepPrompt.includes("I am on the login page"), "step prompt includes text");
 assert(stepPrompt.includes("JSON"), "step prompt asks for JSON response");
@@ -366,7 +453,7 @@ const tablePrompt = runtime.buildStepPrompt({
   keyword: "When",
   text: "I fill the form",
   table: [["name", "value"], ["user", "admin"]],
-});
+}, emptyContext);
 assert(tablePrompt.includes("Data table"), "table prompt includes data table");
 assert(tablePrompt.includes("admin"), "table prompt includes table data");
 
@@ -374,9 +461,22 @@ const docStringPrompt = runtime.buildStepPrompt({
   keyword: "Then",
   text: "the response matches",
   docString: '{"ok": true}',
-});
+}, emptyContext);
 assert(docStringPrompt.includes("Doc string"), "docString prompt includes doc string label");
 assert(docStringPrompt.includes('"ok": true'), "docString prompt includes content");
+
+// Test with context
+const contextWithData = new ScenarioContext();
+contextWithData.set("userId", "12345");
+contextWithData.set("authToken", "abc-xyz");
+
+const promptWithContext = runtime.buildStepPrompt({
+  keyword: "When",
+  text: "I fetch the user",
+}, contextWithData);
+assert(promptWithContext.includes("Current Context"), "step prompt includes context section");
+assert(promptWithContext.includes("userId"), "step prompt includes context key");
+assert(promptWithContext.includes("12345"), "step prompt includes context value");
 
 // ── Runtime — buildSystemPrompt ──────────────────────────────
 
@@ -594,9 +694,12 @@ const customRuntime = new CopilotTestRuntime({
 step1Executed = false;
 step1Args = [];
 
+const testContext = new ScenarioContext();
+
 const customStepResult = await customRuntime.executeStep(
   { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assert(step1Executed, "custom step handler was executed");
@@ -612,7 +715,8 @@ defineStep(/^I fail deliberately$/, async () => {
 
 const failedStepResult = await customRuntime.executeStep(
   { keyword: "When", text: "I fail deliberately" },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assertEqual(failedStepResult.status, "failed", "failed custom step returns failed status");
@@ -625,7 +729,8 @@ section("Custom Step Definitions — AI Fallback");
 // Step without custom definition should fall back to AI (mock mode)
 const aiFallbackResult = await customRuntime.executeStep(
   { keyword: "Then", text: "I should see the dashboard" },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assertEqual(aiFallbackResult.status, "passed", "non-custom step uses AI");
@@ -644,7 +749,8 @@ step1Executed = false;
 
 const disabledCustomResult = await noCustomRuntime.executeStep(
   { keyword: "Given", text: 'I login as "testuser" with password "secret"' },
-  { _mock: true }
+  { _mock: true },
+  testContext
 );
 
 assert(!step1Executed, "custom step not executed when disabled");
