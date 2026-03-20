@@ -143,17 +143,14 @@ import { registeredCustomer } from '../fixtures/users.js';
 ```
 
 ### 3. Descriptive Tags
-Organize and filter tests:
+Organize tests with meaningful tags:
 
 ```typescript
 .scenario('Critical checkout flow')
 .tag('@smoke', '@critical', '@checkout')
 ```
 
-Run specific tags:
-```bash
-copilot-test run --tag=@smoke
-```
+Tags help categorize and identify test scenarios for documentation and organization purposes.
 
 ### 4. Positive and Negative Testing
 Test both success and failure cases:

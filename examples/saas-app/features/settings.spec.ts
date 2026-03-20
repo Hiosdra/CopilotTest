@@ -7,6 +7,14 @@ import { configure, feature, test } from '../../../src/index.js';
 import { webPlatform } from '../../../src/platforms/web.js';
 import { professionalUser, enterpriseUser } from '../fixtures/users.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: { web: webPlatform({ browser: 'chromium', headless: true }) },
+  baseUrl: 'https://app.example-saas.com',
+  stepTimeout: 30000,
+  outputDir: 'copilot-test-results/saas-app',
+});
+
 const settingsFeature = feature('SaaS Application Settings')
   .description('User settings, profile, team management, and integrations')
   .tag('@saas', '@settings')

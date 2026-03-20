@@ -9,6 +9,20 @@ import { configure, feature, test } from '../../../src/index.js';
 import { webPlatform } from '../../../src/platforms/web.js';
 import { laptop, smartphone, outOfStockProduct, productsByCategory } from '../fixtures/products.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: {
+    web: webPlatform({
+      browser: 'chromium',
+      headless: true,
+    }),
+  },
+  baseUrl: 'https://demo.example-shop.com',
+  stepTimeout: 30000,
+  screenshotOnFailure: true,
+  outputDir: 'copilot-test-results/e-commerce',
+});
+
 /**
  * Product Catalog Feature
  *

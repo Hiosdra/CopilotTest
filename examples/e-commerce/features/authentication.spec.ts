@@ -20,7 +20,7 @@ configure({
   },
   baseUrl: 'https://demo.example-shop.com',
   stepTimeout: 30000,
-  retries: 1,
+  retry: { maxRetries: 1 },
   screenshotOnFailure: true,
   outputDir: 'copilot-test-results/e-commerce',
 });

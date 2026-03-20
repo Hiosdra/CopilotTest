@@ -7,6 +7,14 @@ import { configure, feature, test } from '../../../src/index.js';
 import { webPlatform } from '../../../src/platforms/web.js';
 import { professionalUser } from '../fixtures/users.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: { web: webPlatform({ browser: 'chromium', headless: true }) },
+  baseUrl: 'https://app.example-saas.com',
+  stepTimeout: 30000,
+  outputDir: 'copilot-test-results/saas-app',
+});
+
 const dashboardFeature = feature('SaaS Application Dashboard')
   .description('Main dashboard functionality, widgets, and data visualization')
   .tag('@saas', '@dashboard')

@@ -75,7 +75,7 @@ export default {
   },
   baseUrl: 'https://demo.example-shop.com',
   stepTimeout: 30000,
-  retries: 1,
+  retry: { maxRetries: 1 },
   screenshotOnFailure: true,
   outputDir: 'copilot-test-results/e-commerce',
 };
@@ -371,9 +371,8 @@ configure({
 
 // Or use retry mechanism
 configure({
-  retries: 2,
   retry: {
-    enabled: true,
+    maxRetries: 2,
     stepRetries: 3,
   },
 });
@@ -488,14 +487,13 @@ jobs:
 ### Run Subsets
 
 ```bash
-# Smoke tests only
-copilot-test run examples/e-commerce --tag=@smoke
-
-# Critical path
-copilot-test run examples/e-commerce --tag=@critical
-
-# Specific feature
+# Run specific feature
 copilot-test run examples/e-commerce/features/checkout.spec.ts
+
+# Note: Each spec file includes its own configure() call and can be run standalone.
+# When running multiple spec files together, be aware that the last configure() call
+# will override previous ones. Consider using a shared config file if you need
+# consistent configuration across multiple files.
 ```
 
 ## Next Steps

@@ -11,6 +11,20 @@ import { laptop, smartphone } from '../fixtures/products.js';
 import { registeredCustomer } from '../fixtures/users.js';
 import { usShippingAddress, creditCardPayment } from '../fixtures/orders.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: {
+    web: webPlatform({
+      browser: 'chromium',
+      headless: true,
+    }),
+  },
+  baseUrl: 'https://demo.example-shop.com',
+  stepTimeout: 30000,
+  screenshotOnFailure: true,
+  outputDir: 'copilot-test-results/e-commerce',
+});
+
 /**
  * Checkout Feature
  *

@@ -9,7 +9,7 @@ import { testUser } from '../fixtures/api-data.js';
 
 configure({
   model: 'gpt-4o',
-  platforms: { api: apiPlatform({ baseUrl: 'https://jsonplaceholder.typicode.com' }) },
+  platforms: { api: apiPlatform({ baseUrl: 'https://api.example.com' }) },
   stepTimeout: 15000,
   outputDir: 'copilot-test-results/api-testing',
 });
