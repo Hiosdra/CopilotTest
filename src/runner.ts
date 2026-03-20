@@ -239,14 +239,17 @@ class TestRunner {
     }
 
     const outputDir = this.config.outputDir ?? "copilot-test-results";
-    await generateReport(testRun, outputDir);
-    console.log(`📁 Report saved to: ${outputDir}/\n`);
 
-    // Trigger onTestRunEnd hooks
-    await runtime.triggerTestRunEnd(testRun);
+    try {
+      await generateReport(testRun, outputDir);
+      console.log(`📁 Report saved to: ${outputDir}/\n`);
+    } finally {
+      // Trigger onTestRunEnd hooks even if report generation fails
+      await runtime.triggerTestRunEnd(testRun);
 
-    // Clear queue for next run
-    this.clearQueue();
+      // Clear queue for next run
+      this.clearQueue();
+    }
 
     return testRun;
   }
@@ -516,10 +519,14 @@ async function runFeaturesInParallel(
 
   console.log(`\n✨ Parallel execution complete: ${completedScenarios - failedScenarios} passed, ${failedScenarios} failed\n`);
 
-  // Construct feature results from pre-ordered arrays
+  // Construct feature results from pre-ordered arrays and trigger feature hooks
   const featureResults: FeatureResult[] = [];
   for (let queueIndex = 0; queueIndex < testFeatures.length; queueIndex++) {
     const testFeature = testFeatures[queueIndex];
+
+    // Trigger onFeatureStart hook
+    await runtime.triggerFeatureStart(testFeature.feature);
+
     const scenariosForQueue = scenarioResultsByQueue[queueIndex] || [];
     // Filter out undefined entries (can happen when failFast aborts remaining tasks)
     const scenarios = scenariosForQueue.filter(
@@ -527,11 +534,16 @@ async function runFeaturesInParallel(
     );
     const totalDuration = scenarios.reduce((sum, s) => sum + s.duration, 0);
 
-    featureResults.push({
+    const featureResult: FeatureResult = {
       feature: testFeature.feature,
       scenarios,
       duration: totalDuration,
-    });
+    };
+
+    // Trigger onFeatureEnd hook
+    await runtime.triggerFeatureEnd(testFeature.feature, featureResult);
+
+    featureResults.push(featureResult);
   }
 
   return featureResults;

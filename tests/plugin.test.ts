@@ -1,4 +1,4 @@
-import { feature, configure, run, definePlugin, type Plugin } from "../src/index.js";
+import { feature, definePlugin } from "../src/index.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { TestRunner } from "../src/runner.js";
 import type {
@@ -21,7 +21,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-function section(name: string, fn: () => void | Promise<void>): void {
+function section(name: string): void {
   results.push({ name: `📦 ${name}`, passed: true });
 }
 
@@ -39,7 +39,7 @@ async function test(name: string, fn: () => void | Promise<void>): Promise<void>
 }
 
 // Plugin System Tests
-section("Plugin System — Basic Plugin Creation", () => {});
+section("Plugin System — Basic Plugin Creation");
 
 await test("definePlugin creates a plugin", async () => {
   const plugin = definePlugin({
@@ -75,7 +75,7 @@ await test("plugin can be created with all lifecycle hooks", async () => {
   assert(typeof plugin.onTestRunEnd === "function", "Has onTestRunEnd");
 });
 
-section("Plugin System — Plugin Manager", () => {});
+section("Plugin System — Plugin Manager");
 
 await test("PluginManager can register plugins", async () => {
   const { PluginManager } = await import("../src/plugin-manager.js");
@@ -130,7 +130,7 @@ await test("PluginManager can clear all plugins", async () => {
   assert(manager.getPlugins().length === 0, "Manager has no plugins after clear");
 });
 
-section("Plugin System — Plugin Execution", () => {});
+section("Plugin System — Plugin Execution");
 
 await test("plugins receive onTestRunStart hook", async () => {
   let receivedConfig: CopilotTestConfig | null = null;
@@ -393,7 +393,7 @@ await test("plugins receive onStepEnd hook with results", async () => {
   assert(stepCount >= 1, "Plugin received at least 1 step");
 });
 
-section("Plugin System — Multiple Plugins", () => {});
+section("Plugin System — Multiple Plugins");
 
 await test("multiple plugins all receive hooks", async () => {
   const calls: string[] = [];
@@ -441,7 +441,7 @@ await test("multiple plugins all receive hooks", async () => {
   assert(calls.indexOf("plugin1:start") < calls.indexOf("plugin1:end"), "Start before end");
 });
 
-section("Plugin System — Error Handling", () => {});
+section("Plugin System — Error Handling");
 
 await test("plugin errors don't break test execution", async () => {
   let testCompleted = false;
@@ -480,7 +480,7 @@ await test("plugin errors don't break test execution", async () => {
   assert(testCompleted, "Test completed despite plugin error");
 });
 
-section("Plugin System — Async Hooks", () => {});
+section("Plugin System — Async Hooks");
 
 await test("plugins can use async hooks", async () => {
   let asyncCompleted = false;
@@ -512,7 +512,7 @@ await test("plugins can use async hooks", async () => {
   assert(asyncCompleted, "Async hook completed");
 });
 
-section("Plugin System — Use Cases", () => {});
+section("Plugin System — Use Cases");
 
 await test("plugin can count test results", async () => {
   let totalTests = 0;
