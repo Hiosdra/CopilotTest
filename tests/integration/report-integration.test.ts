@@ -41,9 +41,10 @@ async function fileExists(path: string): Promise<boolean> {
 
 // Start test server
 const testServer = createTestServer();
-await testServer.start();
 
 try {
+  await testServer.start();
+
   const outputDir = "copilot-test-results/integration-report-test";
 
   // Ensure output directory exists
@@ -64,7 +65,10 @@ try {
     },
     baseUrl: testServer.url,
     stepTimeout: 30000,
-    retries: 0,
+    retry: {
+      enabled: false,
+      stepRetries: 0,
+    },
     screenshotOnFailure: true,
     outputDir,
   });

@@ -69,7 +69,7 @@ The integration tests use a lightweight HTTP server (`test-server.ts`) that:
 
 - Serves static HTML pages for web testing
 - Provides REST API endpoints for API testing
-- Runs on port 8765
+- Defaults to port 8765 (overridable via TEST_SERVER_PORT environment variable)
 - Starts/stops automatically with tests
 - Includes in-memory data storage
 

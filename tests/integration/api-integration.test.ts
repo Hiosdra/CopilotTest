@@ -27,9 +27,10 @@ function section(name: string): void {
 
 // Start test server
 const testServer = createTestServer();
-await testServer.start();
 
 try {
+  await testServer.start();
+
   // Configure the test framework
   configure({
     model: "gpt-4o",
@@ -42,7 +43,10 @@ try {
       }),
     },
     stepTimeout: 15000,
-    retries: 0, // No retries for integration tests
+    retry: {
+      enabled: false,
+      stepRetries: 0,
+    },
     outputDir: "copilot-test-results/integration",
   });
 

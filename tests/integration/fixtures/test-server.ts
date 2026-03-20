@@ -76,7 +76,7 @@ export function createTestServer(): TestServer {
           // GET /api/users/:id - Get specific user
           const getUserMatch = url.match(/^\/api\/users\/(\d+)$/);
           if (getUserMatch && method === "GET") {
-            const userId = parseInt(getUserMatch[1]);
+            const userId = parseInt(getUserMatch[1], 10);
             const user = users.find((u) => u.id === userId);
             if (user) {
               res.writeHead(200);
@@ -116,7 +116,7 @@ export function createTestServer(): TestServer {
           // DELETE /api/users/:id - Delete user
           const deleteUserMatch = url.match(/^\/api\/users\/(\d+)$/);
           if (deleteUserMatch && method === "DELETE") {
-            const userId = parseInt(deleteUserMatch[1]);
+            const userId = parseInt(deleteUserMatch[1], 10);
             const index = users.findIndex((u) => u.id === userId);
             if (index !== -1) {
               users.splice(index, 1);
@@ -176,7 +176,7 @@ export function createTestServer(): TestServer {
       if (server && isListening) {
         server.close((err) => {
           // Ignore errors from server already closed
-          if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
+          if (err && (err as NodeJS.ErrnoException).code !== "ERR_SERVER_NOT_RUNNING") {
             console.error("Error stopping server:", err);
           }
           console.log("Test server stopped");
