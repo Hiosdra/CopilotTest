@@ -1,14 +1,62 @@
 import type { Step, StepKeyword, Scenario, Feature } from "./types.js";
 
-export class ScenarioBuilder {
-  private _steps: Step[] = [];
+/**
+ * Base class for step builders to reduce code duplication
+ */
+abstract class BaseStepBuilder {
+  protected _steps: Step[] = [];
+  protected _lastStep: Step | null = null;
+
+  protected _addStep(keyword: StepKeyword, text: string): this {
+    const step: Step = { keyword, text };
+    this._steps.push(step);
+    this._lastStep = step;
+    return this;
+  }
+
+  given(text: string): this {
+    return this._addStep("Given", text);
+  }
+
+  when(text: string): this {
+    return this._addStep("When", text);
+  }
+
+  then(text: string): this {
+    return this._addStep("Then", text);
+  }
+
+  and(text: string): this {
+    return this._addStep("And", text);
+  }
+
+  but(text: string): this {
+    return this._addStep("But", text);
+  }
+
+  withTable(table: string[][]): this {
+    if (this._lastStep) {
+      this._lastStep.table = table;
+    }
+    return this;
+  }
+
+  withDocString(docString: string): this {
+    if (this._lastStep) {
+      this._lastStep.docString = docString;
+    }
+    return this;
+  }
+}
+
+export class ScenarioBuilder extends BaseStepBuilder {
   private _tags: string[] = [];
   private _name: string;
   private _featureBuilder: FeatureBuilder;
-  private _lastStep: Step | null = null;
   private _debugMode: boolean = false;
 
   constructor(name: string, featureBuilder: FeatureBuilder) {
+    super();
     this._name = name;
     this._featureBuilder = featureBuilder;
   }
@@ -23,40 +71,6 @@ export class ScenarioBuilder {
     return this;
   }
 
-  given(text: string): this {
-    return this._addStep("Given", text);
-  }
-
-  when(text: string): this {
-    return this._addStep("When", text);
-  }
-
-  then(text: string): this {
-    return this._addStep("Then", text);
-  }
-
-  and(text: string): this {
-    return this._addStep("And", text);
-  }
-
-  but(text: string): this {
-    return this._addStep("But", text);
-  }
-
-  withTable(table: string[][]): this {
-    if (this._lastStep) {
-      this._lastStep.table = table;
-    }
-    return this;
-  }
-
-  withDocString(docString: string): this {
-    if (this._lastStep) {
-      this._lastStep.docString = docString;
-    }
-    return this;
-  }
-
   scenario(name: string): ScenarioBuilder {
     this._featureBuilder._addScenario(this._build());
     return new ScenarioBuilder(name, this._featureBuilder);
@@ -65,13 +79,6 @@ export class ScenarioBuilder {
   done(): FeatureBuilder {
     this._featureBuilder._addScenario(this._build());
     return this._featureBuilder;
-  }
-
-  private _addStep(keyword: StepKeyword, text: string): this {
-    const step: Step = { keyword, text };
-    this._steps.push(step);
-    this._lastStep = step;
-    return this;
   }
 
   _build(): Scenario {
@@ -84,55 +91,20 @@ export class ScenarioBuilder {
   }
 }
 
-export class ScenarioOutlineBuilder {
-  private _steps: Step[] = [];
+export class ScenarioOutlineBuilder extends BaseStepBuilder {
   private _tags: string[] = [];
   private _name: string;
   private _featureBuilder: FeatureBuilder;
-  private _lastStep: Step | null = null;
   private _examples?: Record<string, string>[];
 
   constructor(name: string, featureBuilder: FeatureBuilder) {
+    super();
     this._name = name;
     this._featureBuilder = featureBuilder;
   }
 
   tag(...tags: string[]): this {
     this._tags.push(...tags);
-    return this;
-  }
-
-  given(text: string): this {
-    return this._addStep("Given", text);
-  }
-
-  when(text: string): this {
-    return this._addStep("When", text);
-  }
-
-  then(text: string): this {
-    return this._addStep("Then", text);
-  }
-
-  and(text: string): this {
-    return this._addStep("And", text);
-  }
-
-  but(text: string): this {
-    return this._addStep("But", text);
-  }
-
-  withTable(table: string[][]): this {
-    if (this._lastStep) {
-      this._lastStep.table = table;
-    }
-    return this;
-  }
-
-  withDocString(docString: string): this {
-    if (this._lastStep) {
-      this._lastStep.docString = docString;
-    }
     return this;
   }
 
@@ -156,13 +128,6 @@ export class ScenarioOutlineBuilder {
     return this._featureBuilder;
   }
 
-  private _addStep(keyword: StepKeyword, text: string): this {
-    const step: Step = { keyword, text };
-    this._steps.push(step);
-    this._lastStep = step;
-    return this;
-  }
-
   _build(): Scenario {
     if (!this._examples || this._examples.length === 0) {
       throw new Error(
@@ -179,33 +144,17 @@ export class ScenarioOutlineBuilder {
   }
 }
 
-export class BackgroundBuilder {
-  private _steps: Step[] = [];
+export class BackgroundBuilder extends BaseStepBuilder {
   private _featureBuilder: FeatureBuilder;
-  private _lastStep: Step | null = null;
 
   constructor(featureBuilder: FeatureBuilder) {
+    super();
     this._featureBuilder = featureBuilder;
-  }
-
-  given(text: string): this {
-    return this._addStep("Given", text);
-  }
-
-  and(text: string): this {
-    return this._addStep("And", text);
   }
 
   scenario(name: string): ScenarioBuilder {
     this._featureBuilder._setBackground(this._steps);
     return new ScenarioBuilder(name, this._featureBuilder);
-  }
-
-  private _addStep(keyword: StepKeyword, text: string): this {
-    const step: Step = { keyword, text };
-    this._steps.push(step);
-    this._lastStep = step;
-    return this;
   }
 }
 

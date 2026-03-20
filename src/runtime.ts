@@ -12,7 +12,10 @@ import type {
   RetryAttempt,
 } from "./types.js";
 import { DebugController, type DebugContext } from "./debug.js";
-import { ScenarioContext as ScenarioContextClass } from "./types.js";
+import { ScenarioContext as ScenarioContextClass } from "./context.js";
+import { PromptBuilder } from "./prompt-builder.js";
+import { SessionManager } from "./session-manager.js";
+import { SystemMessages } from "./constants.js";
 import { findStepDefinition } from "./step-registry.js";
 import { escapeRegex, isPlainObject } from "./utils.js";
 import {
@@ -24,57 +27,20 @@ import {
   DEFAULT_RETRY_CONFIG,
 } from "./retry.js";
 
-export const DEFAULT_SYSTEM_MESSAGE = `You are an autonomous QA testing agent.
-Your job is to execute BDD test steps by interacting with the provided tools.
-
-Rules:
-1. Execute each step faithfully using the available MCP tools.
-2. After completing a step, respond ONLY with a JSON object in this exact format:
-   {"status": "passed"|"failed", "reasoning": "<explanation>", "error": "<error message if failed>", "context": {"key": "value"}}
-3. For web tests: use Playwright tools to navigate, interact, and verify.
-4. For API tests: use curl tools to make HTTP requests and verify responses.
-5. For mobile tests: use Android tools to interact with the emulator.
-6. Be thorough in verifications - check that the expected outcome is actually true.
-7. If a step cannot be performed, mark it as failed with a clear error message.
-8. Never skip verification steps.
-
-## Context Management
-You have access to a shared context object that persists across steps within a scenario.
-
-**When to store data in context:**
-- After creating a resource (store the ID, e.g., userId, orderId, cartId)
-- After authentication (store tokens, session IDs)
-- When extracting data from responses that will be referenced in later steps
-- When you see step text mentioning "for later use", "from previous step", "using the ID from context", etc.
-
-**What to store:**
-- Resource IDs (userId, productId, orderId, etc.)
-- Authentication tokens and credentials
-- Status codes or important response values
-- Any data explicitly mentioned in the step that should be remembered
-
-**How to store:**
-- Use the "context" field in your JSON response
-- Use descriptive key names (e.g., "userId" not just "id")
-- Store primitive values and objects, not complex structures
-- Example: {"status": "passed", "reasoning": "User created with ID 12345", "context": {"userId": "12345", "username": "alice"}}
-
-**Reading from context:**
-- The context from previous steps will be provided to you in each step prompt
-- When a step mentions "using the ID from context" or "from previous step", look for the relevant value in the context
-- If context is empty but the step expects it, mark the step as failed
-
-**Always think:** "Will any data from this step be needed later? If yes, store it in context with a clear name."`;
-
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
   private client: unknown = null;
   private currentFeature?: Feature;
   private currentScenario?: Scenario;
   private currentPlatform?: PlatformConfig;
+  private promptBuilder: PromptBuilder;
+  private sessionManager: SessionManager;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
+    this.promptBuilder = new PromptBuilder();
+    // Initialize SessionManager in mock mode if client is not available
+    this.sessionManager = new SessionManager(false);
   }
 
   async start(): Promise<void> {
@@ -757,7 +723,7 @@ export class CopilotTestRuntime {
     platform: PlatformConfig
   ): string {
     const parts = [
-      DEFAULT_SYSTEM_MESSAGE,
+      SystemMessages.DEFAULT_SYSTEM_MESSAGE,
       "",
       `## Current Test Context`,
       `Feature: ${feature.name}`,
