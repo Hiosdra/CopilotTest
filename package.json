@@ -17,7 +17,11 @@
     "test:api": "tsx tests/api-users.spec.ts",
     "test:mobile": "tsx tests/mobile-app.spec.ts",
     "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts",
-    "test:watch": "tsx src/cli-watch.ts"
+    "test:watch": "tsx src/cli-watch.ts",
+    "test:integration": "tsx tests/integration/web-integration.test.ts && tsx tests/integration/api-integration.test.ts && tsx tests/integration/report-integration.test.ts",
+    "test:integration:web": "tsx tests/integration/web-integration.test.ts",
+    "test:integration:api": "tsx tests/integration/api-integration.test.ts",
+    "test:integration:report": "tsx tests/integration/report-integration.test.ts"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.32",
