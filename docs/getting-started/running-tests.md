@@ -158,41 +158,6 @@ if (results.summary.failed > 0) {
 }
 ```
 
-## Watch Mode
-
-Run tests continuously during development:
-
-```bash
-copilot-test run tests/login.spec.ts --watch
-```
-
-### Interactive Commands
-
-When in watch mode:
-
-```
-Interactive Commands:
-  a - Run all tests
-  f - Run only failed tests
-  q - Quit watch mode
-  Enter - Re-run tests
-```
-
-### Watch Configuration
-
-```typescript
-configure({
-  watch: {
-    enabled: true,
-    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],
-    exclude: ['node_modules/**', 'dist/**'],
-    debounce: 300,
-    runMode: 'all',
-    failedFirst: true
-  }
-});
-```
-
 ## Retry Failed Tests
 
 Automatically retry failed scenarios:

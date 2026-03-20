@@ -576,13 +576,6 @@ configure({
     path: |
       copilot-test-results/
       screenshots/
-      logs/
-```
-
-### Enable Verbose Logging
-
-```bash
-copilot-test run --verbose --debug
 ```
 
 ### Check Environment
@@ -607,13 +600,10 @@ If you're still stuck:
    - [Troubleshooting Guide](../troubleshooting/common-errors.md)
    - [AI Interpretation Issues](../troubleshooting/ai-interpretation-issues.md)
 
-2. **Review examples:**
-   - [Example Tests](../examples/)
-
-3. **Search existing issues:**
+2. **Search existing issues:**
    - [GitHub Issues](https://github.com/Hiosdra/CopilotTest/issues)
 
-4. **Create a minimal reproduction:**
+3. **Create a minimal reproduction:**
    ```typescript
    // Simplify your test to the failing step
    test(

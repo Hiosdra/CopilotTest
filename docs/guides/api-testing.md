@@ -608,4 +608,4 @@ Review the AI's reasoning in the HTML report to understand how it interpreted yo
 - [Web Testing Guide](./web-testing.md) - Test web applications
 - [Mobile Testing Guide](./mobile-testing.md) - Test mobile apps
 - [Best Practices](./best-practices.md) - Write better tests
-- [Custom Steps](./custom-steps.md) - Create reusable API steps
+- [Custom Steps](../CUSTOM_STEPS.md) - Create reusable API steps

@@ -536,4 +536,4 @@ copilot-test-results/
 - [API Testing Guide](./api-testing.md) - Test REST APIs
 - [Best Practices](./best-practices.md) - Write better tests
 - [Debugging Guide](./debugging.md) - Debug failing tests
-- [Custom Steps](./custom-steps.md) - Create reusable web steps
+- [Custom Steps](../CUSTOM_STEPS.md) - Create reusable web steps

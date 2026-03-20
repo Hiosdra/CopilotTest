@@ -22,7 +22,7 @@ Error: Cannot find module 'copilot-test'
    ```json
    {
      "dependencies": {
-       "copilot-test": "^1.0.0"
+       "copilot-test": "^0.1.0"
      }
    }
    ```
@@ -637,4 +637,3 @@ If you're still experiencing issues:
 
 - [AI Interpretation Issues](./ai-interpretation-issues.md)
 - [Debugging Guide](../guides/debugging.md)
-- [MCP Server Issues](./mcp-server-issues.md)

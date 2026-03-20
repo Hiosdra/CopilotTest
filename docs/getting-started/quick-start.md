@@ -98,9 +98,9 @@ test(
     ._build(),
   'web'
 );
-
-await run();
 ```
+
+**Note:** This file doesn't include `await run()` because it's designed to be executed via the CLI, which handles execution automatically.
 
 Run your test:
 
@@ -138,10 +138,11 @@ feature('Google Search')              // Feature name
   .done()      // End scenario
   ._build()    // Build feature
 
-// 6. Register and run tests
+// 6. Register test (CLI handles execution)
 test(feature, 'web');  // Register test for web platform
-await run();           // Execute all tests
 ```
+
+**Note:** When using the CLI to run tests, you don't need to call `await run()`—the CLI handles execution automatically. Only include `await run()` if you're running the test file directly with Node.js/tsx.
 
 ## Key Concepts
 
@@ -203,14 +204,9 @@ feature('Login')
     // ... steps
 ```
 
-Run specific tags:
-
-```bash
-npx copilot-test run --tag=@smoke
-```
+**Note:** The CLI currently parses the `--tag` flag but doesn't apply filtering during execution. For tag-based filtering, configure it programmatically or use multiple test files.
 
 ## Getting Help
 
 - [Troubleshooting](../troubleshooting/common-errors.md)
 - [AI Interpretation Issues](../troubleshooting/ai-interpretation-issues.md)
-- [Examples](../examples/README.md)

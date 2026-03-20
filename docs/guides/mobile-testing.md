@@ -662,4 +662,4 @@ adb shell settings put global animator_duration_scale 0
 - [Web Testing Guide](./web-testing.md) - Test web applications
 - [API Testing Guide](./api-testing.md) - Test REST APIs
 - [Best Practices](./best-practices.md) - Write better tests
-- [Custom Steps](./custom-steps.md) - Create reusable mobile steps
+- [Custom Steps](../CUSTOM_STEPS.md) - Create reusable mobile steps

@@ -178,7 +178,6 @@ configure({
 - 📖 [Troubleshooting](./troubleshooting/common-errors.md)
 - 🐛 [Report Issues](https://github.com/Hiosdra/CopilotTest/issues)
 - 💬 [Discussions](https://github.com/Hiosdra/CopilotTest/discussions)
-- 📧 Email: support@copilottest.dev
 
 ## Contributing
 

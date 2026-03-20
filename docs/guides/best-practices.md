@@ -354,18 +354,7 @@ feature('Complete Checkout Flow')
   ._build();
 ```
 
-Run fast tests frequently, slow tests less often:
-
-```bash
-# On every commit
-npx copilot-test run --tag=@fast
-
-# Before merge
-npx copilot-test run --tag=@smoke
-
-# Nightly build
-npx copilot-test run --tag=@slow
-```
+**Note:** The CLI currently parses the `--tag` flag but doesn't apply filtering during execution. For tag-based filtering, configure it programmatically or use multiple test files.
 
 ## Maintenance
 
@@ -490,13 +479,13 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - run: npx copilot-test run --tag=@smoke --headless
+      - run: npx copilot-test run tests/smoke/
 
   regression:
     runs-on: ubuntu-latest
     needs: smoke
     steps:
-      - run: npx copilot-test run --tag=@regression --headless --parallel
+      - run: npx copilot-test run tests/regression/
 ```
 
 ### Fail Fast in CI
@@ -605,5 +594,4 @@ Start simple, add complexity:
 
 - [Configuration Guide](./configuration.md) - Advanced configuration
 - [Debugging Guide](./debugging.md) - Debug failing tests
-- [Custom Steps Guide](./custom-steps.md) - Create reusable steps
-- [Performance Tuning](../advanced/performance-tuning.md) - Optimize your tests
+- [Custom Steps Guide](../CUSTOM_STEPS.md) - Create reusable steps

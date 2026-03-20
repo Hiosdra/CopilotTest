@@ -478,4 +478,4 @@ defineStep(
 - [Common Errors](./common-errors.md)
 - [Debugging Guide](../guides/debugging.md)
 - [Best Practices](../guides/best-practices.md)
-- [Custom Steps Guide](../guides/custom-steps.md)
+- [Custom Steps Guide](../CUSTOM_STEPS.md)
