@@ -24,12 +24,11 @@ export interface MockSession extends Session {
  * Type guard to check if a session is a mock session
  */
 export function isMockSession(session: unknown): session is MockSession {
-  return (
-    typeof session === "object" &&
-    session !== null &&
-    "_mock" in session &&
-    session._mock === true
-  );
+  if (typeof session !== "object" || session === null || !("_mock" in session)) {
+    return false;
+  }
+  const s = session as Record<string, unknown>;
+  return s._mock === true;
 }
 
 /**
@@ -58,7 +57,7 @@ export class SessionManager {
   /**
    * Create a session for the given platform
    */
-  async createSession(platform: PlatformConfig): Promise<unknown> {
+  async createSession(platform: PlatformConfig): Promise<Session | MockSession> {
     // Mock mode for testing
     if (this.mockMode) {
       const mockSession: MockSession = {
@@ -76,16 +75,21 @@ export class SessionManager {
       case "web": {
         const playwright = await import("@playwright/mcp");
         const session = await playwright.createConnection();
-        return session;
+        return session as Session;
       }
       case "api": {
         // API platform doesn't need a persistent session
-        return { _mock: true, platformType: "api", close: async () => {} };
+        const mockSession: MockSession = {
+          _mock: true,
+          platformType: "api",
+          close: async () => {},
+        };
+        return mockSession;
       }
       case "mobile": {
         const playwright = await import("@playwright/mcp");
         const session = await playwright.createConnection();
-        return session;
+        return session as Session;
       }
       default:
         throw new Error(`Unsupported platform type: ${platform.platform}`);

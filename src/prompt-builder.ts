@@ -43,7 +43,18 @@ export class PromptBuilder {
     if (Object.keys(contextData).length > 0) {
       parts.push("=== SCENARIO CONTEXT ===");
       for (const [key, value] of Object.entries(contextData)) {
-        const valueStr = typeof value === "object" ? JSON.stringify(value) : String(value);
+        let valueStr: string;
+        if (value instanceof Error) {
+          valueStr = value.stack ?? value.message;
+        } else if (value !== null && typeof value === "object") {
+          try {
+            valueStr = JSON.stringify(value);
+          } catch {
+            valueStr = String(value);
+          }
+        } else {
+          valueStr = String(value);
+        }
         parts.push(`${key}: ${valueStr}`);
       }
       parts.push("");
