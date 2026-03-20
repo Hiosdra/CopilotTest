@@ -28,6 +28,9 @@ export {
   formatDuration,
 } from "./performance.js";
 
+// Export plugin system
+export { PluginManager, definePlugin } from "./plugin-manager.js";
+
 // Export new architectural modules
 export { SessionManager, isMockSession, isClosableSession } from "./session-manager.js";
 export { PromptBuilder } from "./prompt-builder.js";
@@ -94,6 +97,7 @@ export type {
   PerformanceConfig,
   StepMetrics,
   ResourceMetrics,
+  Plugin,
 } from "./types.js";
 
 // Export builder types for advanced usage

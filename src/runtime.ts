@@ -26,6 +26,7 @@ import {
   reportFlakyTest,
   DEFAULT_RETRY_CONFIG,
 } from "./retry.js";
+import { PluginManager } from "./plugin-manager.js";
 
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
@@ -35,12 +36,18 @@ export class CopilotTestRuntime {
   private currentPlatform?: PlatformConfig;
   private promptBuilder: PromptBuilder;
   private sessionManager: SessionManager;
+  private pluginManager: PluginManager;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
     this.promptBuilder = new PromptBuilder();
     // Initialize SessionManager in mock mode if client is not available
     this.sessionManager = new SessionManager(false);
+    // Initialize PluginManager and register plugins from config
+    this.pluginManager = new PluginManager();
+    if (config.plugins) {
+      this.pluginManager.registerAll(config.plugins);
+    }
   }
 
   async start(): Promise<void> {
@@ -63,6 +70,34 @@ export class CopilotTestRuntime {
     this.client = null;
   }
 
+  /**
+   * Trigger onTestRunStart hooks for all registered plugins.
+   */
+  async triggerTestRunStart(): Promise<void> {
+    await this.pluginManager.onTestRunStart(this.config);
+  }
+
+  /**
+   * Trigger onTestRunEnd hooks for all registered plugins.
+   */
+  async triggerTestRunEnd(results: import("./types.js").TestRun): Promise<void> {
+    await this.pluginManager.onTestRunEnd(results);
+  }
+
+  /**
+   * Trigger onFeatureStart hooks for all registered plugins.
+   */
+  async triggerFeatureStart(feature: Feature): Promise<void> {
+    await this.pluginManager.onFeatureStart(feature);
+  }
+
+  /**
+   * Trigger onFeatureEnd hooks for all registered plugins.
+   */
+  async triggerFeatureEnd(feature: Feature, result: FeatureResult): Promise<void> {
+    await this.pluginManager.onFeatureEnd(feature, result);
+  }
+
   async runFeature(
     feature: Feature,
     platformKey: string
@@ -71,6 +106,9 @@ export class CopilotTestRuntime {
     if (!platform) {
       throw new Error(`Platform "${platformKey}" not found in config`);
     }
+
+    // Execute onFeatureStart hooks
+    await this.pluginManager.onFeatureStart(feature);
 
     const startTime = Date.now();
     const scenarioResults: ScenarioResult[] = [];
@@ -83,11 +121,16 @@ export class CopilotTestRuntime {
       scenarioResults.push(result);
     }
 
-    return {
+    const featureResult: FeatureResult = {
       feature,
       scenarios: scenarioResults,
       duration: Date.now() - startTime,
     };
+
+    // Execute onFeatureEnd hooks
+    await this.pluginManager.onFeatureEnd(feature, featureResult);
+
+    return featureResult;
   }
 
   private expandScenarioOutlines(scenarios: Scenario[]): Scenario[] {
@@ -134,6 +177,9 @@ export class CopilotTestRuntime {
     scenario: Scenario,
     platform: PlatformConfig
   ): Promise<ScenarioResult> {
+    // Execute onScenarioStart hooks
+    await this.pluginManager.onScenarioStart(scenario);
+
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
@@ -292,13 +338,18 @@ export class CopilotTestRuntime {
       }
     }
 
-    return {
+    const scenarioResult: ScenarioResult = {
       scenario,
       status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
       resources: resourceMetrics,
     };
+
+    // Execute onScenarioEnd hooks
+    await this.pluginManager.onScenarioEnd(scenario, scenarioResult);
+
+    return scenarioResult;
   }
 
   private async createSession(
@@ -385,127 +436,165 @@ export class CopilotTestRuntime {
     overrideInput?: string,
     scenario?: Scenario
   ): Promise<StepResult> {
+    // Execute onStepStart hooks
+    await this.pluginManager.onStepStart(step);
+
     const retryConfig = this.config.retry ?? {};
     const enabled = retryConfig.enabled ?? DEFAULT_RETRY_CONFIG.enabled;
     const maxRetries = enabled
       ? (retryConfig.stepRetries ?? DEFAULT_RETRY_CONFIG.stepRetries)
       : 0;
 
+    let finalResult: StepResult;
+
     // If retries are disabled or maxRetries is 0, execute normally
     if (!enabled || maxRetries === 0) {
-      return this.executeStepOnce(step, session, context, overrideInput);
-    }
+      finalResult = await this.executeStepOnce(step, session, context, overrideInput);
+    } else {
+      // Execute with retry logic
+      const retryAttempts: RetryAttempt[] = [];
+      let attempt = 0;
+      let lastError: string | undefined;
 
-    // Execute with retry logic
-    const retryAttempts: RetryAttempt[] = [];
-    let attempt = 0;
-    let lastError: string | undefined;
+      while (attempt <= maxRetries) {
+        attempt++;
+        const attemptStartTime = Date.now();
 
-    while (attempt <= maxRetries) {
-      attempt++;
-      const attemptStartTime = Date.now();
+        try {
+          const result = await this.executeStepOnce(step, session, context, overrideInput);
 
-      try {
-        const result = await this.executeStepOnce(step, session, context, overrideInput);
+          // Record this attempt
+          retryAttempts.push({
+            attemptNumber: attempt,
+            status: result.status,
+            duration: Date.now() - attemptStartTime,
+            error: result.error,
+          });
 
-        // Record this attempt
-        retryAttempts.push({
-          attemptNumber: attempt,
-          status: result.status,
-          duration: Date.now() - attemptStartTime,
-          error: result.error,
-        });
+          if (result.status === "passed") {
+            // Success! Check if this test is flaky
+            const retryCount = attempt - 1;
+            if (retryCount > 0 && isFlaky(retryCount, retryConfig)) {
+              // Report flaky test - use passed scenario parameter for thread safety
+              const scenarioName = scenario?.name ?? "Unknown scenario";
+              reportFlakyTest(scenarioName, attempt, retryConfig);
+            }
 
-        if (result.status === "passed") {
-          // Success! Check if this test is flaky
-          const retryCount = attempt - 1;
-          if (retryCount > 0 && isFlaky(retryCount, retryConfig)) {
-            // Report flaky test - use passed scenario parameter for thread safety
-            const scenarioName = scenario?.name ?? "Unknown scenario";
-            reportFlakyTest(scenarioName, attempt, retryConfig);
+            // Return successful result with retry metadata
+            finalResult = {
+              ...result,
+              retryCount,
+              retryAttempts,
+            };
+            break;
           }
 
-          // Return successful result with retry metadata
-          return {
-            ...result,
-            retryCount,
-            retryAttempts,
-          };
-        }
+          // Step failed - check if we should retry
+          lastError = result.error ?? "Step failed";
 
-        // Step failed - check if we should retry
-        lastError = result.error ?? "Step failed";
+          if (attempt > maxRetries) {
+            // No more retries left
+            finalResult = {
+              ...result,
+              retryCount: attempt - 1,
+              retryAttempts,
+            };
+            break;
+          }
 
-        if (attempt > maxRetries) {
-          // No more retries left
-          return {
-            ...result,
-            retryCount: attempt - 1,
-            retryAttempts,
-          };
-        }
+          // Check if we should retry based on error
+          if (!shouldRetryStep(lastError, attempt, retryConfig, maxRetries)) {
+            // Don't retry this error
+            finalResult = {
+              ...result,
+              retryCount: attempt - 1,
+              retryAttempts,
+            };
+            break;
+          }
 
-        // Check if we should retry based on error
-        if (!shouldRetryStep(lastError, attempt, retryConfig, maxRetries)) {
-          // Don't retry this error
-          return {
-            ...result,
-            retryCount: attempt - 1,
-            retryAttempts,
-          };
-        }
+          // Calculate delay before retry
+          const delay = calculateRetryDelay(attempt, retryConfig);
+          console.log(
+            `  ⚠️  Step failed (attempt ${attempt}/${maxRetries + 1}): ${lastError}`
+          );
+          console.log(`  ⏳ Retrying in ${delay}ms...`);
 
-        // Calculate delay before retry
-        const delay = calculateRetryDelay(attempt, retryConfig);
-        console.log(
-          `  ⚠️  Step failed (attempt ${attempt}/${maxRetries + 1}): ${lastError}`
-        );
-        console.log(`  ⏳ Retrying in ${delay}ms...`);
-
-        // Wait before retrying
-        await sleep(delay);
-      } catch (err) {
-        // Unexpected error during execution
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        retryAttempts.push({
-          attemptNumber: attempt,
-          status: "failed",
-          duration: Date.now() - attemptStartTime,
-          error: errorMsg,
-        });
-
-        lastError = errorMsg;
-
-        if (attempt > maxRetries || !shouldRetryStep(errorMsg, attempt, retryConfig, maxRetries)) {
-          return {
-            step,
+          // Wait before retrying
+          await sleep(delay);
+        } catch (err) {
+          // Unexpected error during execution
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          retryAttempts.push({
+            attemptNumber: attempt,
             status: "failed",
             duration: Date.now() - attemptStartTime,
             error: errorMsg,
-            retryCount: attempt - 1,
-            retryAttempts,
-          };
-        }
+          });
 
-        const delay = calculateRetryDelay(attempt, retryConfig);
-        console.log(`  ⚠️  Step error (attempt ${attempt}/${maxRetries + 1}): ${errorMsg}`);
-        console.log(`  ⏳ Retrying in ${delay}ms...`);
-        await sleep(delay);
+          lastError = errorMsg;
+
+          if (attempt > maxRetries || !shouldRetryStep(errorMsg, attempt, retryConfig, maxRetries)) {
+            finalResult = {
+              step,
+              status: "failed",
+              duration: Date.now() - attemptStartTime,
+              error: errorMsg,
+              retryCount: attempt - 1,
+              retryAttempts,
+            };
+            break;
+          }
+
+          const delay = calculateRetryDelay(attempt, retryConfig);
+          console.log(`  ⚠️  Step error (attempt ${attempt}/${maxRetries + 1}): ${errorMsg}`);
+          console.log(`  ⏳ Retrying in ${delay}ms...`);
+          await sleep(delay);
+        }
+      }
+
+      // Should not reach here, but just in case
+      if (!finalResult!) {
+        finalResult = {
+          step,
+          status: "failed",
+          duration: 0,
+          error: lastError ?? "Step failed after all retries",
+          retryCount: maxRetries,
+          retryAttempts,
+        };
       }
     }
 
-    // Should not reach here, but just in case
-    return {
-      step,
-      status: "failed",
-      duration: 0,
-      error: lastError ?? "Step failed after all retries",
-      retryCount: maxRetries,
-      retryAttempts,
-    };
+    // Execute onStepEnd hooks with final aggregated result
+    await this.pluginManager.onStepEnd(step, finalResult);
+
+    return finalResult;
   }
 
   private async executeStepOnce(
+    step: Step,
+    session: unknown,
+    context: ScenarioContext,
+    overrideInput?: string
+  ): Promise<StepResult> {
+    const startTime = Date.now();
+
+    try {
+      return await this.executeStepImpl(step, session, context, overrideInput);
+    } catch (error) {
+      // If executeStepImpl throws, create a failed result
+      const duration = Date.now() - startTime;
+      return {
+        step,
+        status: "failed",
+        duration,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  private async executeStepImpl(
     step: Step,
     session: unknown,
     context: ScenarioContext,

@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsx tests/unit.test.ts",
+    "test": "tsx tests/unit.test.ts && tsx tests/plugin.test.ts",
     "test:types": "tsx tests/types-example.ts",
     "test:parallel": "tsx tests/parallel.spec.ts",
     "test:web": "tsx tests/login.spec.ts",
