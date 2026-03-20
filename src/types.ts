@@ -236,6 +236,39 @@ export interface PerformanceConfig {
 }
 
 /**
+ * Plugin interface for extending test execution with lifecycle hooks.
+ * Plugins can observe and react to test lifecycle events.
+ */
+export interface Plugin {
+  /** Unique plugin name */
+  name: string;
+
+  /** Called when the test run starts, before any features are executed */
+  onTestRunStart?(config: CopilotTestConfig): void | Promise<void>;
+
+  /** Called when a feature starts execution */
+  onFeatureStart?(feature: Feature): void | Promise<void>;
+
+  /** Called when a scenario starts execution */
+  onScenarioStart?(scenario: Scenario): void | Promise<void>;
+
+  /** Called when a step starts execution */
+  onStepStart?(step: Step): void | Promise<void>;
+
+  /** Called when a step completes execution */
+  onStepEnd?(step: Step, result: StepResult): void | Promise<void>;
+
+  /** Called when a scenario completes execution */
+  onScenarioEnd?(scenario: Scenario, result: ScenarioResult): void | Promise<void>;
+
+  /** Called when a feature completes execution */
+  onFeatureEnd?(feature: Feature, result: FeatureResult): void | Promise<void>;
+
+  /** Called when the test run completes */
+  onTestRunEnd?(results: TestRun): void | Promise<void>;
+}
+
+/**
  * Main configuration for CopilotTest framework.
  */
 export interface CopilotTestConfig {
@@ -279,6 +312,8 @@ export interface CopilotTestConfig {
   watch?: WatchConfig;
   /** Performance monitoring configuration */
   performance?: PerformanceConfig;
+  /** Plugins for extending test execution with lifecycle hooks */
+  plugins?: Plugin[];
 }
 
 /**

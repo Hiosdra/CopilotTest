@@ -99,6 +99,9 @@ class TestRunner {
     console.log("\n🧪 CopilotTest — AI-Driven BDD Testing Framework\n");
     console.log("=".repeat(60));
 
+    // Trigger onTestRunStart hooks
+    await runtime.triggerTestRunStart();
+
     try {
       // Use parallel execution if enabled
       if (this.config.parallel) {
@@ -238,6 +241,9 @@ class TestRunner {
     const outputDir = this.config.outputDir ?? "copilot-test-results";
     await generateReport(testRun, outputDir);
     console.log(`📁 Report saved to: ${outputDir}/\n`);
+
+    // Trigger onTestRunEnd hooks
+    await runtime.triggerTestRunEnd(testRun);
 
     // Clear queue for next run
     this.clearQueue();

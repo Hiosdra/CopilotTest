@@ -26,6 +26,7 @@ import {
   reportFlakyTest,
   DEFAULT_RETRY_CONFIG,
 } from "./retry.js";
+import { PluginManager } from "./plugin-manager.js";
 
 export class CopilotTestRuntime {
   private config: CopilotTestConfig;
@@ -35,12 +36,18 @@ export class CopilotTestRuntime {
   private currentPlatform?: PlatformConfig;
   private promptBuilder: PromptBuilder;
   private sessionManager: SessionManager;
+  private pluginManager: PluginManager;
 
   constructor(config: CopilotTestConfig) {
     this.config = config;
     this.promptBuilder = new PromptBuilder();
     // Initialize SessionManager in mock mode if client is not available
     this.sessionManager = new SessionManager(false);
+    // Initialize PluginManager and register plugins from config
+    this.pluginManager = new PluginManager();
+    if (config.plugins) {
+      this.pluginManager.registerAll(config.plugins);
+    }
   }
 
   async start(): Promise<void> {
@@ -63,6 +70,20 @@ export class CopilotTestRuntime {
     this.client = null;
   }
 
+  /**
+   * Trigger onTestRunStart hooks for all registered plugins.
+   */
+  async triggerTestRunStart(): Promise<void> {
+    await this.pluginManager.onTestRunStart(this.config);
+  }
+
+  /**
+   * Trigger onTestRunEnd hooks for all registered plugins.
+   */
+  async triggerTestRunEnd(results: import("./types.js").TestRun): Promise<void> {
+    await this.pluginManager.onTestRunEnd(results);
+  }
+
   async runFeature(
     feature: Feature,
     platformKey: string
@@ -71,6 +92,9 @@ export class CopilotTestRuntime {
     if (!platform) {
       throw new Error(`Platform "${platformKey}" not found in config`);
     }
+
+    // Execute onFeatureStart hooks
+    await this.pluginManager.onFeatureStart(feature);
 
     const startTime = Date.now();
     const scenarioResults: ScenarioResult[] = [];
@@ -83,11 +107,16 @@ export class CopilotTestRuntime {
       scenarioResults.push(result);
     }
 
-    return {
+    const featureResult: FeatureResult = {
       feature,
       scenarios: scenarioResults,
       duration: Date.now() - startTime,
     };
+
+    // Execute onFeatureEnd hooks
+    await this.pluginManager.onFeatureEnd(feature, featureResult);
+
+    return featureResult;
   }
 
   private expandScenarioOutlines(scenarios: Scenario[]): Scenario[] {
@@ -134,6 +163,9 @@ export class CopilotTestRuntime {
     scenario: Scenario,
     platform: PlatformConfig
   ): Promise<ScenarioResult> {
+    // Execute onScenarioStart hooks
+    await this.pluginManager.onScenarioStart(scenario);
+
     const startTime = Date.now();
     const stepResults: StepResult[] = [];
     let scenarioFailed = false;
@@ -292,13 +324,18 @@ export class CopilotTestRuntime {
       }
     }
 
-    return {
+    const scenarioResult: ScenarioResult = {
       scenario,
       status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
       steps: stepResults,
       duration: Date.now() - startTime,
       resources: resourceMetrics,
     };
+
+    // Execute onScenarioEnd hooks
+    await this.pluginManager.onScenarioEnd(scenario, scenarioResult);
+
+    return scenarioResult;
   }
 
   private async createSession(
@@ -506,6 +543,36 @@ export class CopilotTestRuntime {
   }
 
   private async executeStepOnce(
+    step: Step,
+    session: unknown,
+    context: ScenarioContext,
+    overrideInput?: string
+  ): Promise<StepResult> {
+    // Execute onStepStart hooks
+    await this.pluginManager.onStepStart(step);
+
+    let result: StepResult;
+
+    try {
+      result = await this.executeStepImpl(step, session, context, overrideInput);
+    } catch (error) {
+      // If executeStepImpl throws, create a failed result
+      const duration = Date.now();
+      result = {
+        step,
+        status: "failed",
+        duration: 0,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+
+    // Execute onStepEnd hooks
+    await this.pluginManager.onStepEnd(step, result);
+
+    return result;
+  }
+
+  private async executeStepImpl(
     step: Step,
     session: unknown,
     context: ScenarioContext,
