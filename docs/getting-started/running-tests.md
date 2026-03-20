@@ -32,47 +32,22 @@ copilot-test run tests/login.spec.ts tests/checkout.spec.ts
 
 ## Filtering Tests
 
-### By Tag
-
-Run tests with specific tags:
-
-```bash
-# Run smoke tests
-copilot-test run --tag=@smoke
-
-# Run critical tests
-copilot-test run --tag=@critical
-
-# Run multiple tags (OR logic)
-copilot-test run --tag=@smoke,@regression
-```
-
-### By Name Pattern
-
-Filter tests by feature or scenario name:
-
-```bash
-# Run tests with "login" in the name
-copilot-test run --filter="login"
-
-# Case-insensitive matching
-copilot-test run --filter="LOGIN"
-```
+**Note:** The CLI currently parses filtering flags (`--tag`, `--filter`) but doesn't apply them during execution. Use configuration options or filter tests by running specific files. Full CLI flag support is planned for future releases.
 
 ### By Environment
 
-Set the environment for your tests:
+Set the environment for your tests (currently supported):
 
 ```bash
 copilot-test run --env=staging
 copilot-test run --env=production
 ```
 
-Access the environment in your config:
+This sets `process.env.ENVIRONMENT`, which you can access in your config:
 
 ```typescript
 configure({
-  baseUrl: process.env.TEST_ENV === 'production'
+  baseUrl: process.env.ENVIRONMENT === 'production'
     ? 'https://example.com'
     : 'https://staging.example.com'
 });
@@ -80,21 +55,17 @@ configure({
 
 ## Execution Modes
 
+Configure execution modes in your configuration file:
+
 ### Headless Mode
 
-Run browsers without UI (faster, for CI/CD):
-
-```bash
-copilot-test run --headless
-```
-
-In configuration:
+Set in configuration:
 
 ```typescript
 configure({
   platforms: {
     web: webPlatform({
-      headless: true
+      headless: process.env.CI === 'true' // Headless in CI, headed locally
     })
   }
 });
@@ -102,19 +73,7 @@ configure({
 
 ### Parallel Execution
 
-Run scenarios in parallel for faster execution:
-
-```bash
-copilot-test run --parallel
-```
-
-With custom worker count:
-
-```bash
-copilot-test run --parallel --max-workers=6
-```
-
-In configuration:
+Set in configuration:
 
 ```typescript
 configure({
@@ -126,13 +85,7 @@ configure({
 
 ### Debug Mode
 
-Run tests with debugging enabled:
-
-```bash
-copilot-test run --debug
-```
-
-In configuration:
+Set in configuration:
 
 ```typescript
 configure({
@@ -254,28 +207,11 @@ configure({
 });
 ```
 
-Run only failed tests from the last run:
-
-```bash
-copilot-test run --failed
-```
-
 ## Output and Reporting
 
 ### Console Output
 
-Control console verbosity:
-
-```bash
-# Standard output
-copilot-test run
-
-# Verbose output
-copilot-test run --verbose
-
-# Quiet output (errors only)
-copilot-test run --quiet
-```
+Console output is generated automatically during test execution.
 
 ### Report Generation
 
@@ -298,13 +234,7 @@ copilot-test report
 
 ### Custom Output Directory
 
-Specify a custom output directory:
-
-```bash
-copilot-test run --output-dir=custom-results
-```
-
-In configuration:
+Set in configuration:
 
 ```typescript
 configure({
@@ -316,11 +246,7 @@ configure({
 
 ### Fail Fast
 
-Stop execution on first failure:
-
-```bash
-copilot-test run --fail-fast
-```
+Set in configuration:
 
 ```typescript
 configure({
@@ -330,32 +256,17 @@ configure({
 
 ### Step Timeout
 
-Set custom timeout per step:
-
-```bash
-copilot-test run --step-timeout=60000  # 60 seconds
-```
+Set in configuration:
 
 ```typescript
 configure({
-  stepTimeout: 60000
+  stepTimeout: 60000  // 60 seconds
 });
 ```
 
 ### Screenshot Control
 
-Control screenshot capture:
-
-```bash
-# Always capture screenshots
-copilot-test run --screenshot=always
-
-# Only on failure (default)
-copilot-test run --screenshot=failure
-
-# Never capture
-copilot-test run --screenshot=never
-```
+Set in configuration:
 
 ```typescript
 configure({
@@ -383,7 +294,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx copilot-test run --headless --parallel
+      - run: npx copilot-test run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -394,6 +305,8 @@ jobs:
           path: copilot-test-results/
 ```
 
+**Note:** Configure headless mode and parallel execution in your `copilot-test.config.ts` file, not via CLI flags.
+
 ### GitLab CI
 
 ```yaml
@@ -401,7 +314,7 @@ test:
   image: node:20
   script:
     - npm ci
-    - npx copilot-test run --headless --parallel
+    - npx copilot-test run
   artifacts:
     when: always
     paths:
@@ -420,7 +333,7 @@ pipeline {
     stage('Test') {
       steps {
         sh 'npm ci'
-        sh 'npx copilot-test run --headless --parallel'
+        sh 'npx copilot-test run'
       }
     }
   }
@@ -489,14 +402,11 @@ configure({
 
 ### Selective Test Execution
 
-Run only what changed:
+Run specific test files:
 
 ```bash
-# Run tests affected by recent changes
-copilot-test run --changed
-
 # Run specific features
-copilot-test run --tag=@smoke --tag=@critical
+copilot-test run tests/login.spec.ts tests/checkout.spec.ts
 ```
 
 ### Resource Management

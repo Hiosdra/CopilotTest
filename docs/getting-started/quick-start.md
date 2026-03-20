@@ -24,7 +24,7 @@ export GITHUB_TOKEN=your_github_token_here
 The `init` command creates an example test. Run it:
 
 ```bash
-npx copilot-test run tests/example-web.spec.ts
+npx copilot-test run tests/login.spec.ts
 ```
 
 You should see output like:

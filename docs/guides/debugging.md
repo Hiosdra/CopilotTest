@@ -65,12 +65,6 @@ configure({
 });
 ```
 
-Or via CLI:
-
-```bash
-copilot-test run --headless=false
-```
-
 Watch the test execute in real-time to spot issues.
 
 ## Debug Mode

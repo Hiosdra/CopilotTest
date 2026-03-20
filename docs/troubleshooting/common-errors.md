@@ -267,12 +267,12 @@ Error: Failed to connect to MCP server: playwright
 
 1. **Check MCP server installation:**
    ```bash
-   npm list @modelcontextprotocol/server-playwright
+   npm list @playwright/mcp
    ```
 
 2. **Reinstall MCP servers:**
    ```bash
-   npm install @modelcontextprotocol/server-playwright
+   npm install @playwright/mcp
    ```
 
 3. **Check MCP configuration:**
@@ -282,7 +282,7 @@ Error: Failed to connect to MCP server: playwright
        playwright: {
          type: 'stdio',
          command: 'npx',
-         args: ['@modelcontextprotocol/server-playwright']
+         args: ['@playwright/mcp', '--browser', 'chromium']
        }
      }
    });
@@ -545,27 +545,37 @@ test(myFeature, 'web');
 await run();
 ```
 
-### 3. Not Building Feature
+### 3. Passing Wrong Type to test()
 
 ❌ **Wrong:**
 ```typescript
-const myFeature = feature('Test')
+const myScenario = feature('Test')
   .scenario('Test scenario')
     .given('step')
-    .done();  // Missing ._build()
+    .done();  // Returns ScenarioBuilder, not FeatureBuilder
 
-test(myFeature, 'web');
+test(myScenario, 'web');  // Error: expected Feature or FeatureBuilder
 ```
 
 ✅ **Right:**
 ```typescript
+// Option 1: Call ._build() to get Feature object
 const myFeature = feature('Test')
   .scenario('Test scenario')
     .given('step')
     .done()
-  ._build();  // Build the feature
+  ._build();
 
 test(myFeature, 'web');
+
+// Option 2: Pass FeatureBuilder directly (._build() called automatically)
+test(
+  feature('Test')
+    .scenario('Test scenario')
+      .given('step')
+      .done(),
+  'web'
+);
 ```
 
 ### 4. Platform Mismatch

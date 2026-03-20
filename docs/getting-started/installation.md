@@ -99,7 +99,7 @@ No additional setup required. Playwright MCP server is included.
 
 #### API Testing
 
-No additional setup required. curl MCP server is included.
+No additional setup required in connected environments. The API platform runs the curl MCP server via `npx @copilot-test/curl-mcp`, which is downloaded on demand. For offline or air-gapped environments, you may need to provision it separately.
 
 #### Mobile Testing
 

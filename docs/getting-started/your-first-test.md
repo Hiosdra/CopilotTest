@@ -107,22 +107,22 @@ const loginFeature = feature('User Authentication')
 - `.done()`: Complete the scenario
 - `._build()`: Build the complete feature
 
-## Step 6: Register and Run the Test
+## Step 6: Register the Test
 
-Tell CopilotTest to run this feature:
+Tell CopilotTest about this feature:
 
 ```typescript
 test(loginFeature, 'web');
-
-await run();
 ```
+
+**Note:** When using the CLI (`copilot-test run`), you don't need to call `await run()` in your test file—the CLI handles execution. If you want to run the test file directly with Node.js/tsx, you would add `await run()` at the end.
 
 ## Complete Test File
 
 Here's the complete `tests/login.spec.ts`:
 
 ```typescript
-import { configure, feature, test, run } from 'copilot-test';
+import { configure, feature, test } from 'copilot-test';
 import { webPlatform } from 'copilot-test';
 
 configure({
@@ -156,9 +156,9 @@ const loginFeature = feature('User Authentication')
   ._build();
 
 test(loginFeature, 'web');
-
-await run();
 ```
+
+**Note:** This file doesn't include `await run()` because it's designed to be executed via the CLI. The CLI imports the file and calls `run()` itself.
 
 ## Step 7: Run Your Test
 
