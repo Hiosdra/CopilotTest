@@ -31,6 +31,25 @@ Write test scenarios in **Given/When/Then** style — no step implementations re
   (Web browsers)
 ```
 
+## 📚 Documentation
+
+**New to CopilotTest?** Start with our comprehensive documentation:
+
+- 📖 **[Complete Documentation](./docs/README.md)** - Full documentation index
+- 🚀 **[Getting Started](./docs/getting-started/installation.md)** - Installation and setup
+- ⚡ **[Quick Start Guide](./docs/getting-started/quick-start.md)** - Get running in 5 minutes
+- 📝 **[Your First Test](./docs/getting-started/your-first-test.md)** - Step-by-step tutorial
+- 🌐 **[Web Testing](./docs/guides/web-testing.md)** - Test web applications
+- 🔌 **[API Testing](./docs/guides/api-testing.md)** - Test REST APIs
+- 📱 **[Mobile Testing](./docs/guides/mobile-testing.md)** - Test mobile apps
+- ⭐ **[Best Practices](./docs/guides/best-practices.md)** - Write effective tests
+- ⚙️ **[Configuration](./docs/guides/configuration.md)** - Complete config reference
+- 🐛 **[Debugging](./docs/guides/debugging.md)** - Debug failing tests
+- 🔧 **[Troubleshooting](./docs/troubleshooting/common-errors.md)** - Common issues & solutions
+
+**Advanced Features:**
+- [Custom Steps](./docs/CUSTOM_STEPS.md) | [Plugins](./docs/PLUGINS.md) | [Debug Mode](./docs/DEBUG_MODE.md) | [Watch Mode](./docs/watch-mode.md) | [Performance](./docs/performance-monitoring.md)
+
 ## Quick Start
 
 ### Using the CLI (Recommended)
