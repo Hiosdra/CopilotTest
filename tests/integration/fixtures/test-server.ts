@@ -27,7 +27,16 @@ export interface TestApiResponse {
 
 export function createTestServer(): TestServer {
   let server: ReturnType<typeof createServer> | null = null;
-  const port = 8765; // Fixed port for testing
+  let isListening = false;
+
+  // Allow port override via environment variable for parallel testing
+  const defaultPort = 8765;
+  const envPort = process.env.TEST_SERVER_PORT;
+  const parsedPort = envPort ? parseInt(envPort, 10) : NaN;
+  const port =
+    Number.isFinite(parsedPort) && parsedPort > 0 && parsedPort < 65536
+      ? parsedPort
+      : defaultPort;
 
   // In-memory data store for API testing
   let users = [
@@ -154,6 +163,7 @@ export function createTestServer(): TestServer {
 
       server.listen(port, () => {
         console.log(`Test server started on http://localhost:${port}`);
+        isListening = true;
         resolve();
       });
 
@@ -163,9 +173,15 @@ export function createTestServer(): TestServer {
 
   const stop = async (): Promise<void> => {
     return new Promise((resolve) => {
-      if (server) {
-        server.close(() => {
+      if (server && isListening) {
+        server.close((err) => {
+          // Ignore errors from server already closed
+          if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
+            console.error("Error stopping server:", err);
+          }
           console.log("Test server stopped");
+          isListening = false;
+          server = null;
           resolve();
         });
       } else {

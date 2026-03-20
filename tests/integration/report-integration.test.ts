@@ -71,13 +71,19 @@ try {
 
   section("Report Integration — Test Execution");
 
-  // Create a mixed feature set for comprehensive reporting
-  const mixedFeature = feature("Mixed Platform Tests")
-    .description("Tests using both web and API platforms for report generation")
-    .tag("@integration", "@report")
+  // Create separate features for each platform to ensure correct execution
+  const webFeature = feature("Web Platform Tests")
+    .description("Web tests for report generation")
+    .tag("@integration", "@web", "@report")
     .scenario("Web test scenario")
     .given(`I navigate to ${testServer.url}/`)
     .then("I should see the welcome message")
+    .done()
+    ._build();
+
+  const apiFeature = feature("API Platform Tests")
+    .description("API tests for report generation")
+    .tag("@integration", "@api", "@report")
     .scenario("API test scenario")
     .given("the API is available")
     .when("I send a GET request to /api/users")
@@ -85,10 +91,11 @@ try {
     .done()
     ._build();
 
-  // Test web platform
-  test(mixedFeature, "web");
+  // Test on appropriate platforms
+  test(webFeature, "web");
+  test(apiFeature, "api");
 
-  const apiFeature = feature("API Report Test")
+  const apiFeature2 = feature("API Report Test")
     .description("API tests for report generation")
     .tag("@integration", "@api", "@report")
     .scenario("List users via API")
@@ -98,8 +105,8 @@ try {
     .done()
     ._build();
 
-  // Test API platform
-  test(apiFeature, "api");
+  // Test second API feature
+  test(apiFeature2, "api");
 
   // Run tests and generate reports
   const results = await run();
@@ -207,7 +214,7 @@ try {
   console.log(`❌ Failed: ${failures}`);
 
   if (failures > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 } finally {
   // Always stop the test server

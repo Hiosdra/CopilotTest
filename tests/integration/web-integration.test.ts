@@ -155,7 +155,7 @@ try {
   console.log(`❌ Failed: ${failures}`);
 
   if (failures > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 } finally {
   // Always stop the test server
