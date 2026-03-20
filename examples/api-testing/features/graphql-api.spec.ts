@@ -6,6 +6,13 @@
 import { configure, feature, test } from '../../../src/index.js';
 import { apiPlatform } from '../../../src/platforms/api.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: { api: apiPlatform({ baseUrl: 'https://api.example.com/graphql' }) },
+  stepTimeout: 15000,
+  outputDir: 'copilot-test-results/api-testing',
+});
+
 const graphqlFeature = feature('GraphQL API')
   .description('GraphQL queries, mutations, and subscriptions')
   .tag('@api', '@graphql')

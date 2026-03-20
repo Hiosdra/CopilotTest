@@ -29,14 +29,17 @@ saas-app/
 ## Running Tests
 
 ```bash
-# Run all SaaS tests
-npx tsx examples/saas-app/features/*.spec.ts
+# Run all SaaS tests (explicit file list)
+copilot-test run \
+  examples/saas-app/features/user-registration.spec.ts \
+  examples/saas-app/features/subscription-management.spec.ts \
+  examples/saas-app/features/dashboard.spec.ts \
+  examples/saas-app/features/settings.spec.ts
 
 # Run specific feature
-npx tsx examples/saas-app/features/subscription-management.spec.ts
+copilot-test run examples/saas-app/features/subscription-management.spec.ts
 
-# Run with tags
-copilot-test run examples/saas-app --tag=@smoke
+# Note: Each spec file includes configure() and can be run standalone
 ```
 
 ## Test Features
@@ -276,7 +279,9 @@ const testCompany = `TestCorp_${Date.now()}`;
 // fixtures/plans.ts
 export const customPlan: SubscriptionPlan = {
   name: 'Custom Enterprise',
-  tier: 'custom',
+  tier: 'enterprise', // Use existing tier value
+  monthlyPrice: 299,
+  yearlyPrice: 2990,
   // ... your plan details
 };
 ```

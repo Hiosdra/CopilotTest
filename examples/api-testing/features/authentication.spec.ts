@@ -7,6 +7,13 @@ import { configure, feature, test } from '../../../src/index.js';
 import { apiPlatform } from '../../../src/platforms/api.js';
 import { testUser } from '../fixtures/api-data.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: { api: apiPlatform({ baseUrl: 'https://jsonplaceholder.typicode.com' }) },
+  stepTimeout: 15000,
+  outputDir: 'copilot-test-results/api-testing',
+});
+
 const authFeature = feature('API Authentication')
   .description('JWT, OAuth, API keys, and authentication flows')
   .tag('@api', '@auth', '@security')

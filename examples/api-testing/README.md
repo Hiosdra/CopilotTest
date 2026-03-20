@@ -28,14 +28,17 @@ api-testing/
 ## Running Tests
 
 ```bash
-# Run all API tests
-npx tsx examples/api-testing/features/*.spec.ts
+# Run all API tests (explicit file list)
+copilot-test run \
+  examples/api-testing/features/rest-api.spec.ts \
+  examples/api-testing/features/authentication.spec.ts \
+  examples/api-testing/features/graphql-api.spec.ts \
+  examples/api-testing/features/webhooks.spec.ts
 
 # Run specific feature
-npx tsx examples/api-testing/features/rest-api.spec.ts
+copilot-test run examples/api-testing/features/rest-api.spec.ts
 
-# With tags
-copilot-test run examples/api-testing --tag=@smoke
+# Note: Each spec file includes configure() and can be run standalone
 ```
 
 ## Test Features

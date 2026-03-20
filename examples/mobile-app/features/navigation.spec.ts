@@ -6,6 +6,18 @@
 import { configure, feature, test } from '../../../src/index.js';
 import { mobilePlatform } from '../../../src/platforms/mobile.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: {
+    mobile: mobilePlatform({
+      device: 'emulator-5554',
+      appPackage: 'com.example.testapp',
+    }),
+  },
+  stepTimeout: 30000,
+  outputDir: 'copilot-test-results/mobile-app',
+});
+
 const navigationFeature = feature('Mobile App Navigation')
   .description('Navigation patterns, menus, and screen flows')
   .tag('@mobile', '@navigation')

@@ -3,10 +3,10 @@
  */
 
 export const apiEndpoints = {
-  users: '/api/v1/users',
-  posts: '/api/v1/posts',
-  comments: '/api/v1/comments',
-  auth: '/api/v1/auth',
+  users: '/users',
+  posts: '/posts',
+  comments: '/comments',
+  auth: '/auth',
 };
 
 export const testUser = {

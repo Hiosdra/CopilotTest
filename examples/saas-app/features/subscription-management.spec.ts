@@ -8,6 +8,14 @@ import { webPlatform } from '../../../src/platforms/web.js';
 import { freeUser, professionalUser } from '../fixtures/users.js';
 import { professionalPlan, enterprisePlan } from '../fixtures/plans.js';
 
+configure({
+  model: 'gpt-4o',
+  platforms: { web: webPlatform({ browser: 'chromium', headless: true }) },
+  baseUrl: 'https://app.example-saas.com',
+  stepTimeout: 30000,
+  outputDir: 'copilot-test-results/saas-app',
+});
+
 const subscriptionFeature = feature('SaaS Subscription Management')
   .description('Subscription plans, upgrades, billing, and cancellations')
   .tag('@saas', '@subscription', '@billing')

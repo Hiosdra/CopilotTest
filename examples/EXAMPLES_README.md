@@ -64,17 +64,16 @@ Mobile app testing patterns for Android/iOS.
 ### Running Examples
 
 ```bash
-# Run all examples
-npx tsx examples/**/*.spec.ts
-
-# Run specific suite
-npx tsx examples/e-commerce/features/*.spec.ts
-
-# Run single feature
-npx tsx examples/e-commerce/features/authentication.spec.ts
-
-# Run with CLI
+# Run all examples (requires config file)
 copilot-test run examples/e-commerce/features/authentication.spec.ts
+
+# Run specific suite with explicit files
+copilot-test run \
+  examples/e-commerce/features/authentication.spec.ts \
+  examples/e-commerce/features/product-catalog.spec.ts
+
+# Note: Each spec file is self-contained with configure() call
+# They can be run individually without a separate config file
 ```
 
 ### Using as Templates
@@ -341,8 +340,8 @@ configure({
 
 ### Documentation
 - [Main README](../README.md) - Framework overview
-- [API Documentation](../docs/) - Detailed API reference
-- [Best Practices Guide](../docs/best-practices.md) - Testing best practices
+- [Custom Steps Guide](../docs/CUSTOM_STEPS.md) - Creating reusable step definitions
+- [Plugins Guide](../docs/PLUGINS.md) - Extending with plugins
 
 ### External Resources
 - [GitHub Copilot SDK](https://github.com/github/copilot-sdk)

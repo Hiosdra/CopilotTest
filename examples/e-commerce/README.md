@@ -40,14 +40,21 @@ e-commerce/
 ### Running the Tests
 
 ```bash
-# Run all e-commerce tests
-npx tsx examples/e-commerce/features/*.spec.ts
+# Run all e-commerce tests (explicit file list)
+copilot-test run \
+  examples/e-commerce/features/authentication.spec.ts \
+  examples/e-commerce/features/product-catalog.spec.ts \
+  examples/e-commerce/features/shopping-cart.spec.ts \
+  examples/e-commerce/features/checkout.spec.ts \
+  examples/e-commerce/features/order-history.spec.ts
 
-# Run specific feature
-npx tsx examples/e-commerce/features/authentication.spec.ts
+# Run a specific feature
+copilot-test run examples/e-commerce/features/authentication.spec.ts
 
-# Run with specific configuration
-copilot-test run examples/e-commerce/features/authentication.spec.ts --env=staging
+# Run with a specific environment
+copilot-test run --env=staging examples/e-commerce/features/authentication.spec.ts
+
+# Note: Each spec file includes configure() and can be run standalone
 ```
 
 ### Configuration

@@ -31,11 +31,17 @@ mobile-app/
 # Ensure Android emulator is running
 emulator -avd Pixel_5_API_33
 
-# Run all mobile tests
-npx tsx examples/mobile-app/features/*.spec.ts
+# Run all mobile tests (explicit file list)
+copilot-test run \
+  examples/mobile-app/features/onboarding.spec.ts \
+  examples/mobile-app/features/navigation.spec.ts \
+  examples/mobile-app/features/permissions.spec.ts \
+  examples/mobile-app/features/offline-mode.spec.ts
 
 # Run specific feature
-npx tsx examples/mobile-app/features/onboarding.spec.ts
+copilot-test run examples/mobile-app/features/onboarding.spec.ts
+
+# Note: Each spec file includes configure() and can be run standalone
 ```
 
 ## Test Features
