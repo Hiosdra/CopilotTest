@@ -14,7 +14,6 @@ import {
   test,
   run,
   webPlatform,
-  createVisualRegression,
 } from "../src/index.js";
 
 // Only run if explicitly enabled

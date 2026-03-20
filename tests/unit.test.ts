@@ -1185,6 +1185,64 @@ configure({
 
 assert(true, "visual regression config integrates with CopilotTestConfig");
 
+section("Visual Regression — Not Implemented Behavior");
+
+// Test that comparison methods fail fast with clear errors
+const visualForTest = createVisualRegression({
+  enabled: true,
+  threshold: 0.1,
+  baselineDir: "tests/visual-baselines",
+  diffDir: "copilot-test-results/visual-diffs",
+});
+
+let compareScreenshotError: Error | null = null;
+try {
+  await visualForTest.compareScreenshot({}, "test-screenshot");
+} catch (e) {
+  compareScreenshotError = e as Error;
+}
+assert(compareScreenshotError !== null, "compareScreenshot throws error");
+assert(
+  compareScreenshotError!.message.includes("not implemented"),
+  "compareScreenshot error message indicates not implemented"
+);
+assert(
+  compareScreenshotError!.message.includes("screenshot capture"),
+  "compareScreenshot error mentions screenshot capture"
+);
+
+let compareElementError: Error | null = null;
+try {
+  await visualForTest.compareElement({}, "test-element");
+} catch (e) {
+  compareElementError = e as Error;
+}
+assert(compareElementError !== null, "compareElement throws error");
+assert(
+  compareElementError!.message.includes("not implemented"),
+  "compareElement error message indicates not implemented"
+);
+assert(
+  compareElementError!.message.includes("element screenshot"),
+  "compareElement error mentions element screenshot"
+);
+
+let compareResponsiveError: Error | null = null;
+try {
+  await visualForTest.compareResponsive({}, "test-responsive");
+} catch (e) {
+  compareResponsiveError = e as Error;
+}
+assert(compareResponsiveError !== null, "compareResponsive throws error");
+assert(
+  compareResponsiveError!.message.includes("not implemented"),
+  "compareResponsive error message indicates not implemented"
+);
+assert(
+  compareResponsiveError!.message.includes("viewport manipulation"),
+  "compareResponsive error mentions viewport manipulation"
+);
+
 // ── Summary ──────────────────────────────────────────────────
 
 console.log("\n" + "=".repeat(50));

@@ -502,11 +502,31 @@ Use this data to:
 
 ## 🎨 Visual Regression Testing
 
-CopilotTest includes built-in support for visual regression testing to detect unintended visual changes in your application.
+> **⚠️ Current Status: API Defined, Implementation Pending**
+>
+> The visual regression API and configuration types are currently defined but **not yet implemented**.
+> Calling comparison methods (`compareScreenshot`, `compareElement`, `compareResponsive`) will throw
+> clear "not implemented" errors. This allows the API surface to be established for future implementation
+> while preventing false test coverage.
+>
+> **What works:**
+> - Configuration types and API structure
+> - Type checking and IDE autocomplete
+> - Clear error messages when methods are called
+>
+> **What's not implemented:**
+> - Actual screenshot capture
+> - Image comparison algorithms
+> - Baseline persistence
+> - Viewport manipulation for responsive testing
+>
+> To use visual regression testing, you'll need to wait for or contribute the implementation.
+
+CopilotTest includes an API for visual regression testing to detect unintended visual changes in your application.
 
 ### Overview
 
-Visual regression testing captures screenshots of your application and compares them against baseline images to detect:
+Visual regression testing is intended to capture screenshots of your application and compare them against baseline images to detect:
 - Layout shifts
 - CSS changes
 - Font rendering differences
@@ -652,7 +672,9 @@ feature('Animated Page Visual Test')
 
 ### Programmatic API
 
-You can also use the visual regression API directly:
+> **Note:** The API is defined but methods will throw "not implemented" errors when called.
+
+The visual regression API structure is available for future implementation:
 
 ```typescript
 import { createVisualRegression } from 'copilot-test';
@@ -664,72 +686,27 @@ const visual = createVisualRegression({
   diffDir: 'copilot-test-results/visual-diffs',
 });
 
-// Enable baseline update mode
-visual.enableBaselineUpdate();
-
-// Compare screenshot
-const result = await visual.compareScreenshot(page, 'homepage', {
-  fullPage: true,
-  threshold: 0.05,
-  hideElements: ['.timestamp', '.ad-banner'],
-});
-
-if (!result.passed) {
-  console.log(`Visual difference: ${result.difference}%`);
-  console.log(`Diff pixels: ${result.diffPixels}`);
-  console.log(`Diff image: ${result.diffPath}`);
-}
-
-// Compare element
-const elementResult = await visual.compareElement(
-  page.locator('.product-card'),
-  'product-card',
-  { threshold: 0.1 }
-);
-
-// Responsive comparison
-const responsiveResults = await visual.compareResponsive(
-  page,
-  'homepage',
-  { breakpoints: ['desktop', 'tablet', 'mobile'] }
-);
+// These methods will throw "not implemented" errors:
+// await visual.compareScreenshot(page, 'homepage', { ... });
+// await visual.compareElement(element, 'product-card', { ... });
+// await visual.compareResponsive(page, 'homepage', { ... });
 ```
 
 ### Managing Baselines
 
-#### Creating Initial Baselines
+> **Note:** Baseline management is not yet functional. The `--update-visual-baselines` CLI flag is not implemented,
+> and `enableBaselineUpdate()` mode does not persist baseline images.
 
-Run your tests with baseline update mode to create initial baseline images:
+#### Creating Initial Baselines (Planned)
 
-```bash
-# Set environment variable to update baselines
-npm run test:visual -- --update-visual-baselines
+When implemented, you'll be able to create baseline images programmatically:
 
-# Or programmatically
+```ts
+// Enable baseline updates before running visual comparisons
 visual.enableBaselineUpdate();
 ```
 
-Baselines are stored in your configured `baselineDir` (default: `tests/visual-baselines/`):
-
-```
-tests/visual-baselines/
-├── homepage-desktop.png
-├── homepage-tablet.png
-├── homepage-mobile.png
-└── product-card.png
-```
-
-#### Updating Baselines
-
-When you intentionally change the UI, update baselines:
-
-```bash
-# Update all baselines
-npm run test:visual -- --update-visual-baselines
-
-# Or selectively approve changes after review
-visual.enableBaselineUpdate();
-```
+Baselines would be stored in your configured `baselineDir` (default: `tests/visual-baselines/`).
 
 #### Reviewing Differences
 
@@ -798,17 +775,20 @@ jobs:
 
 ### Comparison Algorithms
 
-Choose the algorithm that best fits your needs:
+> **Note:** Algorithm selection is accepted in configuration for future compatibility but is not yet implemented.
+> All comparisons will fail with a "not implemented" error until the comparison logic is added.
 
-- **pixel**: Fast pixel-level comparison (default)
+The `algorithm` option is intended to support different comparison methods:
+
+- **pixel** (planned): Fast pixel-level comparison
   - Best for exact visual matching
   - Sensitive to anti-aliasing differences
 
-- **perceptual**: Human perception-based comparison
+- **perceptual** (planned): Human perception-based comparison
   - Better for detecting meaningful visual changes
   - More tolerant of minor rendering differences
 
-- **ssim**: Structural Similarity Index (SSIM)
+- **ssim** (planned): Structural Similarity Index (SSIM)
   - Compares image structure and patterns
   - Good for detecting layout changes
 

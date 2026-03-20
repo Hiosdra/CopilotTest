@@ -3,9 +3,8 @@
  * Provides screenshot comparison capabilities for detecting visual changes.
  */
 
-import { writeFile, readFile, mkdir, access } from "fs/promises";
-import { dirname, join } from "path";
-import { existsSync } from "fs";
+import { mkdir, access } from "fs/promises";
+import { join } from "path";
 
 /**
  * Configuration options for visual regression testing.
@@ -123,79 +122,17 @@ export class VisualRegression {
       throw new Error("Visual regression testing is not enabled in config");
     }
 
-    // Ensure directories exist
-    await this.ensureDirectories();
-
-    const baselinePath = join(this.config.baselineDir, `${name}.png`);
-    const currentPath = join(this.config.diffDir, `${name}-current.png`);
-    const diffPath = join(this.config.diffDir, `${name}-diff.png`);
-
-    try {
-      // This would be called by the AI agent through Playwright MCP
-      // The actual implementation relies on the AI understanding to use
-      // browser_take_screenshot tool from Playwright MCP
-
-      // For now, we provide a structured interface that the AI can understand
-      const screenshotInstruction = {
-        action: "take_screenshot",
-        fullPage: options.fullPage ?? false,
-        path: this.updateBaselines ? baselinePath : currentPath,
-        hideElements: options.hideElements,
-        waitForAnimations: options.waitForAnimations,
-        waitForFonts: options.waitForFonts,
-        stabilityTimeout: options.stabilityTimeout,
-      };
-
-      // If updating baselines, we just save and return success
-      if (this.updateBaselines) {
-        return {
-          passed: true,
-          difference: 0,
-          diffPixels: 0,
-          baselinePath,
-          currentPath: baselinePath,
-        };
-      }
-
-      // Check if baseline exists
-      const baselineExists = await this.fileExists(baselinePath);
-      if (!baselineExists) {
-        return {
-          passed: false,
-          difference: 100,
-          diffPixels: 0,
-          baselinePath,
-          currentPath,
-          error: `Baseline not found: ${baselinePath}. Run with --update-visual-baselines to create it.`,
-        };
-      }
-
-      // Perform pixel-level comparison
-      // In a real implementation, this would use image comparison libraries
-      // For now, we provide the structure for the AI to understand
-      const threshold = options.threshold ?? this.config.threshold;
-
-      // This is a placeholder - actual comparison would be done by specialized tools
-      // or through Playwright's built-in visual comparison
-      const comparisonResult = await this.performComparison(
-        baselinePath,
-        currentPath,
-        diffPath,
-        threshold,
-        options.ignoreRegions
-      );
-
-      return comparisonResult;
-    } catch (error) {
-      return {
-        passed: false,
-        difference: 100,
-        diffPixels: 0,
-        baselinePath,
-        currentPath,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+    // At this time, compareScreenshot is not wired up to any actual
+    // screenshot capture implementation. Invoking it without such an
+    // implementation would give a false sense of visual test coverage,
+    // because no screenshots would be written to baselinePath/currentPath.
+    //
+    // To avoid this, we fail fast and surface a clear error instead of
+    // silently pretending that a comparison has occurred.
+    throw new Error(
+      "compareScreenshot is not implemented: no screenshot capture is configured. " +
+        "Wire this method to a real screenshot capture mechanism before using it."
+    );
   }
 
   /**
@@ -211,9 +148,12 @@ export class VisualRegression {
     name: string,
     options: CompareScreenshotOptions = {}
   ): Promise<VisualComparisonResult> {
-    // Similar to compareScreenshot but for a specific element
-    // The AI would use element screenshot capabilities from Playwright MCP
-    return this.compareScreenshot(element, `element-${name}`, options);
+    // Element-only capture requires different handling than page screenshots.
+    // This will need explicit element screenshot support once implemented.
+    throw new Error(
+      "compareElement is not implemented: element screenshot capture is not configured. " +
+        "This requires different handling than page screenshots."
+    );
   }
 
   /**
@@ -229,77 +169,21 @@ export class VisualRegression {
     name: string,
     options: CompareScreenshotOptions & { breakpoints?: string[] } = {}
   ): Promise<VisualComparisonResult[]> {
-    const breakpoints = options.breakpoints ?? ["desktop", "tablet", "mobile"];
-    const viewportSizes: Record<string, ViewportSize> = {
-      desktop: { width: 1920, height: 1080, name: "desktop" },
-      tablet: { width: 768, height: 1024, name: "tablet" },
-      mobile: { width: 375, height: 667, name: "mobile" },
-    };
-
-    const results: VisualComparisonResult[] = [];
-
-    for (const breakpoint of breakpoints) {
-      const viewport = viewportSizes[breakpoint];
-      if (!viewport) continue;
-
-      // The AI would use Playwright MCP to set viewport size
-      // Then take screenshot at that viewport
-      const result = await this.compareScreenshot(
-        page,
-        `${name}-${viewport.name}`,
-        options
-      );
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  /**
-   * Perform the actual image comparison.
-   * This is a placeholder for the actual comparison logic.
-   */
-  private async performComparison(
-    baselinePath: string,
-    currentPath: string,
-    diffPath: string,
-    threshold: number,
-    ignoreRegions?: Array<{ x: number; y: number; width: number; height: number }>
-  ): Promise<VisualComparisonResult> {
-    // In a real implementation, this would:
-    // 1. Load both images
-    // 2. Compare them pixel by pixel (or use perceptual diff)
-    // 3. Generate a diff image highlighting differences
-    // 4. Calculate percentage difference
-    // 5. Return result based on threshold
-
-    // For now, we simulate a successful comparison
-    // The actual implementation would use libraries like pixelmatch or looksSame
-
-    const difference = 0; // Placeholder
-    const diffPixels = 0; // Placeholder
-    const passed = difference <= threshold;
-
-    return {
-      passed,
-      difference,
-      diffPixels,
-      baselinePath,
-      currentPath,
-      diffPath: passed ? undefined : diffPath,
-    };
+    // Responsive comparison requires viewport manipulation (setViewportSize)
+    // which is not currently implemented. This method would take screenshots
+    // at different names but not actually change viewport sizes.
+    throw new Error(
+      "compareResponsive is not implemented: viewport manipulation is not configured. " +
+        "This requires setting viewport sizes before taking screenshots."
+    );
   }
 
   /**
    * Ensure required directories exist.
    */
   private async ensureDirectories(): Promise<void> {
-    try {
-      await mkdir(this.config.baselineDir, { recursive: true });
-      await mkdir(this.config.diffDir, { recursive: true });
-    } catch (error) {
-      // Ignore if directories already exist
-    }
+    await mkdir(this.config.baselineDir, { recursive: true });
+    await mkdir(this.config.diffDir, { recursive: true });
   }
 
   /**
