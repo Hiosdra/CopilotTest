@@ -3,7 +3,7 @@
  * Provides consistent error handling and result creation across the codebase
  */
 
-import type { Step, StepResult } from "../types.js";
+import type { Step, StepResult, StepMetrics } from "../types.js";
 
 /**
  * Creates a failed step result with consistent error handling
@@ -17,11 +17,7 @@ export function createFailedStepResult(
   step: Step,
   error: unknown,
   duration: number,
-  metrics?: {
-    duration: number;
-    executionTime: number;
-    aiThinkTime: number;
-  }
+  metrics?: Partial<StepMetrics>
 ): StepResult {
   const result: StepResult = {
     step,
@@ -31,7 +27,7 @@ export function createFailedStepResult(
   };
 
   if (metrics) {
-    result.metrics = metrics;
+    result.metrics = metrics as StepMetrics;
   }
 
   return result;
@@ -49,11 +45,7 @@ export function createPassedStepResult(
   step: Step,
   duration: number,
   aiReasoning?: string,
-  metrics?: {
-    duration: number;
-    executionTime: number;
-    aiThinkTime: number;
-  }
+  metrics?: Partial<StepMetrics>
 ): StepResult {
   const result: StepResult = {
     step,
@@ -66,7 +58,7 @@ export function createPassedStepResult(
   }
 
   if (metrics) {
-    result.metrics = metrics;
+    result.metrics = metrics as StepMetrics;
   }
 
   return result;

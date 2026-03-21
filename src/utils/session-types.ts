@@ -39,12 +39,13 @@ export type Session = AISession | MockSession;
  * Type guard to check if a session is a mock session
  */
 export function isMockSession(session: unknown): session is MockSession {
-  return (
-    typeof session === "object" &&
-    session !== null &&
-    "_mock" in session &&
-    session._mock === true
-  );
+  if (typeof session !== "object" || session === null) {
+    return false;
+  }
+
+  const s = session as Record<string, unknown>;
+
+  return "_mock" in s && s._mock === true;
 }
 
 /**

@@ -18,8 +18,8 @@ import { SessionManager } from "./session-manager.js";
 import { SystemMessages } from "./constants.js";
 import { findStepDefinition } from "./step-registry.js";
 import { escapeRegex, isPlainObject } from "./utils.js";
-import { createFailedStepResult, createPassedStepResult, createSkippedStepResult } from "./utils/step-result-factory.js";
-import { type Session, isMockSession, isAISession, type AIResponse } from "./utils/session-types.js";
+import { createFailedStepResult, createSkippedStepResult } from "./utils/step-result-factory.js";
+import { type Session, isMockSession, isAISession } from "./utils/session-types.js";
 import {
   calculateRetryDelay,
   shouldRetryStep,

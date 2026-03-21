@@ -1,7 +1,7 @@
 import { mkdir, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import type { TestRun, FeatureResult, ScenarioResult, StepResult, TestRunMetadata } from "./types.js";
-import { escapeHtml, calculateDuration } from "./utils/html-utils.js";
+import { escapeHtml } from "./utils/html-utils.js";
 
 export async function generateReport(
   testRun: TestRun,
