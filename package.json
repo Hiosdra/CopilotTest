@@ -23,6 +23,26 @@
     "test:integration:api": "tsx tests/integration/api-integration.test.ts",
     "test:integration:report": "tsx tests/integration/report-integration.test.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hiosdra/CopilotTest.git"
+  },
+  "homepage": "https://github.com/Hiosdra/CopilotTest#readme",
+  "bugs": {
+    "url": "https://github.com/Hiosdra/CopilotTest/issues"
+  },
+  "author": "CopilotTest Contributors",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.32",
     "@playwright/mcp": "^0.0.68"
