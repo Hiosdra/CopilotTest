@@ -18,6 +18,8 @@ import { SessionManager } from "./session-manager.js";
 import { SystemMessages } from "./constants.js";
 import { findStepDefinition } from "./step-registry.js";
 import { escapeRegex, isPlainObject } from "./utils.js";
+import { createFailedStepResult, createPassedStepResult, createSkippedStepResult } from "./utils/step-result-factory.js";
+import { type Session, isMockSession, isAISession, type AIResponse } from "./utils/session-types.js";
 import {
   calculateRetryDelay,
   shouldRetryStep,
@@ -180,10 +182,12 @@ export class CopilotTestRuntime {
     // Execute onScenarioStart hooks
     await this.pluginManager.onScenarioStart(scenario);
 
-    const startTime = Date.now();
+    const scenarioStartTime = Date.now();
     const stepResults: StepResult[] = [];
-    let scenarioFailed = false;
-    let scenarioAborted = false;
+
+    // Track scenario execution status
+    type ScenarioExecutionStatus = "running" | "failed" | "aborted";
+    let executionStatus: ScenarioExecutionStatus = "running";
 
     // Track resource metrics
     const resourceMetrics: import("./types.js").ResourceMetrics = {
@@ -192,9 +196,9 @@ export class CopilotTestRuntime {
     };
 
     // Check if debug mode is enabled
-    const debugEnabled =
+    const isDebugEnabled =
       this.config.debugMode === true || scenario.debugMode === true;
-    const debugController = debugEnabled
+    const debugController = isDebugEnabled
       ? new DebugController(
           this.config.breakpoints || [],
           this.config.interactive === true
@@ -215,7 +219,7 @@ export class CopilotTestRuntime {
     // Create scenario context
     const context = new ScenarioContextClass();
 
-    let session: unknown = null;
+    let session: Session | null = null;
 
     try {
       session = await this.createSession(feature, scenario, platform);
@@ -223,12 +227,8 @@ export class CopilotTestRuntime {
       for (let i = 0; i < allSteps.length; i++) {
         const step = allSteps[i];
 
-        if (scenarioFailed) {
-          stepResults.push({
-            step,
-            status: "skipped",
-            duration: 0,
-          });
+        if (executionStatus === "failed") {
+          stepResults.push(createSkippedStepResult(step));
           continue;
         }
 
@@ -249,23 +249,15 @@ export class CopilotTestRuntime {
 
           if (action.type === "exit") {
             console.log("\n🛑 Debug mode exited by user");
-            scenarioAborted = true;
+            executionStatus = "aborted";
             // Mark remaining steps as skipped
             for (let j = i; j < allSteps.length; j++) {
-              stepResults.push({
-                step: allSteps[j],
-                status: "skipped",
-                duration: 0,
-              });
+              stepResults.push(createSkippedStepResult(allSteps[j]));
             }
             break;
           } else if (action.type === "skip") {
             console.log("\n⏭️  Skipping step");
-            stepResults.push({
-              step,
-              status: "skipped",
-              duration: 0,
-            });
+            stepResults.push(createSkippedStepResult(step));
             continue;
           } else if (action.type === "retry") {
             if (action.input) {
@@ -283,7 +275,7 @@ export class CopilotTestRuntime {
             }
 
             if (stepResult.status === "failed") {
-              scenarioFailed = true;
+              executionStatus = "failed";
             }
             continue;
           } else if (action.type === "step" || action.type === "continue") {
@@ -308,21 +300,16 @@ export class CopilotTestRuntime {
         }
 
         if (stepResult.status === "failed") {
-          scenarioFailed = true;
+          executionStatus = "failed";
         }
       }
     } catch (err) {
-      scenarioFailed = true;
+      executionStatus = "failed";
       // If session creation failed, mark all steps as failed/skipped
       if (stepResults.length === 0 && allSteps.length > 0) {
-        stepResults.push({
-          step: allSteps[0],
-          status: "failed",
-          duration: 0,
-          error: err instanceof Error ? err.message : String(err),
-        });
+        stepResults.push(createFailedStepResult(allSteps[0], err, 0));
         for (const step of allSteps.slice(1)) {
-          stepResults.push({ step, status: "skipped", duration: 0 });
+          stepResults.push(createSkippedStepResult(step));
         }
       }
     } finally {
@@ -330,19 +317,25 @@ export class CopilotTestRuntime {
         debugController.cleanup();
       }
 
-      if (
-        session &&
-        typeof (session as Record<string, unknown>).close === "function"
-      ) {
-        await (session as { close(): Promise<void> }).close();
+      // Close AI session if it's not a mock
+      if (session && isAISession(session) && session.close) {
+        await session.close();
       }
     }
 
+    // Determine final scenario status
+    const scenarioStatus =
+      executionStatus === "aborted"
+        ? "skipped"
+        : executionStatus === "failed"
+          ? "failed"
+          : "passed";
+
     const scenarioResult: ScenarioResult = {
       scenario,
-      status: scenarioAborted ? "skipped" : scenarioFailed ? "failed" : "passed",
+      status: scenarioStatus,
       steps: stepResults,
-      duration: Date.now() - startTime,
+      duration: Date.now() - scenarioStartTime,
       resources: resourceMetrics,
     };
 
@@ -356,7 +349,7 @@ export class CopilotTestRuntime {
     feature: Feature,
     scenario: Scenario,
     platform: PlatformConfig
-  ): Promise<unknown> {
+  ): Promise<Session> {
     if (
       !this.client ||
       (this.client as Record<string, unknown>)._mock === true
@@ -383,7 +376,7 @@ export class CopilotTestRuntime {
     const systemMessage = this.buildSystemPrompt(feature, scenario, platform);
 
     const clientWithSession = this.client as {
-      createSession(opts: unknown): Promise<unknown>;
+      createSession(opts: unknown): Promise<Session>;
     };
 
     return clientWithSession.createSession({
@@ -431,7 +424,7 @@ export class CopilotTestRuntime {
 
   async executeStep(
     step: Step,
-    session: unknown,
+    session: Session,
     context: ScenarioContext,
     overrideInput?: string,
     scenario?: Scenario
@@ -574,7 +567,7 @@ export class CopilotTestRuntime {
 
   private async executeStepOnce(
     step: Step,
-    session: unknown,
+    session: Session,
     context: ScenarioContext,
     overrideInput?: string
   ): Promise<StepResult> {
@@ -585,18 +578,13 @@ export class CopilotTestRuntime {
     } catch (error) {
       // If executeStepImpl throws, create a failed result
       const duration = Date.now() - startTime;
-      return {
-        step,
-        status: "failed",
-        duration,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return createFailedStepResult(step, error, duration);
     }
   }
 
   private async executeStepImpl(
     step: Step,
-    session: unknown,
+    session: Session,
     context: ScenarioContext,
     overrideInput?: string
   ): Promise<StepResult> {
@@ -638,17 +626,11 @@ export class CopilotTestRuntime {
           };
         } catch (err) {
           const duration = Date.now() - startTime;
-          return {
-            step,
-            status: "failed",
+          return createFailedStepResult(step, err, duration, {
             duration,
-            error: err instanceof Error ? err.message : String(err),
-            metrics: {
-              duration,
-              executionTime: duration,
-              aiThinkTime: 0,
-            },
-          };
+            executionTime: duration,
+            aiThinkTime: 0,
+          });
         }
       }
     }
@@ -658,7 +640,7 @@ export class CopilotTestRuntime {
     const timeout = this.config.stepTimeout ?? 30000;
 
     try {
-      if ((session as Record<string, unknown>)._mock === true) {
+      if (isMockSession(session)) {
         // Mock mode - simulate step execution
         await new Promise((resolve) => setTimeout(resolve, 50));
         const duration = Date.now() - startTime;
@@ -675,20 +657,18 @@ export class CopilotTestRuntime {
         };
       }
 
-      const sessionWithSend = session as {
-        sendAndWait(
-          opts: { prompt: string },
-          timeout?: number
-        ): Promise<{ data: { content: string } } | undefined>;
-      };
+      // AI session execution
+      if (!isAISession(session)) {
+        throw new Error("Invalid session type");
+      }
 
-      const response = await sessionWithSend.sendAndWait(
+      const response = await session.sendAndWait(
         { prompt },
         timeout
       );
       const aiEndTime = Date.now();
 
-      if (!response) {
+      if (!response || !response.text) {
         const duration = Date.now() - startTime;
         return {
           step,

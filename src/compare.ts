@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "fs/promises";
 import type { TestRun, ScenarioResult } from "./types.js";
+import { escapeHtml } from "./utils/html-utils.js";
 
 export interface ComparisonResult {
   baseline: TestRun;
@@ -302,13 +303,4 @@ function buildComparisonHtml(comparison: ComparisonResult): string {
   </div>
 </body>
 </html>`;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
