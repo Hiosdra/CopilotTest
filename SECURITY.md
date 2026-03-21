@@ -18,10 +18,9 @@ Please do **not** create a public GitHub issue for security vulnerabilities. Pub
 
 ### 2. Report Privately
 
-Send a detailed report to the project maintainers via one of these methods:
+Send a detailed report to the project maintainers via:
 
 - **GitHub Security Advisories**: [Report a vulnerability](https://github.com/Hiosdra/CopilotTest/security/advisories/new) (recommended)
-- **Email**: Create an issue with the tag `security` and request private communication
 
 ### 3. Include Relevant Information
 
@@ -75,18 +74,21 @@ When using CopilotTest, follow these security best practices:
 
 ### Configuration Security
 
+CopilotTest uses the GitHub Copilot SDK for AI-powered test execution. The SDK handles authentication automatically through your GitHub credentials - no API keys are required in your test configuration.
+
 ```typescript
-// ✅ Good: Use environment variables
+// ✅ Good: CopilotTest configuration (no API keys needed)
 configure({
-  apiKey: process.env.API_KEY,
-  apiUrl: process.env.API_URL
+  platform: "web",
+  baseUrl: "https://example.com",
+  stepTimeout: 30000
 });
 
-// ❌ Bad: Hardcoded credentials
-configure({
-  apiKey: 'sk-1234567890abcdef',
-  apiUrl: 'https://api.example.com'
-});
+// The GitHub Copilot SDK handles authentication automatically
+// through your GitHub credentials and VS Code/CLI session
+
+// ❌ Bad: Don't add API keys to configuration
+// CopilotTest doesn't use or require API keys
 ```
 
 ### Test Data
@@ -149,7 +151,7 @@ MCP servers execute with system access:
 We'll announce security updates through:
 
 1. **GitHub Security Advisories**: Official advisories on GitHub
-2. **Release Notes**: Mentioned in CHANGELOG.md
+2. **GitHub Releases**: Release notes on the [Releases](https://github.com/Hiosdra/CopilotTest/releases) page
 3. **npm**: Security metadata in package registry
 
 ## Security-Related Configuration
@@ -160,8 +162,8 @@ Configure appropriate timeouts to prevent resource exhaustion:
 
 ```typescript
 configure({
-  defaultTimeout: 30000, // 30 seconds
-  stepTimeout: 60000     // 1 minute
+  stepTimeout: 30000,     // 30 seconds per step
+  workerTimeout: 60000    // 1 minute per worker
 });
 ```
 
@@ -173,8 +175,10 @@ Limit retry attempts to prevent infinite loops:
 configure({
   retry: {
     enabled: true,
-    maxAttempts: 3,
-    backoff: 'exponential'
+    stepRetries: 3,
+    strategy: "exponential",
+    initialDelay: 1000,
+    backoffFactor: 2
   }
 });
 ```
@@ -186,7 +190,7 @@ Be cautious with debug mode in production:
 ```typescript
 // Only enable in development
 configure({
-  debug: process.env.NODE_ENV === 'development'
+  debugMode: process.env.NODE_ENV === "development"
 });
 ```
 

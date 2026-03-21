@@ -103,7 +103,7 @@ CopilotTest/
 ### Code Style
 
 - Use 2 spaces for indentation
-- Use single quotes for strings
+- Use double quotes for strings
 - Add semicolons at the end of statements
 - Keep lines under 120 characters when possible
 - Use descriptive variable and function names
