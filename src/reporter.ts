@@ -1,6 +1,7 @@
 import { mkdir, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import type { TestRun, FeatureResult, ScenarioResult, StepResult, TestRunMetadata } from "./types.js";
+import { escapeHtml } from "./utils/html-utils.js";
 
 export async function generateReport(
   testRun: TestRun,
@@ -411,15 +412,6 @@ function renderStep(stepResult: StepResult): string {
     }
   </div>
 </div>`;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function renderMetadata(metadata: TestRunMetadata): string {
