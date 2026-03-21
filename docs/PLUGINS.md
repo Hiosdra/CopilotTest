@@ -242,16 +242,34 @@ Called once when the test run completes.
 - Upload results to external systems
 - Clean up resources
 
-## Built-in Plugin Examples
+## Plugin Examples
 
-The framework includes several example plugins in the `examples/plugins.ts` file:
+Below are example plugin implementations. You can adapt these patterns to create your own custom plugins:
 
 ### 1. Slack Notifier
 
 Sends notifications to Slack on test failures:
 
 ```typescript
-import { slackPlugin } from './examples/plugins';
+// Example plugin implementation
+const slackPlugin = (options: {
+  webhook: string;
+  onlyFailures?: boolean;
+  channel?: string;
+}) => ({
+  name: 'slack-notifier',
+  onTestComplete: async (result) => {
+    if (options.onlyFailures && result.status === 'passed') return;
+
+    await fetch(options.webhook, {
+      method: 'POST',
+      body: JSON.stringify({
+        channel: options.channel,
+        text: `Test ${result.status}: ${result.feature.title}`
+      })
+    });
+  }
+});
 
 configure({
   plugins: [
@@ -269,7 +287,15 @@ configure({
 Generates JUnit-compatible XML reports:
 
 ```typescript
-import { junitPlugin } from './examples/plugins';
+// Example plugin implementation
+const junitPlugin = (options: { outputFile: string }) => ({
+  name: 'junit-reporter',
+  onRunComplete: async (results) => {
+    // Generate JUnit XML from results
+    const xml = generateJUnitXML(results);
+    await fs.writeFile(options.outputFile, xml);
+  }
+});
 
 configure({
   plugins: [
@@ -285,7 +311,15 @@ configure({
 Tracks and reports slow steps:
 
 ```typescript
-import { performancePlugin } from './examples/plugins';
+// Example plugin implementation
+const performancePlugin = (options: { threshold: number; report: string }) => ({
+  name: 'performance-monitor',
+  onStepComplete: async (step, result, duration) => {
+    if (duration > options.threshold) {
+      console.warn(`Slow step (${duration}ms): ${step.text}`);
+    }
+  }
+});
 
 configure({
   plugins: [
@@ -302,7 +336,14 @@ configure({
 Detailed console logging:
 
 ```typescript
-import { consoleLoggerPlugin } from './examples/plugins';
+// Example plugin implementation
+const consoleLoggerPlugin = {
+  name: 'console-logger',
+  onStepStart: (step) => console.log(`▶ ${step.text}`),
+  onStepComplete: (step, result) => {
+    console.log(result.status === 'passed' ? '✓' : '✗', step.text);
+  }
+};
 
 configure({
   plugins: [consoleLoggerPlugin],
@@ -314,7 +355,13 @@ configure({
 Custom JSON reports:
 
 ```typescript
-import { jsonReporterPlugin } from './examples/plugins';
+// Example plugin implementation
+const jsonReporterPlugin = (options: { outputFile: string }) => ({
+  name: 'json-reporter',
+  onRunComplete: async (results) => {
+    await fs.writeFile(options.outputFile, JSON.stringify(results, null, 2));
+  }
+});
 
 configure({
   plugins: [

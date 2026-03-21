@@ -200,4 +200,4 @@ Formats duration in milliseconds to human-readable string.
 
 ## Example
 
-See [examples/performance-monitoring.ts](../examples/performance-monitoring.ts) for a complete working example.
+Complete working examples are available in the project's test files.
