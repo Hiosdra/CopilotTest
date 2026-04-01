@@ -6,18 +6,18 @@ Write test scenarios in **Given/When/Then** style — no step implementations re
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Your Tests                    │
-│  feature("Login")                               │
-│    .scenario("Successful login")                │
-│      .given("I am on the login page")           │
-│      .when("I enter valid credentials")         │
-│      .then("I see the dashboard")               │
+│              Your .feature.md Tests             │
+│  # Feature: Login                               │
+│  ## Scenario: Successful login                  │
+│  - Given I am on the login page                 │
+│  - When I enter valid credentials               │
+│  - Then I see the dashboard                     │
 └─────────────────┬───────────────────────────────┘
-                  │ DSL (src/dsl.ts)
+                  │ Markdown Parser (src/parser.ts)
                   ▼
 ┌─────────────────────────────────────────────────┐
 │             CopilotTest Runner                  │
-│  configure() → test() → run()                   │
+│  parse → enqueue → run                           │
 └─────────────────┬───────────────────────────────┘
                   │ src/runtime.ts
                   ▼
@@ -101,15 +101,13 @@ copilot-test init
 # - Project name
 # - Platforms (web, api, mobile)
 # - AI Model
-# - TypeScript or JavaScript
 # - Install dependencies
 ```
 
 Creates:
-- `copilot-test.config.ts` - Configuration file
-- `tests/` directory with example tests
+- `copilot-test.config.yaml` - Configuration file
+- `tests/` directory with example `.feature.md` tests
 - `package.json` (if not exists)
-- `tsconfig.json` (for TypeScript projects)
 - `.gitignore`
 - `README.md`
 
@@ -122,7 +120,7 @@ Execute tests with various options.
 copilot-test run
 
 # Run specific file
-copilot-test run tests/login.spec.ts
+copilot-test run tests/login.feature.md
 
 # Run with filters
 copilot-test run --tag=@smoke
@@ -143,7 +141,7 @@ Display all features and scenarios in your test suite.
 copilot-test list
 
 # Output:
-# Feature: User Login (tests/login.spec.ts)
+# Feature: User Login (tests/login.feature.md)
 #   ✓ Scenario: Successful admin login [@smoke]
 #   ✓ Scenario: Invalid credentials [@negative]
 # Total: 2 features, 6 scenarios
@@ -203,7 +201,6 @@ copilot-test doctor
 
 # Checks:
 # ✓ Node.js version
-# ✓ TypeScript installed
 # ✓ Dependencies present
 # ✓ Config file valid
 # ✓ API keys configured
@@ -246,123 +243,106 @@ Global options available for commands:
 
 ### Web Test
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+````markdown
+---
+platform: web
+tags: [auth, smoke]
+---
 
-configure({
-  model: 'gpt-4o',
-  platforms: { web: webPlatform({ browser: 'chromium' }) },
-});
+# Feature: User Authentication
 
-test(
-  feature('User Authentication')
-    .scenario('Successful login')
-      .given("I am on https://example.com/login")
-      .when("I enter username 'admin' and password 'secret'")
-      .and("I click the Login button")
-      .then("I should see the dashboard")
-      .done()
-    ._build(),
-  'web'
-);
-
-await run();
-```
+## Scenario: Successful login
+- Given I am on https://example.com/login
+- When I enter username 'admin' and password 'secret'
+- And I click the Login button
+- Then I should see the dashboard
+````
 
 ### API Test
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { apiPlatform } from 'copilot-test';
+````markdown
+---
+platform: api
+tags: [api, crud]
+---
 
-configure({
-  model: 'gpt-4o',
-  platforms: { api: apiPlatform({ baseUrl: 'https://api.example.com' }) },
-});
+# Feature: Users API
 
-test(
-  feature('Users API')
-    .scenario('Create a user')
-      .given("the Users API is available")
-      .when("I POST to /users")
-      .withDocString('{"name": "Alice", "email": "alice@example.com"}')
-      .then("the response status is 201")
-      .and("the response contains the new user's id")
-      .done()
-    ._build(),
-  'api'
-);
-
-await run();
-```
+## Scenario: Create a user
+- Given the Users API is available
+- When I POST to /users with body:
+  ```json
+  {"name": "Alice", "email": "alice@example.com"}
+  ```
+- Then the response status is 201
+- And the response contains the new user's id
+````
 
 ### Mobile Test
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { mobilePlatform } from 'copilot-test';
+````markdown
+---
+platform: mobile
+tags: [mobile, onboarding]
+---
 
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    mobile: mobilePlatform({
-      device: 'emulator-5554',
-      appPackage: 'com.example.app',
-    }),
-  },
-});
+# Feature: App Onboarding
 
-test(
-  feature('App Onboarding')
-    .scenario('New user completes onboarding')
-      .given("the app is launched for the first time")
-      .when("I tap 'Get Started'")
-      .and("I fill in my profile details")
-      .then("I see the home screen")
-      .done()
-    ._build(),
-  'mobile'
-);
-
-await run();
-```
+## Scenario: New user completes onboarding
+- Given the app is launched for the first time
+- When I tap 'Get Started'
+- And I fill in my profile details
+- Then I see the home screen
+````
 
 ## Configuration Reference
 
-```typescript
-configure({
-  model: 'gpt-4o',                    // AI model to use
-  reasoningEffort: 'high',            // 'low' | 'medium' | 'high'
-  platforms: {
-    web: webPlatform({ ... }),
-    api: apiPlatform({ ... }),
-    mobile: mobilePlatform({ ... }),
-  },
-  baseUrl: 'https://example.com',     // Default base URL
-  stepTimeout: 30000,                 // Timeout per step (ms)
-  retries: 2,                         // Retry failed scenarios
-  screenshotOnFailure: true,          // Capture screenshots on failure
-  outputDir: 'copilot-test-results',  // Report output directory
-  mcpServers: {                       // Additional MCP servers
-    database: { type: 'stdio', command: 'npx', args: ['my-db-mcp'] },
-  },
-  // Parallel execution options (NEW)
-  parallel: true,                     // Enable parallel scenario execution
-  maxWorkers: 4,                      // Number of concurrent workers (or 'auto' for CPU-based)
-  workerTimeout: 300000,              // Max time per scenario (ms, default: 5 minutes)
-  failFast: false,                    // Stop all workers on first failure
-  // Watch mode options (NEW)
-  watch: {
-    enabled: true,                    // Enable watch mode
-    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
-    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
-    debounce: 300,                    // Delay before re-running (ms)
-    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
-    failedFirst: true,                // Run failed tests first
-    clearConsole: false,              // Clear console before each run
-  },
-});
+All configuration lives in `copilot-test.config.yaml` at the project root:
+
+```yaml
+model: gpt-4o                        # AI model to use
+reasoningEffort: high                 # low | medium | high
+stepTimeout: 30000                    # Timeout per step (ms)
+retries: 2                            # Retry failed scenarios
+screenshotOnFailure: true             # Capture screenshots on failure
+outputDir: copilot-test-results       # Report output directory
+
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+    baseUrl: "https://example.com"
+  api:
+    platform: api
+    baseUrl: "https://api.example.com"
+    defaultHeaders:
+      Content-Type: application/json
+  mobile:
+    platform: mobile
+    device: emulator-5554
+    appPackage: com.example.app
+    appActivity: .MainActivity
+
+mcpServers:                           # Additional MCP servers
+  database:
+    type: stdio
+    command: npx
+    args: [my-db-mcp]
+
+parallel: true                        # Enable parallel scenario execution
+maxWorkers: 4                         # Number of concurrent workers (or 'auto' for CPU-based)
+workerTimeout: 300000                 # Max time per scenario (ms, default: 5 minutes)
+failFast: false                       # Stop all workers on first failure
+
+watch:
+  enabled: true                       # Enable watch mode
+  include: ["tests/**/*.feature.md"]  # Files to watch
+  exclude: ["node_modules/**", "dist/**"]  # Files to exclude
+  debounce: 300                       # Delay before re-running (ms)
+  runMode: all                        # all | related | changed-files
+  failedFirst: true                   # Run failed tests first
+  clearConsole: false                 # Clear console before each run
 ```
 
 ## Watch Mode
@@ -370,10 +350,10 @@ configure({
 Run tests continuously during development with automatic re-execution on file changes:
 
 ```bash
-npm run test:watch tests/login.spec.ts
+npm run test:watch tests/login.feature.md
 ```
 
-**Note**: Watch mode CLI requires a test file path. The test file should call `configure()` and `test()` but NOT `run()` - watch mode handles test execution.
+**Note**: Watch mode CLI requires a test file path. Watch mode automatically parses `.feature.md` files and handles test execution.
 
 ### Interactive Controls
 
@@ -402,7 +382,7 @@ Interactive Commands:
 
 📝 Changed files:
   • src/login.ts
-  • tests/login.spec.ts
+  • tests/login.feature.md
 
 [Test execution output...]
 
@@ -418,20 +398,18 @@ Interactive Commands:
 
 ### Configuration
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  watch: {
-    enabled: true,                    // Enable watch mode
-    include: ['src/**/*.ts', 'tests/**/*.spec.ts'],  // Files to watch
-    exclude: ['node_modules/**', 'dist/**'],         // Files to exclude
-    debounce: 300,                    // Delay before re-running (ms)
-    runMode: 'all',                   // 'all' | 'related' | 'changed-files'
-    failedFirst: true,                // Run failed tests first
-    clearConsole: false,              // Clear console before each run
-    maxWorkers: 2,                    // Limit workers in watch mode
-  },
-});
+Watch mode is configured in `copilot-test.config.yaml` under the `watch` key:
+
+```yaml
+watch:
+  enabled: true                       # Enable watch mode
+  include: ["tests/**/*.feature.md"]  # Files to watch
+  exclude: ["node_modules/**", "dist/**"]  # Files to exclude
+  debounce: 300                       # Delay before re-running (ms)
+  runMode: all                        # all | related | changed-files
+  failedFirst: true                   # Run failed tests first
+  clearConsole: false                 # Clear console before each run
+  maxWorkers: 2                       # Limit workers in watch mode
 ```
 
 See [Watch Mode Documentation](./docs/watch-mode.md) for more details.
@@ -440,15 +418,14 @@ See [Watch Mode Documentation](./docs/watch-mode.md) for more details.
 
 Run scenarios in parallel for significantly faster test execution:
 
-```typescript
-configure({
-  model: 'gpt-4o',
-  platforms: { web: webPlatform() },
-  parallel: true,           // Enable parallel execution
-  maxWorkers: 4,            // Run 4 scenarios concurrently
-  workerTimeout: 300000,    // 5 minute timeout per worker
-  failFast: false,          // Continue running even if one fails
-});
+Parallel execution is configured in `copilot-test.config.yaml`:
+
+```yaml
+model: gpt-4o
+parallel: true              # Enable parallel execution
+maxWorkers: 4               # Run 4 scenarios concurrently
+workerTimeout: 300000       # 5 minute timeout per worker
+failFast: false             # Continue running even if one fails
 ```
 
 ### Configuration Options
@@ -486,33 +463,59 @@ configure({
 
 
 
-## DSL Reference
+## Test Format Reference
 
-```typescript
-feature(name: string)
-  .tag(...tags)
-  .description(text)
-  .background()
-    .given(step)
-    .and(step)
-    .scenario(name)  // ends background, starts scenario
-  .scenario(name)
-    .tag(...tags)
-    .given(step)
-    .when(step)
-    .then(step)
-    .and(step)
-    .but(step)
-    .withTable([[header1, header2], [val1, val2]])
-    .withDocString(text)
-    .scenario(nextScenario)  // chain next scenario
-    .done()  // end builder, returns FeatureBuilder
-  ._build()  // returns Feature object
+Tests are written as `.feature.md` Markdown files with YAML frontmatter:
+
+```markdown
+---
+platform: web | api | mobile         # Required: target platform
+tags: [tag1, tag2]                    # Optional: tags for filtering
+---
+
+# Feature: Feature Name
+
+Optional feature-level description text.
+
+## Background
+- Given a common precondition
+- And another shared setup step
+
+## Scenario: First scenario name
+- Given some initial context
+- When an action is performed
+- Then an expected outcome occurs
+- And another assertion
+- But not this other thing
+
+## Scenario: Second scenario name
+- Given a different context
+- When I do something else
+- Then I see the expected result
+
+## Scenario Outline: Parameterized scenario
+- Given I am on the <page> page
+- When I search for '<query>'
+- Then I see <count> results
+
+| page   | query   | count |
+|--------|---------|-------|
+| home   | shoes   | 10    |
+| search | jackets | 5     |
 ```
+
+### Structure
+
+- **YAML frontmatter** (`---`): Declares `platform` and optional `tags`
+- **`# Feature:`**: Top-level heading names the feature
+- **`## Background`**: Steps shared across all scenarios (optional)
+- **`## Scenario:`**: Individual test scenario
+- **`## Scenario Outline:`**: Parameterized scenario with an examples table
+- **Step prefixes**: `Given`, `When`, `Then`, `And`, `But` as Markdown list items (`- `)
 
 ## How It Works
 
-1. **You write** BDD scenarios with Given/When/Then steps — no implementation needed
+1. **You write** `.feature.md` files with Given/When/Then steps — no implementation needed
 2. **CopilotTest** creates a GitHub Copilot SDK session per scenario
 3. **The AI agent** receives your step as a prompt with platform-specific tools available
 4. **MCP tools** allow the AI to actually interact with browsers, APIs, or mobile apps
@@ -548,7 +551,7 @@ jobs:
 | Principle | Description |
 |-----------|-------------|
 | **Zero-implementation** | Write intent, not code. The AI figures out how to execute it. |
-| **Platform agnostic** | Same DSL for web, mobile, and API testing |
+| **Platform agnostic** | Same Markdown format for web, mobile, and API testing |
 | **AI-powered** | GitHub Copilot SDK drives test execution via MCP tools |
 | **BDD-native** | Given/When/Then syntax promotes collaboration |
 | **Transparent** | AI reasoning is captured and included in reports |
@@ -559,9 +562,9 @@ jobs:
 ```
 src/
   types.ts          # Core TypeScript interfaces
-  dsl.ts            # Fluent BDD builder (feature/scenario/step)
+  parser.ts         # Markdown/YAML test file parser
   runtime.ts        # CopilotTestRuntime — core AI execution engine
-  runner.ts         # Test queue, configure/test/run functions
+  runner.ts         # Test queue and run orchestration
   reporter.ts       # HTML/JSON report generator
   compare.ts        # Test run comparison utilities
   cli-compare.ts    # CLI for comparing test runs
@@ -571,10 +574,10 @@ src/
     mobile.ts       # Android MCP platform config
   index.ts          # Public API exports
 tests/
-  login.spec.ts     # Web test example
-  api-users.spec.ts # API test example
-  mobile-app.spec.ts # Mobile test example
-copilot-test.config.ts  # Global config example
+  login.feature.md      # Web test example
+  api-users.feature.md  # API test example
+  mobile-app.feature.md # Mobile test example
+copilot-test.config.yaml  # Project configuration
 ```
 
 ## 📊 Enhanced Test Reporting

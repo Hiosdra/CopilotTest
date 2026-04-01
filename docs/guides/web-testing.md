@@ -10,490 +10,458 @@ CopilotTest uses the Playwright MCP server to automate browser interactions. The
 
 ### Basic Setup
 
-```typescript
-import { configure, webPlatform } from 'copilot-test';
-
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',    // 'chromium', 'firefox', or 'webkit'
-      headless: false,         // Show browser (false) or run headless (true)
-      baseUrl: 'https://example.com'
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+    browser: chromium      # 'chromium', 'firefox', or 'webkit'
+    headless: false        # Show browser (false) or run headless (true)
+    baseUrl: "https://example.com"
 ```
 
 ### Browser Options
 
 **Chromium** (recommended for most cases):
-```typescript
-web: webPlatform({
-  browser: 'chromium',
-  headless: true
-})
+```yaml
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
 ```
 
 **Firefox**:
-```typescript
-web: webPlatform({
-  browser: 'firefox',
-  headless: false
-})
+```yaml
+platforms:
+  web:
+    platform: web
+    browser: firefox
+    headless: false
 ```
 
 **WebKit** (Safari engine):
-```typescript
-web: webPlatform({
-  browser: 'webkit',
-  headless: true
-})
+```yaml
+platforms:
+  web:
+    platform: web
+    browser: webkit
+    headless: true
 ```
 
 ### Base URL
 
 Set a base URL to use relative paths in your tests:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      baseUrl: 'https://staging.example.com'
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    platform: web
+    baseUrl: "https://staging.example.com"
+```
 
-// Now you can use relative paths
-test(
-  feature('Navigation')
-    .scenario('View about page')
-      .given('I am on /home')           // Opens https://staging.example.com/home
-      .when('I click "About"')
-      .then('I should be on /about')    // Verifies https://staging.example.com/about
-      .done()
-    ._build(),
-  'web'
-);
+Now you can use relative paths in your tests:
+
+```markdown
+<!-- tests/navigation.feature.md -->
+---
+platform: web
+---
+
+# Feature: Navigation
+
+## Scenario: View about page
+- Given I am on /home
+- When I click "About"
+- Then I should be on /about
 ```
 
 ## Common Web Testing Patterns
 
 ### Navigation
 
-```typescript
-.scenario('Navigate to page')
-  .given('I am on https://example.com')
-  .when('I click the "Products" link')
-  .then('I should be on https://example.com/products')
-  .and('the page title should be "Products"')
-  .done()
+```markdown
+## Scenario: Navigate to page
+- Given I am on https://example.com
+- When I click the "Products" link
+- Then I should be on https://example.com/products
+- And the page title should be "Products"
 ```
 
 ### Form Interactions
 
 #### Text Input
 
-```typescript
-.scenario('Fill login form')
-  .given('I am on the login page')
-  .when('I enter "john@example.com" in the email field')
-  .and('I enter "password123" in the password field')
-  .and('I click the "Sign In" button')
-  .then('I should see "Welcome back"')
-  .done()
+```markdown
+## Scenario: Fill login form
+- Given I am on the login page
+- When I enter "john@example.com" in the email field
+- And I enter "password123" in the password field
+- And I click the "Sign In" button
+- Then I should see "Welcome back"
 ```
 
 #### Checkboxes and Radio Buttons
 
-```typescript
-.scenario('Select preferences')
-  .given('I am on the settings page')
-  .when('I check the "Enable notifications" checkbox')
-  .and('I select the "Daily" radio button')
-  .and('I click Save')
-  .then('I should see "Settings saved"')
-  .done()
+```markdown
+## Scenario: Select preferences
+- Given I am on the settings page
+- When I check the "Enable notifications" checkbox
+- And I select the "Daily" radio button
+- And I click Save
+- Then I should see "Settings saved"
 ```
 
 #### Dropdowns
 
-```typescript
-.scenario('Select country')
-  .given('I am on the registration page')
-  .when('I select "United States" from the country dropdown')
-  .and('I select "California" from the state dropdown')
-  .then('the form should be valid')
-  .done()
+```markdown
+## Scenario: Select country
+- Given I am on the registration page
+- When I select "United States" from the country dropdown
+- And I select "California" from the state dropdown
+- Then the form should be valid
 ```
 
 #### File Upload
 
-```typescript
-.scenario('Upload profile picture')
-  .given('I am on my profile page')
-  .when('I upload file "avatar.jpg"')
-  .and('I click "Save"')
-  .then('I should see my new profile picture')
-  .done()
+```markdown
+## Scenario: Upload profile picture
+- Given I am on my profile page
+- When I upload file "avatar.jpg"
+- And I click "Save"
+- Then I should see my new profile picture
 ```
 
 ### Element Verification
 
 #### Text Content
 
-```typescript
-.then('I should see "Welcome to our site"')
-.and('the heading should contain "Dashboard"')
-.and('the page should display "Order #12345"')
+```markdown
+- Then I should see "Welcome to our site"
+- And the heading should contain "Dashboard"
+- And the page should display "Order #12345"
 ```
 
 #### Element Visibility
 
-```typescript
-.then('the error message should be visible')
-.and('the submit button should be disabled')
-.and('the loading spinner should not be visible')
+```markdown
+- Then the error message should be visible
+- And the submit button should be disabled
+- And the loading spinner should not be visible
 ```
 
 #### Attribute Verification
 
-```typescript
-.then('the "Submit" button should be disabled')
-.and('the email field should have placeholder "Enter your email"')
-.and('the link should have href "/contact"')
+```markdown
+- Then the "Submit" button should be disabled
+- And the email field should have placeholder "Enter your email"
+- And the link should have href "/contact"
 ```
 
 ### Wait for Elements
 
-```typescript
-.scenario('Wait for dynamic content')
-  .given('I am on the dashboard')
-  .when('I click "Load Data"')
-  .then('I should see a loading spinner')
-  .and('I wait for the loading to complete')
-  .and('I should see the data table')
-  .and('the table should contain at least 10 rows')
-  .done()
+```markdown
+## Scenario: Wait for dynamic content
+- Given I am on the dashboard
+- When I click "Load Data"
+- Then I should see a loading spinner
+- And I wait for the loading to complete
+- And I should see the data table
+- And the table should contain at least 10 rows
 ```
 
 ### Multi-Page Workflows
 
-```typescript
-.scenario('Complete checkout flow')
-  .given('I am on the product page for "Laptop"')
-  .when('I click "Add to Cart"')
-  .and('I click the cart icon')
-  .then('I should see "Laptop" in my cart')
+```markdown
+## Scenario: Complete checkout flow
+- Given I am on the product page for "Laptop"
+- When I click "Add to Cart"
+- And I click the cart icon
+- Then I should see "Laptop" in my cart
 
-  .when('I click "Proceed to Checkout"')
-  .then('I should be on the checkout page')
+- When I click "Proceed to Checkout"
+- Then I should be on the checkout page
 
-  .when('I enter shipping address')
-  .and('I click "Continue to Payment"')
-  .then('I should see the payment form')
+- When I enter shipping address
+- And I click "Continue to Payment"
+- Then I should see the payment form
 
-  .when('I enter payment details')
-  .and('I click "Place Order"')
-  .then('I should see "Order confirmed"')
-  .and('I should receive an order number')
-  .done()
+- When I enter payment details
+- And I click "Place Order"
+- Then I should see "Order confirmed"
+- And I should receive an order number
 ```
 
 ## Advanced Patterns
 
 ### Modal Dialogs
 
-```typescript
-.scenario('Handle confirmation dialog')
-  .given('I am viewing an order')
-  .when('I click "Cancel Order"')
-  .then('I should see a confirmation dialog')
+```markdown
+## Scenario: Handle confirmation dialog
+- Given I am viewing an order
+- When I click "Cancel Order"
+- Then I should see a confirmation dialog
 
-  .when('I click "Confirm" in the dialog')
-  .then('I should see "Order cancelled"')
-  .and('the dialog should be closed')
-  .done()
+- When I click "Confirm" in the dialog
+- Then I should see "Order cancelled"
+- And the dialog should be closed
 ```
 
 ### Tabs and Windows
 
-```typescript
-.scenario('Open link in new tab')
-  .given('I am on the home page')
-  .when('I right-click the "Terms" link')
-  .and('I select "Open in new tab"')
-  .then('a new tab should open')
-  .and('the new tab should show the terms page')
-  .done()
+```markdown
+## Scenario: Open link in new tab
+- Given I am on the home page
+- When I right-click the "Terms" link
+- And I select "Open in new tab"
+- Then a new tab should open
+- And the new tab should show the terms page
 ```
 
 ### Drag and Drop
 
-```typescript
-.scenario('Reorder items')
-  .given('I am on the task board')
-  .when('I drag "Task 1" to the "In Progress" column')
-  .then('the task should be in the "In Progress" column')
-  .and('I should see a success notification')
-  .done()
+```markdown
+## Scenario: Reorder items
+- Given I am on the task board
+- When I drag "Task 1" to the "In Progress" column
+- Then the task should be in the "In Progress" column
+- And I should see a success notification
 ```
 
 ### Hover Actions
 
-```typescript
-.scenario('Show tooltip on hover')
-  .given('I am on the dashboard')
-  .when('I hover over the info icon')
-  .then('I should see a tooltip with "Additional information"')
-  .done()
+```markdown
+## Scenario: Show tooltip on hover
+- Given I am on the dashboard
+- When I hover over the info icon
+- Then I should see a tooltip with "Additional information"
 ```
 
 ### Keyboard Interactions
 
-```typescript
-.scenario('Use keyboard shortcuts')
-  .given('I am on the editor page')
-  .when('I press Ctrl+S')
-  .then('I should see "Document saved"')
+```markdown
+## Scenario: Use keyboard shortcuts
+- Given I am on the editor page
+- When I press Ctrl+S
+- Then I should see "Document saved"
 
-  .when('I press Escape')
-  .then('the save dialog should close')
-  .done()
+- When I press Escape
+- Then the save dialog should close
 ```
 
 ### Infinite Scroll
 
-```typescript
-.scenario('Load more content by scrolling')
-  .given('I am on the news feed')
-  .when('I scroll to the bottom of the page')
-  .then('more articles should load')
-  .and('I should see at least 20 articles')
-  .done()
+```markdown
+## Scenario: Load more content by scrolling
+- Given I am on the news feed
+- When I scroll to the bottom of the page
+- Then more articles should load
+- And I should see at least 20 articles
 ```
 
 ## Authentication Testing
 
 ### Login Flow
 
-```typescript
-feature('Authentication')
-  .scenario('Successful login')
-    .tag('@smoke', '@auth')
-    .given('I am on https://example.com/login')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "SecurePass123"')
-    .and('I click "Sign In"')
-    .then('I should be redirected to /dashboard')
-    .and('I should see "Welcome, Admin"')
-    .done()
+```markdown
+<!-- tests/authentication.feature.md -->
+---
+platform: web
+tags: [auth]
+---
 
-  .scenario('Login with invalid credentials')
-    .tag('@negative', '@auth')
-    .given('I am on the login page')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "WrongPassword"')
-    .and('I click "Sign In"')
-    .then('I should see "Invalid credentials"')
-    .and('I should remain on the login page')
-    .done()
+# Feature: Authentication
 
-  .scenario('Logout')
-    .tag('@auth')
-    .given('I am logged in as "admin@example.com"')
-    .when('I click the user menu')
-    .and('I click "Logout"')
-    .then('I should be redirected to the login page')
-    .and('I should see "You have been logged out"')
-    .done()
-  ._build();
+@smoke @auth
+## Scenario: Successful login
+- Given I am on https://example.com/login
+- When I enter username "admin@example.com"
+- And I enter password "SecurePass123"
+- And I click "Sign In"
+- Then I should be redirected to /dashboard
+- And I should see "Welcome, Admin"
+
+@negative @auth
+## Scenario: Login with invalid credentials
+- Given I am on the login page
+- When I enter username "admin@example.com"
+- And I enter password "WrongPassword"
+- And I click "Sign In"
+- Then I should see "Invalid credentials"
+- And I should remain on the login page
+
+@auth
+## Scenario: Logout
+- Given I am logged in as "admin@example.com"
+- When I click the user menu
+- And I click "Logout"
+- Then I should be redirected to the login page
+- And I should see "You have been logged out"
 ```
 
 ### Session Management
 
-```typescript
-.scenario('Session persists on page reload')
-  .given('I am logged in')
-  .when('I reload the page')
-  .then('I should still be logged in')
-  .and('I should see my dashboard')
-  .done()
+```markdown
+## Scenario: Session persists on page reload
+- Given I am logged in
+- When I reload the page
+- Then I should still be logged in
+- And I should see my dashboard
 
-.scenario('Session expires after timeout')
-  .given('I am logged in')
-  .when('I wait for 30 minutes')
-  .and('I navigate to a protected page')
-  .then('I should be redirected to the login page')
-  .and('I should see "Session expired"')
-  .done()
+## Scenario: Session expires after timeout
+- Given I am logged in
+- When I wait for 30 minutes
+- And I navigate to a protected page
+- Then I should be redirected to the login page
+- And I should see "Session expired"
 ```
 
 ## Validation Testing
 
 ### Form Validation
 
-```typescript
-feature('Contact Form Validation')
-  .scenario('Required fields')
-    .given('I am on the contact form')
-    .when('I click Submit without filling anything')
-    .then('I should see "Name is required"')
-    .and('I should see "Email is required"')
-    .and('I should see "Message is required"')
-    .done()
+```markdown
+<!-- tests/contact-form-validation.feature.md -->
+---
+platform: web
+---
 
-  .scenario('Email format validation')
-    .given('I am on the contact form')
-    .when('I enter "invalid-email" in the email field')
-    .and('I click Submit')
-    .then('I should see "Please enter a valid email address"')
-    .done()
+# Feature: Contact Form Validation
 
-  .scenario('Message length validation')
-    .given('I am on the contact form')
-    .when('I enter "Hi" in the message field')
-    .and('I click Submit')
-    .then('I should see "Message must be at least 10 characters"')
-    .done()
-  ._build();
+## Scenario: Required fields
+- Given I am on the contact form
+- When I click Submit without filling anything
+- Then I should see "Name is required"
+- And I should see "Email is required"
+- And I should see "Message is required"
+
+## Scenario: Email format validation
+- Given I am on the contact form
+- When I enter "invalid-email" in the email field
+- And I click Submit
+- Then I should see "Please enter a valid email address"
+
+## Scenario: Message length validation
+- Given I am on the contact form
+- When I enter "Hi" in the message field
+- And I click Submit
+- Then I should see "Message must be at least 10 characters"
 ```
 
 ## Responsive Design Testing
 
 ### Desktop vs Mobile
 
-```typescript
-.scenario('Desktop navigation menu')
-  .given('I am on the home page on desktop')
-  .then('I should see the horizontal navigation menu')
-  .and('I should see all menu items')
-  .done()
+```markdown
+## Scenario: Desktop navigation menu
+- Given I am on the home page on desktop
+- Then I should see the horizontal navigation menu
+- And I should see all menu items
 
-.scenario('Mobile hamburger menu')
-  .given('I am on the home page on mobile')
-  .then('I should see the hamburger menu icon')
-  .when('I click the hamburger icon')
-  .then('the mobile menu should slide in')
-  .and('I should see all menu items')
-  .done()
+## Scenario: Mobile hamburger menu
+- Given I am on the home page on mobile
+- Then I should see the hamburger menu icon
+- When I click the hamburger icon
+- Then the mobile menu should slide in
+- And I should see all menu items
 ```
 
 ## Performance Testing
 
 ### Page Load
 
-```typescript
-.scenario('Homepage loads quickly')
-  .given('I navigate to https://example.com')
-  .then('the page should load in less than 3 seconds')
-  .and('all images should be visible')
-  .done()
+```markdown
+## Scenario: Homepage loads quickly
+- Given I navigate to https://example.com
+- Then the page should load in less than 3 seconds
+- And all images should be visible
 ```
 
 ### Asset Loading
 
-```typescript
-.scenario('Images load properly')
-  .given('I am on the gallery page')
-  .then('all images should be loaded')
-  .and('no broken image icons should be visible')
-  .done()
+```markdown
+## Scenario: Images load properly
+- Given I am on the gallery page
+- Then all images should be loaded
+- And no broken image icons should be visible
 ```
 
 ## Error Handling
 
 ### Error Pages
 
-```typescript
-.scenario('404 page')
-  .given('I navigate to https://example.com/nonexistent')
-  .then('I should see "404 - Page Not Found"')
-  .and('I should see a link to return home')
-  .done()
+```markdown
+## Scenario: 404 page
+- Given I navigate to https://example.com/nonexistent
+- Then I should see "404 - Page Not Found"
+- And I should see a link to return home
 
-.scenario('500 error handling')
-  .given('the server is experiencing errors')
-  .when('I navigate to the application')
-  .then('I should see "Something went wrong"')
-  .and('I should see a "Try Again" button')
-  .done()
+## Scenario: 500 error handling
+- Given the server is experiencing errors
+- When I navigate to the application
+- Then I should see "Something went wrong"
+- And I should see a "Try Again" button
 ```
 
 ## Cross-Browser Testing
 
-Test the same scenarios across multiple browsers:
+Test the same scenarios across multiple browsers by changing the browser in your YAML config:
 
-```typescript
-// config.ts
-export const browsers = ['chromium', 'firefox', 'webkit'];
-
-// test.spec.ts
-import { browsers } from './config';
-
-browsers.forEach(browser => {
-  configure({
-    platforms: {
-      web: webPlatform({ browser })
-    }
-  });
-
-  test(
-    feature(`Login on ${browser}`)
-      .scenario('Successful login')
-        .given('I am on the login page')
-        // ... test steps
-        .done()
-      ._build(),
-    'web'
-  );
-});
+```yaml
+# Run with different browsers by changing config:
+platforms:
+  web:
+    platform: web
+    browser: chromium    # Change to 'firefox' or 'webkit'
 ```
+
+To test across multiple browsers, create separate config files or override the browser via CLI: `copilot-test run --browser firefox`
 
 ## Best Practices
 
 ### 1. Use Explicit Waits
 
-```typescript
-// Good
-.then('I wait for the data table to appear')
-.and('the table should have at least 1 row')
+```markdown
+<!-- Good -->
+- Then I wait for the data table to appear
+- And the table should have at least 1 row
 
-// Avoid assuming immediate rendering
-.then('the table should have at least 1 row')  // Might fail if slow
+<!-- Avoid assuming immediate rendering -->
+- Then the table should have at least 1 row  <!-- Might fail if slow -->
 ```
 
 ### 2. Verify State Changes
 
-```typescript
-// Good - verify the state change
-.when('I click "Add to Cart"')
-.then('the cart count should increase to 1')
-.and('I should see "Item added to cart"')
+```markdown
+<!-- Good - verify the state change -->
+- When I click "Add to Cart"
+- Then the cart count should increase to 1
+- And I should see "Item added to cart"
 
-// Incomplete - no verification
-.when('I click "Add to Cart"')
+<!-- Incomplete - no verification -->
+- When I click "Add to Cart"
 ```
 
 ### 3. Test Error States
 
 Always include negative test cases:
 
-```typescript
-.scenario('Form submission with missing fields')
-.scenario('API failure handling')
-.scenario('Network timeout recovery')
+```markdown
+## Scenario: Form submission with missing fields
+## Scenario: API failure handling
+## Scenario: Network timeout recovery
 ```
 
 ### 4. Clean Up After Tests
 
-```typescript
-.scenario('Delete created user')
-  .given('I created a test user "test@example.com"')
-  .when('I navigate to user management')
-  .and('I delete the user "test@example.com"')
-  .then('the user should be removed')
-  .done()
+```markdown
+## Scenario: Delete created user
+- Given I created a test user "test@example.com"
+- When I navigate to user management
+- And I delete the user "test@example.com"
+- Then the user should be removed
 ```
 
 ## Debugging Web Tests
@@ -502,23 +470,21 @@ Always include negative test cases:
 
 See what the AI is doing:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      headless: false  // Watch browser automation
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    platform: web
+    headless: false  # Watch browser automation
 ```
 
 ### Use Debug Mode
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: ['When I click submit']
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+breakpoints:
+  - "When I click submit"
 ```
 
 ### Check Screenshots

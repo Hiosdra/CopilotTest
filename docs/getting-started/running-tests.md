@@ -12,14 +12,14 @@ Execute all tests in your test directory:
 copilot-test run
 ```
 
-By default, this runs all `*.spec.ts` or `*.spec.js` files in the `tests/` directory.
+By default, this runs all `*.feature.md` files in the `tests/` directory.
 
 ### Run Specific File
 
 Run a single test file:
 
 ```bash
-copilot-test run tests/login.spec.ts
+copilot-test run tests/login.feature.md
 ```
 
 ### Run Multiple Files
@@ -27,7 +27,7 @@ copilot-test run tests/login.spec.ts
 Run multiple specific files:
 
 ```bash
-copilot-test run tests/login.spec.ts tests/checkout.spec.ts
+copilot-test run tests/login.feature.md tests/checkout.feature.md
 ```
 
 ## Filtering Tests
@@ -43,15 +43,7 @@ copilot-test run --env=staging
 copilot-test run --env=production
 ```
 
-This sets `process.env.ENVIRONMENT`, which you can access in your config:
-
-```typescript
-configure({
-  baseUrl: process.env.ENVIRONMENT === 'production'
-    ? 'https://example.com'
-    : 'https://staging.example.com'
-});
-```
+This sets `process.env.ENVIRONMENT`, which you can reference in your `copilot-test.config.yaml` via environment variable interpolation or use separate config files per environment.
 
 ## Execution Modes
 
@@ -59,73 +51,56 @@ Configure execution modes in your configuration file:
 
 ### Headless Mode
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      headless: process.env.CI === 'true' // Headless in CI, headed locally
-    })
-  }
-});
+```yaml
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true  # Set to false for local debugging
 ```
 
 ### Parallel Execution
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  parallel: true,
-  maxWorkers: 4,        // or 'auto' for CPU-based
-  workerTimeout: 300000 // 5 minutes per scenario
-});
+```yaml
+parallel: true
+maxWorkers: 4          # or 'auto' for CPU-based
+workerTimeout: 300000  # 5 minutes per scenario
 ```
 
 ### Debug Mode
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: ['When I click submit', 'Then I should see']
-});
+```yaml
+debugMode: true
+breakpoints:
+  - "When I click submit"
+  - "Then I should see"
 ```
 
 ## Programmatic Execution
+
+> **Note:** Normal usage is via `.feature.md` files and the CLI. The Node.js API below is for advanced users who need programmatic control.
 
 ### From Node.js
 
 Run tests programmatically:
 
 ```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+import { loadConfig, loadTests, run } from 'copilot-test';
 
-// Configuration
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+// Load YAML configuration
+const config = await loadConfig('./copilot-test.config.yaml');
 
-// Register tests
-test(
-  feature('Login')
-    .scenario('Successful login')
-      .given('I am on the login page')
-      .when('I enter valid credentials')
-      .then('I should see the dashboard')
-      .done()
-    ._build(),
-  'web'
-);
+// Load all .feature.md test files
+const tests = await loadTests('./tests/**/*.feature.md');
 
 // Execute
-await run();
+await run(config, tests);
 ```
 
 ### With Options
@@ -133,21 +108,13 @@ await run();
 Pass runtime options:
 
 ```typescript
-import { configure, test, run, getConfig } from 'copilot-test';
+import { loadConfig, loadTests, run } from 'copilot-test';
 
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform()
-  }
-});
+const config = await loadConfig('./copilot-test.config.yaml');
+const tests = await loadTests('./tests/**/*.feature.md');
 
-// Register tests
-test(loginFeature, 'web');
-test(checkoutFeature, 'web');
-
-// Run with options
-const results = await run();
+// Run and inspect results
+const results = await run(config, tests);
 
 console.log(`Passed: ${results.summary.passed}`);
 console.log(`Failed: ${results.summary.failed}`);
@@ -160,16 +127,13 @@ if (results.summary.failed > 0) {
 
 ## Retry Failed Tests
 
-Automatically retry failed scenarios:
+Automatically retry failed scenarios in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-    stepRetryDelay: 1000
-  }
-});
+```yaml
+retry:
+  enabled: true
+  stepRetries: 3
+  stepRetryDelay: 1000
 ```
 
 ## Output and Reporting
@@ -199,44 +163,36 @@ copilot-test report
 
 ### Custom Output Directory
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  outputDir: 'custom-results'
-});
+```yaml
+outputDir: custom-results
 ```
 
 ## Advanced Options
 
 ### Fail Fast
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  failFast: true
-});
+```yaml
+failFast: true
 ```
 
 ### Step Timeout
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  stepTimeout: 60000  // 60 seconds
-});
+```yaml
+stepTimeout: 60000  # 60 seconds
 ```
 
 ### Screenshot Control
 
-Set in configuration:
+Set in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  screenshotOnFailure: true  // or false
-});
+```yaml
+screenshotOnFailure: true  # or false
 ```
 
 ## CI/CD Integration
@@ -270,7 +226,7 @@ jobs:
           path: copilot-test-results/
 ```
 
-**Note:** Configure headless mode and parallel execution in your `copilot-test.config.ts` file, not via CLI flags.
+**Note:** Configure headless mode and parallel execution in your `copilot-test.config.yaml` file, not via CLI flags.
 
 ### GitLab CI
 
@@ -337,32 +293,30 @@ export PARALLEL=true
 export MAX_WORKERS=4
 ```
 
-Access in configuration:
+Access in `copilot-test.config.yaml` (static values; for dynamic env-based config, use the Node.js API):
 
-```typescript
-configure({
-  model: process.env.COPILOT_MODEL || 'gpt-4o',
-  platforms: {
-    web: webPlatform({
-      headless: process.env.HEADLESS === 'true'
-    })
-  },
-  parallel: process.env.PARALLEL === 'true',
-  maxWorkers: parseInt(process.env.MAX_WORKERS || '4')
-});
+```yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+parallel: true
+maxWorkers: 4
 ```
 
 ## Performance Optimization
 
 ### Parallel Execution Best Practices
 
-```typescript
-configure({
-  parallel: true,
-  maxWorkers: 'auto',  // CPU cores - 1
-  workerTimeout: 300000,
-  failFast: false      // Complete all tests even if some fail
-});
+Set in `copilot-test.config.yaml`:
+
+```yaml
+parallel: true
+maxWorkers: auto       # CPU cores - 1
+workerTimeout: 300000
+failFast: false        # Complete all tests even if some fail
 ```
 
 ### Selective Test Execution
@@ -371,21 +325,21 @@ Run specific test files:
 
 ```bash
 # Run specific features
-copilot-test run tests/login.spec.ts tests/checkout.spec.ts
+copilot-test run tests/login.feature.md tests/checkout.feature.md
 ```
 
 ### Resource Management
 
-```typescript
-configure({
-  stepTimeout: 30000,          // Prevent hanging tests
-  screenshotOnFailure: true,   // Only capture when needed
-  platforms: {
-    web: webPlatform({
-      headless: true            // Faster in CI
-    })
-  }
-});
+Set in `copilot-test.config.yaml`:
+
+```yaml
+stepTimeout: 30000            # Prevent hanging tests
+screenshotOnFailure: true     # Only capture when needed
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true            # Faster in CI
 ```
 
 ## Listing Available Tests
@@ -399,12 +353,12 @@ copilot-test list
 Output:
 
 ```
-Feature: User Authentication (tests/login.spec.ts)
+Feature: User Authentication (tests/login.feature.md)
   ✓ Scenario: Successful login [@smoke, @auth]
   ✓ Scenario: Invalid credentials [@negative, @auth]
   ✓ Scenario: Password reset [@auth]
 
-Feature: Shopping Cart (tests/cart.spec.ts)
+Feature: Shopping Cart (tests/cart.feature.md)
   ✓ Scenario: Add product to cart [@smoke]
   ✓ Scenario: Remove product from cart [@cart]
 

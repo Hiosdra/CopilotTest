@@ -37,15 +37,15 @@ interface ResourceMetrics {
 
 Configure performance thresholds and tracking:
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  performance: {
-    warnThreshold: 5000,      // Warn if step > 5s
-    failThreshold: 10000,     // Fail if step > 10s
-    // Note: trackTrends and trendsFile are reserved for future use
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+performance:
+  warnThreshold: 5000       # Warn if step > 5s
+  failThreshold: 10000      # Fail if step > 10s
+  # Note: trackTrends and trendsFile are reserved for future use
 ```
 
 ## Usage
@@ -54,16 +54,14 @@ configure({
 
 Enable performance monitoring in your configuration:
 
-```typescript
-import { configure, webPlatform } from 'copilot-test';
-
-configure({
-  platforms: { web: webPlatform() },
-  performance: {
-    warnThreshold: 5000,   // Warn if step takes > 5s
-    failThreshold: 10000,  // Fail if step takes > 10s
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+performance:
+  warnThreshold: 5000      # Warn if step takes > 5s
+  failThreshold: 10000     # Fail if step takes > 10s
 ```
 
 **Note**: The `trackTrends` and `trendsFile` options are defined in the interface but not yet implemented. They are reserved for future use.
@@ -148,13 +146,11 @@ Steps exceeding `warnThreshold` will trigger a console warning:
 
 Steps exceeding `failThreshold` will be marked as failed:
 
-```typescript
-// Step will fail if it takes > 10 seconds
-configure({
-  performance: {
-    failThreshold: 10000,
-  },
-});
+```yaml
+# copilot-test.config.yaml
+# Step will fail if it takes > 10 seconds
+performance:
+  failThreshold: 10000
 ```
 
 ## Best Practices

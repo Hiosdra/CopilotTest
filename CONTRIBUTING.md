@@ -79,15 +79,16 @@ CopilotTest/
 ├── src/                    # Source code
 │   ├── cli/               # CLI implementation
 │   ├── platforms/         # Platform implementations (web, api, mobile)
-│   ├── dsl.ts            # DSL builders
+│   ├── parser.ts         # Markdown/YAML parser
 │   ├── runner.ts         # Test runner
 │   ├── runtime.ts        # Test execution runtime
 │   └── types.ts          # TypeScript types
 ├── tests/                 # Test files
 │   ├── integration/      # Integration tests
-│   └── *.spec.ts         # Example test specs
+│   └── *.feature.md      # Markdown test specs
 ├── examples/             # Example projects
 ├── docs/                 # Documentation
+├── copilot-test.config.yaml  # Project configuration
 └── dist/                 # Compiled output
 ```
 
@@ -134,26 +135,23 @@ CopilotTest/
 
 ### Test Structure
 
-CopilotTest uses its own BDD framework for testing:
+CopilotTest uses Markdown-based test files (`.feature.md`) with YAML frontmatter for configuration:
 
-```typescript
-import { feature, configure, run } from './src/index.js';
+```markdown
+---
+platform: web
+---
 
-configure({
-  platform: 'web',
-  // ... configuration
-});
+# Feature: Feature Name
 
-feature('Feature Name', (f) => {
-  f.scenario('Scenario Name', (s) => {
-    s.given('A precondition');
-    s.when('An action is performed');
-    s.then('An expected outcome occurs');
-  });
-});
+## Scenario: Scenario Name
 
-await run();
+- Given A precondition
+- When An action is performed
+- Then An expected outcome occurs
 ```
+
+Project-wide settings are defined in `copilot-test.config.yaml`.
 
 ### Running Tests
 

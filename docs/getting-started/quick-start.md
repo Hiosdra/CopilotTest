@@ -11,7 +11,6 @@ npx copilot-test init
 Follow the prompts to set up your project. For this quick start, select:
 - Platform: **web**
 - Model: **gpt-4o-mini** (fastest for learning)
-- Language: **TypeScript**
 
 ## 2. Set Your GitHub Token
 
@@ -24,7 +23,7 @@ export GITHUB_TOKEN=your_github_token_here
 The `init` command creates an example test. Run it:
 
 ```bash
-npx copilot-test run tests/login.spec.ts
+npx copilot-test run tests/login.feature.md
 ```
 
 You should see output like:
@@ -70,79 +69,58 @@ The report shows:
 
 ## 5. Write Your First Custom Test
 
-Create a new file `tests/my-first-test.spec.ts`:
+Create a new file `tests/my-first-test.feature.md`:
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+```markdown
+---
+platform: web
+tags: [search]
+---
 
-configure({
-  model: 'gpt-4o-mini',
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',
-      headless: false  // See the browser in action
-    })
-  }
-});
+# Feature: Google Search
 
-test(
-  feature('Google Search')
-    .scenario('Search for CopilotTest')
-      .given('I am on https://www.google.com')
-      .when('I type "CopilotTest BDD framework" in the search box')
-      .and('I press Enter')
-      .then('I should see search results')
-      .and('the results should contain "test"')
-      .done()
-    ._build(),
-  'web'
-);
+## Scenario: Search for CopilotTest
+- Given I am on https://www.google.com
+- When I type "CopilotTest BDD framework" in the search box
+- And I press Enter
+- Then I should see search results
+- And the results should contain "test"
 ```
 
-**Note:** This file doesn't include `await run()` because it's designed to be executed via the CLI, which handles execution automatically.
+Tests are plain Markdown files — no imports or build step needed.
 
 Run your test:
 
 ```bash
-npx copilot-test run tests/my-first-test.spec.ts
+npx copilot-test run tests/my-first-test.feature.md
 ```
 
 ## 6. Understanding the Test Structure
 
-Let's break down what's happening:
+Let's break down the `.feature.md` format:
 
-```typescript
-// 1. Configure CopilotTest
-configure({
-  model: 'gpt-4o-mini',              // AI model to use
-  platforms: {
-    web: webPlatform({ ... })         // Platform configuration
-  }
-});
+```markdown
+---                                    # YAML frontmatter
+platform: web                          # Target platform (web, api, mobile)
+tags: [search]                         # Tags for filtering
+---
 
-// 2. Define a feature
-feature('Google Search')              // Feature name
+# Feature: Google Search              # Feature name (H1 heading)
 
-// 3. Create a scenario
-  .scenario('Search for CopilotTest') // Scenario name
-
-// 4. Write steps in Given/When/Then style
-  .given('I am on https://www.google.com')     // Setup
-  .when('I type "..." in the search box')       // Action
-  .and('I press Enter')                         // Additional action
-  .then('I should see search results')          // Assertion
-  .and('the results should contain "test"')     // Additional assertion
-
-// 5. Complete the scenario and feature
-  .done()      // End scenario
-  ._build()    // Build feature
-
-// 6. Register test (CLI handles execution)
-test(feature, 'web');  // Register test for web platform
+## Scenario: Search for CopilotTest   # Scenario name (H2 heading)
+- Given I am on https://www.google.com         # Setup step
+- When I type "..." in the search box           # Action step
+- And I press Enter                             # Additional action
+- Then I should see search results              # Assertion step
+- And the results should contain "test"         # Additional assertion
 ```
 
-**Note:** When using the CLI to run tests, you don't need to call `await run()`—the CLI handles execution automatically. Only include `await run()` if you're running the test file directly with Node.js/tsx.
+**Key points:**
+- **Frontmatter** (`---`): YAML metadata for platform and tags
+- **`# Feature:`**: Declares the feature (one per file)
+- **`## Scenario:`**: Declares a scenario (multiple allowed per file)
+- **`- Given/When/Then/And`**: BDD steps as Markdown list items
+- **Configuration** lives in `copilot-test.config.yaml`, not in the test file
 
 ## Key Concepts
 
@@ -166,18 +144,15 @@ Steps should be clear and specific:
 
 ### Multiple Platforms
 
-You can test web, API, and mobile apps with the same DSL:
+You can test web, API, and mobile apps with the same Markdown format. Just set the `platform` in the frontmatter:
 
-```typescript
-// Web test
-test(feature('Web Login')..., 'web');
-
-// API test
-test(feature('Users API')..., 'api');
-
-// Mobile test
-test(feature('App Onboarding')..., 'mobile');
+```markdown
+---
+platform: web      # or: api, mobile
+---
 ```
+
+Each `.feature.md` file targets a single platform. Create separate files for different platforms (e.g., `login-web.feature.md`, `users-api.feature.md`).
 
 ## Next Steps
 
@@ -196,15 +171,23 @@ Now that you have CopilotTest running, explore more:
 4. **Check reports**: Review AI reasoning when tests fail
 5. **Use tags**: Organize tests with `@smoke`, `@regression`, etc.
 
-```typescript
-feature('Login')
-  .tag('@smoke', '@critical')
-  .scenario('Admin login')
-    .tag('@auth')
-    // ... steps
+Tags can be set in the YAML frontmatter or inline with `@tag` annotations:
+
+```markdown
+---
+platform: web
+tags: [smoke, critical]
+---
+
+# Feature: Login
+
+## Scenario: Admin login @auth
+- Given I am on the login page
+- When I enter valid admin credentials
+- Then I should see the admin dashboard
 ```
 
-**Note:** The CLI currently parses the `--tag` flag but doesn't apply filtering during execution. For tag-based filtering, configure it programmatically or use multiple test files.
+**Note:** The CLI currently parses the `--tag` flag but doesn't apply filtering during execution. Tag-based filtering support is planned for future releases.
 
 ## Getting Help
 

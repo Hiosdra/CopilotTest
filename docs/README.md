@@ -57,8 +57,8 @@ Deep dives into advanced topics:
 
 Complete API documentation:
 
-- **DSL API** - Feature, scenario, and step builders
-- **Configuration API** - All configuration options
+- **Parser API** - `parseFeatureFile`, `parseFeatureMarkdown`, `loadConfig`
+- **Configuration API** - All configuration options (YAML)
 - **Runtime API** - Programmatic test execution
 - **Types** - TypeScript type definitions
 
@@ -94,7 +94,7 @@ Switching from another framework?
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
 | **Zero-Implementation BDD** | Write tests in natural language, AI executes | [Quick Start](./getting-started/quick-start.md) |
-| **Multi-Platform** | Web, API, Mobile with same DSL | [Platform Guides](./guides/) |
+| **Multi-Platform** | Web, API, Mobile with same Markdown format | [Platform Guides](./guides/) |
 | **Custom Steps** | Define reusable step implementations | [Custom Steps](./CUSTOM_STEPS.md) |
 | **Plugins** | Extend with lifecycle hooks | [Plugins](./PLUGINS.md) |
 | **Parallel Execution** | Run scenarios concurrently | [Configuration](./guides/configuration.md#parallel-execution) |
@@ -110,29 +110,20 @@ Switching from another framework?
 
 ### Basic Test Structure
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+Create a `.feature.md` file (e.g., `tests/example.feature.md`):
 
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```markdown
+---
+platform: web
+tags: [smoke]
+---
 
-test(
-  feature('Feature Name')
-    .scenario('Scenario Name')
-      .given('setup step')
-      .when('action step')
-      .then('assertion step')
-      .done()
-    ._build(),
-  'web'
-);
+# Feature: Feature Name
 
-await run();
+## Scenario: Scenario Name
+- Given setup step
+- When action step
+- Then assertion step
 ```
 
 ### CLI Commands
@@ -149,28 +140,39 @@ copilot-test doctor            # Health check
 
 ### Configuration Essentials
 
-```typescript
-configure({
-  // AI
-  model: 'gpt-4o',
-  reasoningEffort: 'medium',
+Configure in `copilot-test.config.yaml`:
 
-  // Platforms
-  platforms: {
-    web: webPlatform({ browser: 'chromium' }),
-    api: apiPlatform({ baseUrl: '...' }),
-    mobile: mobilePlatform({ device: '...' })
-  },
+```yaml
+# AI
+model: gpt-4o
+reasoningEffort: medium
 
-  // Execution
-  stepTimeout: 30000,
-  screenshotOnFailure: true,
+# Platforms
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+    baseUrl: "https://example.com"
+  api:
+    platform: api
+    baseUrl: "https://api.example.com"
+    defaultHeaders:
+      Content-Type: application/json
+  mobile:
+    platform: mobile
+    device: "emulator-5554"
 
-  // Advanced
-  parallel: true,
-  maxWorkers: 4,
-  retry: { enabled: true, stepRetries: 3 }
-});
+# Execution
+stepTimeout: 30000
+screenshotOnFailure: true
+
+# Advanced
+parallel: true
+maxWorkers: 4
+retry:
+  enabled: true
+  stepRetries: 3
 ```
 
 ## Need Help?

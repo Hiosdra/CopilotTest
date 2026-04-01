@@ -9,20 +9,20 @@ Learn how to write effective, maintainable, and reliable tests with CopilotTest.
 The AI interprets your steps, so clarity is crucial.
 
 ✅ **Good Examples:**
-```typescript
-.given('I am on https://example.com/login')
-.when('I enter "john@example.com" in the email field')
-.and('I enter "password123" in the password field')
-.and('I click the "Login" button')
-.then('I should see "Welcome, John" on the dashboard')
-.and('the URL should be https://example.com/dashboard')
+```markdown
+- Given I am on https://example.com/login
+- When I enter "john@example.com" in the email field
+- And I enter "password123" in the password field
+- And I click the "Login" button
+- Then I should see "Welcome, John" on the dashboard
+- And the URL should be https://example.com/dashboard
 ```
 
 ❌ **Avoid:**
-```typescript
-.given('I navigate')  // Where to?
-.when('I login')      // How? With what credentials?
-.then('it works')     // What does "works" mean?
+```markdown
+- Given I navigate       <!-- Where to? -->
+- When I login           <!-- How? With what credentials? -->
+- Then it works          <!-- What does "works" mean? -->
 ```
 
 ### Use Active Voice
@@ -44,24 +44,24 @@ Write steps in first person, present tense:
 When possible, use actual values rather than variables:
 
 ✅ **Specific:**
-```typescript
-.when('I enter username "admin@example.com"')
-.and('I enter password "SecurePass123"')
+```markdown
+- When I enter username "admin@example.com"
+- And I enter password "SecurePass123"
 ```
 
 ❌ **Vague:**
-```typescript
-.when('I enter my credentials')
+```markdown
+- When I enter my credentials
 ```
 
 ### Quote Text Literals
 
 Use quotes for exact text matching:
 
-```typescript
-.when('I click the "Submit" button')          // Looks for button with text "Submit"
-.then('I should see "Order confirmed"')        // Checks for exact text
-.and('the page title should be "Dashboard"')  // Exact title match
+```markdown
+- When I click the "Submit" button
+- Then I should see "Order confirmed"
+- And the page title should be "Dashboard"
 ```
 
 ## Organizing Tests
@@ -70,19 +70,31 @@ Use quotes for exact text matching:
 
 Group related scenarios in features:
 
-```typescript
-feature('User Authentication')
-  .scenario('Successful login')
-  .scenario('Failed login - invalid password')
-  .scenario('Failed login - non-existent user')
-  .scenario('Logout')
-  ._build();
+```markdown
+<!-- tests/auth/login.feature.md -->
+---
+platform: web
+---
 
-feature('Shopping Cart')
-  .scenario('Add item to cart')
-  .scenario('Remove item from cart')
-  .scenario('Update item quantity')
-  ._build();
+# Feature: User Authentication
+
+## Scenario: Successful login
+## Scenario: Failed login - invalid password
+## Scenario: Failed login - non-existent user
+## Scenario: Logout
+```
+
+```markdown
+<!-- tests/checkout/cart.feature.md -->
+---
+platform: web
+---
+
+# Feature: Shopping Cart
+
+## Scenario: Add item to cart
+## Scenario: Remove item from cart
+## Scenario: Update item quantity
 ```
 
 ### File Organization
@@ -90,24 +102,24 @@ feature('Shopping Cart')
 ```
 tests/
 ├── auth/
-│   ├── login.spec.ts
-│   ├── registration.spec.ts
-│   └── password-reset.spec.ts
+│   ├── login.feature.md
+│   ├── registration.feature.md
+│   └── password-reset.feature.md
 ├── checkout/
-│   ├── cart.spec.ts
-│   ├── payment.spec.ts
-│   └── shipping.spec.ts
+│   ├── cart.feature.md
+│   ├── payment.feature.md
+│   └── shipping.feature.md
 └── admin/
-    ├── users.spec.ts
-    └── products.spec.ts
+    ├── users.feature.md
+    └── products.feature.md
 ```
 
 ### Naming Conventions
 
 **Files:**
-- Use kebab-case: `user-management.spec.ts`
-- Suffix with `.spec.ts` or `.spec.js`
-- Be descriptive: `checkout-payment-flow.spec.ts`
+- Use kebab-case: `user-management.feature.md`
+- Suffix with `.feature.md`
+- Be descriptive: `checkout-payment-flow.feature.md`
 
 **Features:**
 - Use title case: `"User Authentication"`
@@ -122,20 +134,25 @@ tests/
 
 ### Standard Tag Conventions
 
-```typescript
-feature('Login')
-  .tag('@smoke')        // Quick smoke tests
-  .tag('@critical')     // Critical business functionality
+```markdown
+---
+platform: web
+tags: [smoke, critical]
+---
 
-  .scenario('Admin login')
-    .tag('@auth')       // Authentication-related
-    .tag('@slow')       // Slow-running tests
-    .done()
+# Feature: Login
 
-  .scenario('Invalid password')
-    .tag('@negative')   // Negative test cases
-    .tag('@validation') // Input validation tests
-    .done()
+## Scenario: Admin login
+@auth @slow
+- Given I am on the login page
+- When I enter admin credentials
+- Then I should be logged in
+
+## Scenario: Invalid password
+@negative @validation
+- Given I am on the login page
+- When I enter wrong password
+- Then I should see error message
 ```
 
 ### Tag Categories
@@ -177,14 +194,16 @@ feature('Login')
 
 ### Use Realistic Data
 
-```typescript
-// Good - realistic data
-.when('I enter email "john.doe@example.com"')
-.and('I enter phone "+1-555-123-4567"')
+✅ **Good - realistic data:**
+```markdown
+- When I enter email "john.doe@example.com"
+- And I enter phone "+1-555-123-4567"
+```
 
-// Avoid - test-looking data
-.when('I enter email "test@test.com"')
-.and('I enter phone "1234567890"')
+❌ **Avoid - test-looking data:**
+```markdown
+- When I enter email "test@test.com"
+- And I enter phone "1234567890"
 ```
 
 ### Scenario Context for Data Sharing
@@ -192,7 +211,6 @@ feature('Login')
 Use ScenarioContext to share data between steps:
 
 ```typescript
-import { configure, feature, test, run } from 'copilot-test';
 import { defineStep } from 'copilot-test';
 
 // Custom step to store user ID
@@ -220,22 +238,27 @@ defineStep(
 
 For data-driven testing:
 
-```typescript
-feature('Login Validation')
-  .scenarioOutline('Login with different credentials')
-    .given('I am on the login page')
-    .when('I enter username "<username>"')
-    .and('I enter password "<password>"')
-    .and('I click Login')
-    .then('I should see "<message>"')
-    .examples([
-      { username: 'admin@example.com', password: 'admin123', message: 'Welcome Admin' },
-      { username: 'user@example.com', password: 'user123', message: 'Welcome User' },
-      { username: 'invalid@example.com', password: 'wrong', message: 'Invalid credentials' },
-      { username: '', password: '', message: 'Username is required' }
-    ])
-    .done()
-  ._build();
+```markdown
+---
+platform: web
+---
+
+# Feature: Login Validation
+
+## Scenario Outline: Login with different credentials
+- Given I am on the login page
+- When I enter username "<username>"
+- And I enter password "<password>"
+- And I click Login
+- Then I should see "<message>"
+
+### Examples:
+| username             | password | message             |
+|----------------------|----------|---------------------|
+| admin@example.com    | admin123 | Welcome Admin       |
+| user@example.com     | user123  | Welcome User        |
+| invalid@example.com  | wrong    | Invalid credentials |
+|                      |          | Username is required |
 ```
 
 ## When to Use Custom Steps vs AI
@@ -263,15 +286,15 @@ defineStep(/^I have a product "(.+)" in the database$/, async (context, productN
   context.set('productId', productId);
 });
 
-feature('Product Management')
-  .scenario('View product details')
-    .given('I have a product "Laptop" in the database')  // Custom step
-    .when('I navigate to the product listing page')      // AI step
-    .and('I click on "Laptop"')                          // AI step
-    .then('I should see the product details')            // AI step
-    .and('the price should be "$999"')                   // AI step
-    .done()
-  ._build();
+```
+
+```markdown
+## Scenario: View product details
+- Given I have a product "Laptop" in the database
+- When I navigate to the product listing page
+- And I click on "Laptop"
+- Then I should see the product details
+- And the price should be "$999"
 ```
 
 ## Error Handling
@@ -280,20 +303,19 @@ feature('Product Management')
 
 Configure retries for flaky steps:
 
-```typescript
-configure({
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-    strategy: 'exponential',
-
-    // Only retry network errors
-    retryOn: ['timeout', 'network error', /connection/i],
-
-    // Don't retry assertion failures
-    skipRetryOn: ['assertion failed', /validation error/i]
-  }
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
+  strategy: exponential
+  retryOn:
+    - timeout
+    - "network error"
+    - "connection"
+  skipRetryOn:
+    - "assertion failed"
+    - "validation error"
 ```
 
 ### Clear Error Messages
@@ -301,57 +323,60 @@ configure({
 Write assertions that produce clear failures:
 
 ✅ **Clear:**
-```typescript
-.then('I should see "Order #12345 confirmed"')
-.and('the total should be "$199.99"')
-.and('the status should be "Processing"')
+```markdown
+- Then I should see "Order #12345 confirmed"
+- And the total should be "$199.99"
+- And the status should be "Processing"
 ```
 
 ❌ **Unclear:**
-```typescript
-.then('the order is correct')
+```markdown
+- Then the order is correct
 ```
 
 ## Performance Optimization
 
 ### Use Headless Mode in CI
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      headless: process.env.CI === 'true'
-    })
-  }
-});
+```yaml
+platforms:
+  web:
+    platform: web
+    headless: "${CI:-false}"
 ```
 
 ### Parallel Execution for Large Suites
 
-```typescript
-configure({
-  parallel: true,
-  maxWorkers: 'auto',
-  workerTimeout: 300000
-});
+```yaml
+parallel: true
+maxWorkers: auto
+workerTimeout: 300000
 ```
 
 ### Tag Fast vs Slow Tests
 
-```typescript
-feature('Quick Checks')
-  .tag('@fast', '@smoke')
-  .scenario('Homepage loads')
-    // ... quick test
-    .done()
-  ._build();
+```markdown
+---
+platform: web
+tags: [fast, smoke]
+---
 
-feature('Complete Checkout Flow')
-  .tag('@slow', '@e2e')
-  .scenario('Full purchase journey')
-    // ... comprehensive test
-    .done()
-  ._build();
+# Feature: Quick Checks
+
+## Scenario: Homepage loads
+...
+```
+
+```markdown
+---
+platform: web
+tags: [slow, e2e]
+---
+
+# Feature: Complete Checkout Flow
+
+## Scenario: Full purchase journey
+...
 ```
 
 **Note:** The CLI currently parses the `--tag` flag but doesn't apply filtering during execution. For tag-based filtering, configure it programmatically or use multiple test files.
@@ -363,50 +388,48 @@ feature('Complete Checkout Flow')
 Each scenario should be completely independent:
 
 ✅ **Independent:**
-```typescript
-.scenario('Add product to cart')
-  .given('I am on the product page for "Laptop"')  // Set up own state
-  .when('I click "Add to Cart"')
-  .then('the cart count should be 1')
-  .done()
+```markdown
+## Scenario: Add product to cart
+- Given I am on the product page for "Laptop"
+- When I click "Add to Cart"
+- Then the cart count should be 1
 
-.scenario('Remove product from cart')
-  .given('I have "Laptop" in my cart')            // Set up own state
-  .when('I click "Remove"')
-  .then('the cart should be empty')
-  .done()
+## Scenario: Remove product from cart
+- Given I have "Laptop" in my cart
+- When I click "Remove"
+- Then the cart should be empty
 ```
 
 ❌ **Dependent:**
-```typescript
-.scenario('Add product to cart')
-  // ... adds product
-  .done()
+```markdown
+## Scenario: Add product to cart
+<!-- ... adds product -->
 
-.scenario('Remove product from cart')
-  .given('I am on the cart page')  // Assumes previous test ran!
-  // ...
-  .done()
+## Scenario: Remove product from cart
+- Given I am on the cart page    <!-- Assumes previous test ran! -->
+<!-- ... -->
 ```
 
 ### Use Background for Common Setup
 
-```typescript
-feature('Shopping Cart')
-  .background()
-    .given('I am logged in as "user@example.com"')
-    .and('I have an empty cart')
+```markdown
+---
+platform: web
+---
 
-  .scenario('Add product')
-    .when('I add "Laptop" to cart')
-    .then('the cart should contain 1 item')
-    .done()
+# Feature: Shopping Cart
 
-  .scenario('Apply coupon')
-    .when('I apply coupon code "SAVE10"')
-    .then('I should see a 10% discount')
-    .done()
-  ._build();
+## Background
+- Given I am logged in as "user@example.com"
+- And I have an empty cart
+
+## Scenario: Add product
+- When I add "Laptop" to cart
+- Then the cart should contain 1 item
+
+## Scenario: Apply coupon
+- When I apply coupon code "SAVE10"
+- Then I should see a 10% discount
 ```
 
 ### Regular Review and Refactoring
@@ -422,28 +445,30 @@ feature('Shopping Cart')
 
 Write steps that explain what's being tested:
 
-```typescript
-feature('Password Reset Flow')
-  .description('Ensures users can reset forgotten passwords via email')
+```markdown
+---
+platform: web
+---
 
-  .scenario('Request password reset')
-    .given('I am on the login page')
-    .when('I click "Forgot Password?"')
-    .and('I enter my email "user@example.com"')
-    .and('I click "Send Reset Link"')
-    .then('I should see "Check your email for reset instructions"')
-    .done()
+# Feature: Password Reset Flow
 
-  .scenario('Reset password with valid token')
-    .given('I have received a password reset email')
-    .and('I click the reset link in the email')
-    .when('I enter new password "NewSecure123"')
-    .and('I confirm password "NewSecure123"')
-    .and('I click "Reset Password"')
-    .then('I should see "Password successfully reset"')
-    .and('I should be redirected to the login page')
-    .done()
-  ._build();
+Ensures users can reset forgotten passwords via email.
+
+## Scenario: Request password reset
+- Given I am on the login page
+- When I click "Forgot Password?"
+- And I enter my email "user@example.com"
+- And I click "Send Reset Link"
+- Then I should see "Check your email for reset instructions"
+
+## Scenario: Reset password with valid token
+- Given I have received a password reset email
+- And I click the reset link in the email
+- When I enter new password "NewSecure123"
+- And I confirm password "NewSecure123"
+- And I click "Reset Password"
+- Then I should see "Password successfully reset"
+- And I should be redirected to the login page
 ```
 
 ### Comment Complex Logic
@@ -490,12 +515,11 @@ jobs:
 
 ### Fail Fast in CI
 
-```typescript
-configure({
-  failFast: process.env.CI === 'true',
-  parallel: true,
-  maxWorkers: 4
-});
+```yaml
+# copilot-test.config.yaml
+failFast: "${CI:-false}"
+parallel: true
+maxWorkers: 4
 ```
 
 ### Archive Test Artifacts
@@ -516,78 +540,79 @@ configure({
 
 Use background or fixtures for authentication:
 
-```typescript
-feature('Dashboard Features')
-  .background()
-    .given('I am logged in as an admin')
+```markdown
+---
+platform: web
+---
 
-  .scenario('View user list')
-    .when('I navigate to Users')
-    .then('I should see the user management page')
-    .done()
+# Feature: Dashboard Features
 
-  .scenario('View analytics')
-    .when('I navigate to Analytics')
-    .then('I should see the analytics dashboard')
-    .done()
-  ._build();
+## Background
+- Given I am logged in as an admin
+
+## Scenario: View user list
+- When I navigate to Users
+- Then I should see the user management page
+
+## Scenario: View analytics
+- When I navigate to Analytics
+- Then I should see the analytics dashboard
 ```
 
 ### Test Both Positive and Negative Cases
 
-```typescript
-feature('Form Validation')
-  .scenario('Submit valid form')
-    .tag('@positive')
-    .given('I am on the contact form')
-    .when('I enter valid data in all fields')
-    .and('I submit the form')
-    .then('I should see "Thank you for your message"')
-    .done()
+```markdown
+---
+platform: web
+---
 
-  .scenario('Submit with invalid email')
-    .tag('@negative', '@validation')
-    .given('I am on the contact form')
-    .when('I enter "invalid-email" in the email field')
-    .and('I submit the form')
-    .then('I should see "Please enter a valid email address"')
-    .done()
-  ._build();
+# Feature: Form Validation
+
+## Scenario: Submit valid form
+@positive
+- Given I am on the contact form
+- When I enter valid data in all fields
+- And I submit the form
+- Then I should see "Thank you for your message"
+
+## Scenario: Submit with invalid email
+@negative @validation
+- Given I am on the contact form
+- When I enter "invalid-email" in the email field
+- And I submit the form
+- Then I should see "Please enter a valid email address"
 ```
 
 ### Progressive Complexity
 
 Start simple, add complexity:
 
-```typescript
-// Level 1: Basic happy path
-.scenario('Basic login')
-  .given('I am on the login page')
-  .when('I enter valid credentials')
-  .then('I should be logged in')
-  .done()
+```markdown
+<!-- Level 1: Basic happy path -->
+## Scenario: Basic login
+- Given I am on the login page
+- When I enter valid credentials
+- Then I should be logged in
 
-// Level 2: Add specifics
-.scenario('Admin user login')
-  .given('I am on https://app.example.com/login')
-  .when('I enter username "admin@example.com"')
-  .and('I enter password "SecurePass123"')
-  .and('I click the "Sign In" button')
-  .then('I should see the admin dashboard')
-  .and('I should see "Welcome, Admin"')
-  .done()
+<!-- Level 2: Add specifics -->
+## Scenario: Admin user login
+- Given I am on https://app.example.com/login
+- When I enter username "admin@example.com"
+- And I enter password "SecurePass123"
+- And I click the "Sign In" button
+- Then I should see the admin dashboard
+- And I should see "Welcome, Admin"
 
-// Level 3: Add edge cases
-.scenario('Login with MFA enabled')
-  .given('I am on the login page')
-  .and('my account has MFA enabled')
-  .when('I enter valid credentials')
-  .and('I click Sign In')
-  .then('I should see the MFA challenge page')
-  .when('I enter my 6-digit MFA code')
-  .then('I should be logged in')
-  .and('I should see my dashboard')
-  .done()
+<!-- Level 3: Add edge cases -->
+## Scenario: Login with MFA enabled
+- Given I am on the login page
+- And my account has MFA enabled
+- When I enter valid credentials
+- And I click Sign In
+- Then I should see the MFA challenge page
+- When I enter my 6-digit MFA code
+- Then I should be logged in
+- And I should see my dashboard
 ```
 
 ## Next Steps

@@ -17,16 +17,16 @@ This example suite covers the complete customer journey in an e-commerce applica
 ```
 e-commerce/
 ├── features/
-│   ├── authentication.spec.ts      # User login, registration, password reset
-│   ├── product-catalog.spec.ts     # Product browsing, search, filters
-│   ├── shopping-cart.spec.ts       # Cart operations and management
-│   ├── checkout.spec.ts            # Complete checkout flow
-│   └── order-history.spec.ts       # Order tracking and management
+│   ├── authentication.feature.md      # User login, registration, password reset
+│   ├── product-catalog.feature.md     # Product browsing, search, filters
+│   ├── shopping-cart.feature.md       # Cart operations and management
+│   ├── checkout.feature.md            # Complete checkout flow
+│   └── order-history.feature.md       # Order tracking and management
 ├── fixtures/
-│   ├── users.ts                    # Test user data
-│   ├── products.ts                 # Product fixtures
-│   └── orders.ts                   # Order and address fixtures
-└── README.md                       # This file
+│   ├── users.ts                       # Test user data
+│   ├── products.ts                    # Product fixtures
+│   └── orders.ts                      # Order and address fixtures
+└── README.md                          # This file
 ```
 
 ## Getting Started
@@ -42,48 +42,42 @@ e-commerce/
 ```bash
 # Run all e-commerce tests (explicit file list)
 copilot-test run \
-  examples/e-commerce/features/authentication.spec.ts \
-  examples/e-commerce/features/product-catalog.spec.ts \
-  examples/e-commerce/features/shopping-cart.spec.ts \
-  examples/e-commerce/features/checkout.spec.ts \
-  examples/e-commerce/features/order-history.spec.ts
+  examples/e-commerce/features/authentication.feature.md \
+  examples/e-commerce/features/product-catalog.feature.md \
+  examples/e-commerce/features/shopping-cart.feature.md \
+  examples/e-commerce/features/checkout.feature.md \
+  examples/e-commerce/features/order-history.feature.md
 
 # Run a specific feature
-copilot-test run examples/e-commerce/features/authentication.spec.ts
+copilot-test run examples/e-commerce/features/authentication.feature.md
 
 # Run with a specific environment
-copilot-test run --env=staging examples/e-commerce/features/authentication.spec.ts
-
-# Note: Each spec file includes configure() and can be run standalone
+copilot-test run --env=staging examples/e-commerce/features/authentication.feature.md
 ```
 
 ### Configuration
 
-Each test file includes its own configuration. You can also create a shared config:
+Each test file includes its own configuration via YAML frontmatter. You can also create a shared config:
 
-```typescript
-// copilot-test.config.ts
-import { webPlatform } from 'copilot-test';
-
-export default {
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',
-      headless: true,
-    }),
-  },
-  baseUrl: 'https://demo.example-shop.com',
-  stepTimeout: 30000,
-  retry: { maxRetries: 1 },
-  screenshotOnFailure: true,
-  outputDir: 'copilot-test-results/e-commerce',
-};
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+baseUrl: https://demo.example-shop.com
+stepTimeout: 30000
+retry:
+  maxRetries: 1
+screenshotOnFailure: true
+outputDir: copilot-test-results/e-commerce
 ```
 
 ## Test Features
 
-### 1. Authentication Tests (`authentication.spec.ts`)
+### 1. Authentication Tests (`authentication.feature.md`)
 
 **Scenarios covered:**
 - ✅ Successful login with valid credentials
@@ -103,21 +97,25 @@ export default {
 - Security testing (rate limiting, session management)
 
 **Key learning points:**
-```typescript
-// Use background for common setup
-.background()
-.given('the e-commerce website is available')
-.and('I am not logged in')
+```markdown
+## Background
+- Given the e-commerce website is available
+- And I am not logged in
 
-// Import fixtures for reusable test data
-import { registeredCustomer } from '../fixtures/users.js';
+## Scenario: Customer logs in with valid credentials
+<!-- ✓ Positive test -->
+- Given I have valid credentials
+- When I enter my username and password
+- Then I should be logged in
 
-// Test both positive and negative cases
-.scenario('Customer logs in with valid credentials')  // ✓ Positive
-.scenario('Login fails with incorrect password')      // ✗ Negative
+## Scenario: Login fails with incorrect password
+<!-- ✗ Negative test -->
+- Given I have an incorrect password
+- When I attempt to log in
+- Then I should see an error message
 ```
 
-### 2. Product Catalog Tests (`product-catalog.spec.ts`)
+### 2. Product Catalog Tests (`product-catalog.feature.md`)
 
 **Scenarios covered:**
 - ✅ Browse all products
@@ -140,20 +138,20 @@ import { registeredCustomer } from '../fixtures/users.js';
 - Dynamic content loading
 
 **Key learning points:**
-```typescript
-// Test filter combinations
-.when('I select the "Electronics" category')
-.and('I set price range to $100 - $1000')
-.and('I select "4+ stars" rating filter')
-.then('I should see only electronics products between $100-$1000 with 4+ star ratings')
+```markdown
+## Scenario: Customer filters products by multiple criteria
+- When I select the "Electronics" category
+- And I set price range to $100 - $1000
+- And I select "4+ stars" rating filter
+- Then I should see only electronics products between $100-$1000 with 4+ star ratings
 
-// Handle empty states gracefully
-.scenario('Customer searches for non-existent product')
-.then('I should see a "No results found" message')
-.and('I should see suggestions or alternatives')
+## Scenario: Customer searches for non-existent product
+- When I search for "xyznonexistent"
+- Then I should see a "No results found" message
+- And I should see suggestions or alternatives
 ```
 
-### 3. Shopping Cart Tests (`shopping-cart.spec.ts`)
+### 3. Shopping Cart Tests (`shopping-cart.feature.md`)
 
 **Scenarios covered:**
 - ✅ Add products to cart
@@ -177,21 +175,22 @@ import { registeredCustomer } from '../fixtures/users.js';
 - Guest vs. authenticated user flows
 
 **Key learning points:**
-```typescript
-// Verify calculations
-.then(`the subtotal should be $${laptop.price + tshirt.price}`)
-.and('tax should be calculated and displayed')
-.and('the final total should include all charges')
+```markdown
+## Scenario: Cart calculates totals correctly
+- When I add a laptop and a t-shirt to the cart
+- Then the subtotal should reflect both item prices
+- And tax should be calculated and displayed
+- And the final total should include all charges
 
-// Test persistence
-.scenario('Logged-in customer cart persists across sessions')
-.when('I log out')
-.and('I close the browser')
-.and('I reopen the browser and log back in')
-.then('my cart should still contain the items I added previously')
+## Scenario: Logged-in customer cart persists across sessions
+- Given I have items in my cart
+- When I log out
+- And I close the browser
+- And I reopen the browser and log back in
+- Then my cart should still contain the items I added previously
 ```
 
-### 4. Checkout Tests (`checkout.spec.ts`)
+### 4. Checkout Tests (`checkout.feature.md`)
 
 **Scenarios covered:**
 - ✅ Complete checkout as registered user
@@ -217,23 +216,24 @@ import { registeredCustomer } from '../fixtures/users.js';
 - Guest vs. registered user experiences
 
 **Key learning points:**
-```typescript
-// Multi-step flow
-.when('I enter shipping address')
-.and('I continue to payment')
-.then('I should see the order summary')
-.when('I enter payment details')
-.and('I click "Place Order"')
-.then('I should see an order confirmation page')
+```markdown
+## Scenario: Complete checkout as registered user
+- When I enter shipping address
+- And I continue to payment
+- Then I should see the order summary
+- When I enter payment details
+- And I click "Place Order"
+- Then I should see an order confirmation page
 
-// Error recovery
-.scenario('Product becomes unavailable during checkout')
-.then('I should be notified that an item is no longer available')
-.and('I should be returned to my cart')
-.and('I should have options to remove it or continue with other items')
+## Scenario: Product becomes unavailable during checkout
+- Given I have items in my cart
+- When a product becomes unavailable during checkout
+- Then I should be notified that an item is no longer available
+- And I should be returned to my cart
+- And I should have options to remove it or continue with other items
 ```
 
-### 5. Order History Tests (`order-history.spec.ts`)
+### 5. Order History Tests (`order-history.feature.md`)
 
 **Scenarios covered:**
 - ✅ View all orders
@@ -259,65 +259,71 @@ import { registeredCustomer } from '../fixtures/users.js';
 - Return/refund flows
 
 **Key learning points:**
-```typescript
-// Test filtering
-.when('I select "Delivered" from the status filter')
-.then('I should see only orders with "Delivered" status')
+```markdown
+## Scenario: Customer filters orders by status
+- When I select "Delivered" from the status filter
+- Then I should see only orders with "Delivered" status
 
-// Reorder convenience feature
-.scenario('Customer reorders items from previous order')
-.when('I click the "Reorder" button')
-.then('all items from that order should be added to my cart')
+## Scenario: Customer reorders items from previous order
+- Given I am viewing a previous order
+- When I click the "Reorder" button
+- Then all items from that order should be added to my cart
 ```
 
 ## Using Fixtures
 
-Fixtures provide reusable test data across scenarios:
+Fixtures provide reusable test data across scenarios. Reference fixture values directly in your Markdown step descriptions:
 
 ### User Fixtures
 
-```typescript
-import { registeredCustomer, premiumCustomer, adminUser } from '../fixtures/users.js';
-
-// Use in tests
-.given(`I am logged in as "${registeredCustomer.username}"`)
+```markdown
+## Scenario: Customer logs in
+- Given I am logged in as "registeredCustomer"
+- Given I am logged in as "premiumCustomer"
+- Given I am logged in as "adminUser"
 ```
 
 ### Product Fixtures
 
-```typescript
-import { laptop, smartphone, outOfStockProduct } from '../fixtures/products.js';
-
-// Use in tests
-.when(`I add "${laptop.name}" to the cart`)
+```markdown
+## Scenario: Add product to cart
+- When I add "Laptop Pro 15" to the cart
 ```
 
 ### Order Fixtures
 
-```typescript
-import { usShippingAddress, creditCardPayment } from '../fixtures/orders.js';
-
-// Use in tests
-.when(`I enter shipping address: ${usShippingAddress.street}...`)
+```markdown
+## Scenario: Complete checkout
+- When I enter shipping address: 123 Main St, New York, NY 10001
 ```
+
+> **Note:** Fixture data files (`fixtures/users.ts`, `fixtures/products.ts`, `fixtures/orders.ts`)
+> are still used by the test runner. Reference fixture values by name in your step descriptions.
 
 ## Best Practices
 
 ### 1. Use Background Steps
 
-```typescript
-.background()
-.given('the e-commerce website is available')
-.and('I am not logged in')
+```markdown
+## Background
+- Given the e-commerce website is available
+- And I am not logged in
 ```
 
 Background steps run before each scenario, reducing duplication.
 
 ### 2. Tag Your Scenarios
 
-```typescript
-.scenario('Critical checkout flow')
-.tag('@smoke', '@critical', '@checkout')
+```markdown
+---
+tags: [smoke, critical, checkout]
+---
+```
+
+Or use inline annotations:
+
+```markdown
+## Scenario: Critical checkout flow @smoke @critical @checkout
 ```
 
 Tags help with selective test execution:
@@ -327,33 +333,36 @@ Tags help with selective test execution:
 
 ### 3. Test Both Positive and Negative Cases
 
-```typescript
-// Positive
-.scenario('Customer applies valid discount code')
+```markdown
+## Scenario: Customer applies valid discount code
+- When I apply discount code "SAVE10"
+- Then I should see 10% discount applied
 
-// Negative
-.scenario('Customer enters invalid discount code')
+## Scenario: Customer enters invalid discount code
+- When I apply discount code "INVALID"
+- Then I should see an error message
 ```
 
 ### 4. Use Descriptive Step Names
 
-```typescript
-// ✅ Good
-.when('I enter username "testuser" and password "Test@123"')
-.then('I should see a welcome message containing my username')
+```markdown
+<!-- ✅ Good -->
+- When I enter username "testuser" and password "Test@123"
+- Then I should see a welcome message containing my username
 
-// ❌ Avoid
-.when('I submit the form')
-.then('It works')
+<!-- ❌ Avoid -->
+- When I submit the form
+- Then It works
 ```
 
 ### 5. Verify Complete User Experience
 
-```typescript
-.then('I should see an order confirmation page')
-.and('I should see my order number')
-.and('I should see order summary with items and total')
-.and('I should receive a confirmation email')
+```markdown
+## Scenario: Order confirmation
+- Then I should see an order confirmation page
+- And I should see my order number
+- And I should see order summary with items and total
+- And I should receive a confirmation email
 ```
 
 ## Troubleshooting
@@ -363,19 +372,14 @@ Tags help with selective test execution:
 **Problem**: Steps exceed the timeout duration
 
 **Solutions**:
-```typescript
-// Increase step timeout
-configure({
-  stepTimeout: 60000, // 60 seconds
-});
+```yaml
+# copilot-test.config.yaml — increase step timeout
+stepTimeout: 60000  # 60 seconds
 
-// Or use retry mechanism
-configure({
-  retry: {
-    maxRetries: 2,
-    stepRetries: 3,
-  },
-});
+# Or use retry mechanism
+retry:
+  maxRetries: 2
+  stepRetries: 3
 ```
 
 ### Element Not Found
@@ -387,12 +391,12 @@ configure({
 - Add intermediate waiting steps
 - Verify the page URL/state before interacting
 
-```typescript
-// ❌ Vague
-.when('I click the button')
+```markdown
+<!-- ❌ Vague -->
+- When I click the button
 
-// ✅ Specific
-.when('I click the "Add to Cart" button on the product page')
+<!-- ✅ Specific -->
+- When I click the "Add to Cart" button on the product page
 ```
 
 ### Cart Not Persisting
@@ -404,9 +408,9 @@ configure({
 - Use separate test users
 - Test cart persistence as explicit scenario
 
-```typescript
-.background()
-.given('the shopping cart is empty initially')
+```markdown
+## Background
+- Given the shopping cart is empty initially
 ```
 
 ### Payment Test Limitations
@@ -423,10 +427,11 @@ configure({
 - Use retry mechanisms
 - Check for loading indicators
 
-```typescript
-.when('I click "Proceed to Checkout"')
-.and('I wait for the checkout page to load completely')
-.then('I should be on the checkout page')
+```markdown
+## Scenario: Proceed to checkout
+- When I click "Proceed to Checkout"
+- And I wait for the checkout page to load completely
+- Then I should be on the checkout page
 ```
 
 ## Customization
@@ -441,22 +446,21 @@ configure({
 
 ### Adding New Scenarios
 
-```typescript
-.scenario('Your new scenario')
-.tag('@custom-tag')
-.given('initial state')
-.when('user action')
-.then('expected outcome')
+```markdown
+## Scenario: Your new scenario @custom-tag
+- Given initial state
+- When user action
+- Then expected outcome
 ```
 
 ### Creating Additional Features
 
 Follow the pattern:
-1. Create `features/new-feature.spec.ts`
-2. Import necessary fixtures
+1. Create `features/new-feature.feature.md`
+2. Add YAML frontmatter with platform and tags
 3. Define feature with background
 4. Add scenarios with tags
-5. Export for test suite
+5. Run with `copilot-test run`
 
 ## CI/CD Integration
 
@@ -474,7 +478,7 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npx tsx examples/e-commerce/features/*.spec.ts
+      - run: copilot-test run examples/e-commerce/features/*.feature.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
@@ -488,12 +492,7 @@ jobs:
 
 ```bash
 # Run specific feature
-copilot-test run examples/e-commerce/features/checkout.spec.ts
-
-# Note: Each spec file includes its own configure() call and can be run standalone.
-# When running multiple spec files together, be aware that the last configure() call
-# will override previous ones. Consider using a shared config file if you need
-# consistent configuration across multiple files.
+copilot-test run examples/e-commerce/features/checkout.feature.md
 ```
 
 ## Next Steps
@@ -504,9 +503,9 @@ copilot-test run examples/e-commerce/features/checkout.spec.ts
    - [Mobile App](../mobile-app/README.md)
 
 2. **Learn advanced features**:
-   - [Retry Mechanisms](../../examples/retry-example.ts)
-   - [Performance Monitoring](../../examples/performance-monitoring.ts)
-   - [Plugins](../../examples/plugins.ts)
+   - [Retry Mechanisms](../../examples/retry-example.feature.md)
+   - [Performance Monitoring](../../examples/performance-monitoring.feature.md)
+   - [Plugins](../../docs/PLUGINS.md)
 
 3. **Customize for your application**
 

@@ -16,61 +16,61 @@ CopilotTest uses AI to interpret natural language test steps. The AI:
 ### Be Specific
 
 ✅ **Good - Clear and specific:**
-```typescript
-.when('I click the "Submit Order" button')
-.then('I should see "Order #12345 confirmed"')
-.and('the total should be "$99.99"')
+```markdown
+- When I click the "Submit Order" button
+- Then I should see "Order #12345 confirmed"
+- And the total should be "$99.99"
 ```
 
 ❌ **Avoid - Vague and unclear:**
-```typescript
-.when('I submit')
-.then('it works')
-.and('the price is right')
+```markdown
+- When I submit
+- Then it works
+- And the price is right
 ```
 
 ### Use Active Voice
 
 ✅ **Good - First person, active:**
-```typescript
-.given('I am on the login page')
-.when('I enter my email address')
-.then('I should see a confirmation')
+```markdown
+- Given I am on the login page
+- When I enter my email address
+- Then I should see a confirmation
 ```
 
 ❌ **Avoid - Passive voice:**
-```typescript
-.given('the login page is displayed')
-.when('the email address is entered')
-.then('a confirmation is shown')
+```markdown
+- Given the login page is displayed
+- When the email address is entered
+- Then a confirmation is shown
 ```
 
 ### Include Exact Values
 
 ✅ **Good - Concrete values:**
-```typescript
-.when('I enter "john@example.com" in the email field')
-.and('I enter "password123" in the password field')
+```markdown
+- When I enter "john@example.com" in the email field
+- And I enter "password123" in the password field
 ```
 
 ❌ **Avoid - Abstract references:**
-```typescript
-.when('I enter my credentials')
-.and('I log in')
+```markdown
+- When I enter my credentials
+- And I log in
 ```
 
 ### Quote UI Text
 
 ✅ **Good - Quoted text:**
-```typescript
-.when('I click the "Sign In" button')
-.then('I should see "Welcome back, John"')
+```markdown
+- When I click the "Sign In" button
+- Then I should see "Welcome back, John"
 ```
 
 ❌ **Avoid - Unquoted or paraphrased:**
-```typescript
-.when('I click the signin button')
-.then('I should see a welcome message')
+```markdown
+- When I click the signin button
+- Then I should see a welcome message
 ```
 
 ## Common Interpretation Problems
@@ -86,20 +86,20 @@ Error: Multiple buttons found, unclear which to click
 **Solutions:**
 
 **A. Specify the button:**
-```typescript
-// Vague
-.when('I click the button')
+```markdown
+<!-- Vague -->
+- When I click the button
 
-// Specific
-.when('I click the "Submit" button')
-.when('I click the blue "Continue" button')
-.when('I click the button with text "Next Step"')
+<!-- Specific -->
+- When I click the "Submit" button
+- When I click the blue "Continue" button
+- When I click the button with text "Next Step"
 ```
 
 **B. Use element context:**
-```typescript
-.when('I click the "Delete" button in the user row')
-.when('I click the "Save" button at the bottom of the form')
+```markdown
+- When I click the "Delete" button in the user row
+- When I click the "Save" button at the bottom of the form
 ```
 
 ### Problem 2: Ambiguous Actions
@@ -113,23 +113,23 @@ Error: Unclear what to select or where
 **Solutions:**
 
 **A. Specify what and where:**
-```typescript
-// Vague
-.when('I select the option')
+```markdown
+<!-- Vague -->
+- When I select the option
 
-// Specific
-.when('I select "United States" from the country dropdown')
-.when('I select the "Premium" pricing option')
+<!-- Specific -->
+- When I select "United States" from the country dropdown
+- When I select the "Premium" pricing option
 ```
 
 **B. Break into steps:**
-```typescript
-// Combined - might confuse AI
-.when('I select shipping and payment options')
+```markdown
+<!-- Combined - might confuse AI -->
+- When I select shipping and payment options
 
-// Separated - clear
-.when('I select "Express Shipping"')
-.and('I select "Credit Card" as payment method')
+<!-- Separated - clear -->
+- When I select "Express Shipping"
+- And I select "Credit Card" as payment method
 ```
 
 ### Problem 3: Unclear Validation
@@ -143,22 +143,22 @@ Error: Unclear what "correct" means
 **Solutions:**
 
 **A. Specify what to verify:**
-```typescript
-// Vague
-.then('the page should be correct')
+```markdown
+<!-- Vague -->
+- Then the page should be correct
 
-// Specific
-.then('I should see the text "Order Confirmed"')
-.and('the order number should be "12345"')
-.and('the status should be "Processing"')
+<!-- Specific -->
+- Then I should see the text "Order Confirmed"
+- And the order number should be "12345"
+- And the status should be "Processing"
 ```
 
 **B. Verify multiple aspects:**
-```typescript
-.then('the page title should be "Dashboard"')
-.and('I should see "Welcome, John"')
-.and('the navigation menu should be visible')
-.and('the sidebar should show my profile picture')
+```markdown
+- Then the page title should be "Dashboard"
+- And I should see "Welcome, John"
+- And the navigation menu should be visible
+- And the sidebar should show my profile picture
 ```
 
 ### Problem 4: Complex Multi-Step Actions
@@ -172,29 +172,28 @@ Error: Too many steps combined, AI unsure how to proceed
 **Solutions:**
 
 **A. Break down complex actions:**
-```typescript
-// Too complex
-.when('I complete the registration')
+```markdown
+<!-- Too complex -->
+- When I complete the registration
 
-// Broken down
-.when('I enter "John Doe" in the name field')
-.and('I enter "john@example.com" in the email field')
-.and('I enter "password123" in the password field')
-.and('I check the "I agree to terms" checkbox')
-.and('I click the "Register" button')
+<!-- Broken down -->
+- When I enter "John Doe" in the name field
+- And I enter "john@example.com" in the email field
+- And I enter "password123" in the password field
+- And I check the "I agree to terms" checkbox
+- And I click the "Register" button
 ```
 
 **B. Use background for setup:**
-```typescript
-.background()
-  .given('I am on the registration page')
-  .and('I have filled in my personal details')
+```markdown
+## Background:
+- Given I am on the registration page
+- And I have filled in my personal details
 
-.scenario('Complete registration')
-  .when('I agree to the terms')
-  .and('I click Register')
-  .then('I should be registered')
-  .done()
+## Scenario: Complete registration
+- When I agree to the terms
+- And I click Register
+- Then I should be registered
 ```
 
 ## Platform-Specific Tips
@@ -202,162 +201,164 @@ Error: Too many steps combined, AI unsure how to proceed
 ### Web Testing
 
 **Element Selection:**
-```typescript
-// Clear element identification
-.when('I click the "Login" button')              // ✓ Button with text
-.when('I click the button with id "submit-btn"') // ✓ Specific ID
-.when('I click the first "Add to Cart" button')  // ✓ Position specified
+```markdown
+<!-- Clear element identification -->
+- When I click the "Login" button                <!-- ✓ Button with text -->
+- When I click the button with id "submit-btn"   <!-- ✓ Specific ID -->
+- When I click the first "Add to Cart" button    <!-- ✓ Position specified -->
 
-// Can be ambiguous
-.when('I click submit')                          // ✗ No quotes, unclear
-.when('I click the form button')                 // ✗ Which form button?
+<!-- Can be ambiguous -->
+- When I click submit                            <!-- ✗ No quotes, unclear -->
+- When I click the form button                   <!-- ✗ Which form button? -->
 ```
 
 **Form Interactions:**
-```typescript
-// Clear form interactions
-.when('I enter "john@example.com" in the email field')
-.and('I select "United States" from the country dropdown')
-.and('I check the "Remember me" checkbox')
+```markdown
+<!-- Clear form interactions -->
+- When I enter "john@example.com" in the email field
+- And I select "United States" from the country dropdown
+- And I check the "Remember me" checkbox
 
-// Unclear
-.when('I fill the form')
-.and('I select my country')
+<!-- Unclear -->
+- When I fill the form
+- And I select my country
 ```
 
 **Waiting:**
-```typescript
-// Explicit waits
-.when('I wait for the loading spinner to disappear')
-.and('I wait for the data table to appear')
-.then('the table should have at least 1 row')
+```markdown
+<!-- Explicit waits -->
+- When I wait for the loading spinner to disappear
+- And I wait for the data table to appear
+- Then the table should have at least 1 row
 
-// Implicit - might fail
-.then('the table should have rows')  // Might check before loading
+<!-- Implicit - might fail -->
+- Then the table should have rows   <!-- Might check before loading -->
 ```
 
 ### API Testing
 
 **HTTP Methods:**
-```typescript
-// Clear HTTP requests
-.when('I send a GET request to /api/users')
-.when('I send a POST request to /api/users')
-.when('I send a DELETE request to /api/users/123')
+```markdown
+<!-- Clear HTTP requests -->
+- When I send a GET request to /api/users
+- When I send a POST request to /api/users
+- When I send a DELETE request to /api/users/123
 
-// Unclear
-.when('I request users')
-.when('I create a user')  // POST? PUT?
+<!-- Unclear -->
+- When I request users
+- When I create a user   <!-- POST? PUT? -->
 ```
 
 **Request Bodies:**
-```typescript
-// Clear JSON structure
-.when('I send a POST request to /api/users')
-.withDocString(`{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "role": "user"
-}`)
+````markdown
+<!-- Clear JSON structure -->
+- When I send a POST request to /api/users
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "user"
+  }
+  ```
 
-// Unclear
-.when('I send a POST request with user data')
-```
+<!-- Unclear -->
+- When I send a POST request with user data
+````
 
 **Response Validation:**
-```typescript
-// Specific assertions
-.then('the response status should be 201')
-.and('the response should have property "id"')
-.and('the response.name should be "John Doe"')
+```markdown
+<!-- Specific assertions -->
+- Then the response status should be 201
+- And the response should have property "id"
+- And the response.name should be "John Doe"
 
-// Vague
-.then('the response should be correct')
-.and('the user should be created')
+<!-- Vague -->
+- Then the response should be correct
+- And the user should be created
 ```
 
 ### Mobile Testing
 
 **Gestures:**
-```typescript
-// Clear gestures
-.when('I swipe left on the screen')
-.when('I swipe down from the top')
-.when('I tap the "Settings" icon')
-.when('I long press the message')
+```markdown
+<!-- Clear gestures -->
+- When I swipe left on the screen
+- When I swipe down from the top
+- When I tap the "Settings" icon
+- When I long press the message
 
-// Unclear
-.when('I swipe')
-.when('I press the icon')
+<!-- Unclear -->
+- When I swipe
+- When I press the icon
 ```
 
 **Element Location:**
-```typescript
-// Clear location
-.when('I tap the "Login" button at the bottom of the screen')
-.when('I tap the menu icon in the top right')
-.when('I scroll down the news feed')
+```markdown
+<!-- Clear location -->
+- When I tap the "Login" button at the bottom of the screen
+- When I tap the menu icon in the top right
+- When I scroll down the news feed
 
-// Vague
-.when('I tap the button')
-.when('I scroll')
+<!-- Vague -->
+- When I tap the button
+- When I scroll
 ```
 
 ## Improving Step Clarity
 
 ### 1. Use Descriptive Names
 
-```typescript
-// Good
-.scenario('Login with valid admin credentials')
-.scenario('Submit contact form with missing required fields')
+```markdown
+<!-- Good -->
+## Scenario: Login with valid admin credentials
+## Scenario: Submit contact form with missing required fields
 
-// Less clear
-.scenario('Test login')
-.scenario('Form validation')
+<!-- Less clear -->
+## Scenario: Test login
+## Scenario: Form validation
 ```
 
 ### 2. Add Context
 
-```typescript
-// Good - provides context
-.given('I am on the checkout page')
-.and('I have 3 items in my cart')
-.when('I proceed to payment')
+```markdown
+<!-- Good - provides context -->
+- Given I am on the checkout page
+- And I have 3 items in my cart
+- When I proceed to payment
 
-// Less context
-.when('I proceed to payment')
+<!-- Less context -->
+- When I proceed to payment
 ```
 
 ### 3. Be Consistent
 
-```typescript
-// Consistent terminology
-.when('I click the "Submit" button')
-.when('I click the "Cancel" button')
-.when('I click the "Save" button')
+```markdown
+<!-- Consistent terminology -->
+- When I click the "Submit" button
+- When I click the "Cancel" button
+- When I click the "Save" button
 
-// Inconsistent
-.when('I click the "Submit" button')
-.when('I press Cancel')
-.when('I hit save')
+<!-- Inconsistent -->
+- When I click the "Submit" button
+- When I press Cancel
+- When I hit save
 ```
 
 ### 4. Use Data Tables for Structured Data
 
-```typescript
-// Good - structured data
-.scenario('Login with different users')
-  .when('I login with credentials:')
-  .withTable([
-    ['Username', 'Password'],
-    ['admin@example.com', 'admin123'],
-    ['user@example.com', 'user123']
-  ])
+```markdown
+<!-- Good - structured data -->
+## Scenario: Login with different users
+- When I login with credentials:
 
-// Less structured
-.when('I login as admin@example.com with admin123')
-.and('I login as user@example.com with user123')
+| Username | Password |
+|----------|----------|
+| admin@example.com | admin123 |
+| user@example.com | user123 |
+
+<!-- Less structured -->
+- When I login as admin@example.com with admin123
+- And I login as user@example.com with user123
 ```
 
 ## Reviewing AI Reasoning
@@ -388,24 +389,21 @@ Refine your step to be clearer.
 
 Watch the AI execute your steps:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      headless: false  // See what the AI does
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+    headless: false  # See what the AI does
 ```
 
 ### 2. Use Debug Mode
 
 See detailed AI reasoning:
 
-```typescript
-configure({
-  debugMode: true
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
 ```
 
 ### 3. Review Reports
@@ -440,26 +438,26 @@ defineStep(
 
 ### Option 2: Break Down Further
 
-```typescript
-// Instead of complex step
-.when('I complete checkout')
+```markdown
+<!-- Instead of complex step -->
+- When I complete checkout
 
-// Break into granular steps
-.when('I enter shipping address "123 Main St"')
-.and('I select shipping method "Express"')
-.and('I enter card number "4111111111111111"')
-.and('I enter expiry "12/25"')
-.and('I enter CVV "123"')
-.and('I click "Place Order"')
+<!-- Break into granular steps -->
+- When I enter shipping address "123 Main St"
+- And I select shipping method "Express"
+- And I enter card number "4111111111111111"
+- And I enter expiry "12/25"
+- And I enter CVV "123"
+- And I click "Place Order"
 ```
 
 ### Option 3: Add Wait Steps
 
-```typescript
-.when('I click "Load Data"')
-.and('I wait 2 seconds')  // Explicit wait
-.and('I wait for the loading spinner to disappear')
-.then('the data should be visible')
+```markdown
+- When I click "Load Data"
+- And I wait 2 seconds                              <!-- Explicit wait -->
+- And I wait for the loading spinner to disappear
+- Then the data should be visible
 ```
 
 ## Best Practices Summary

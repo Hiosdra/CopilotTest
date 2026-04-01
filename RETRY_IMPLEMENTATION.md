@@ -15,93 +15,67 @@ This implementation adds comprehensive retry mechanisms and error recovery strat
 ### 2. **Multiple Retry Strategies**
 
 #### Fixed Delay
-```typescript
-retry: {
-  enabled: true,
-  strategy: "fixed",
-  stepRetryDelay: 1000,  // Always wait 1s between retries
-}
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  strategy: fixed
+  stepRetryDelay: 1000  # Always wait 1s between retries
 ```
 
 #### Exponential Backoff
-```typescript
-retry: {
-  enabled: true,
-  strategy: "exponential",
-  initialDelay: 1000,     // First retry after 1s
-  backoffFactor: 2,       // Double each time: 1s, 2s, 4s, 8s...
-  maxDelay: 10000,        // Cap at 10s
-}
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  strategy: exponential
+  initialDelay: 1000     # First retry after 1s
+  backoffFactor: 2       # Double each time: 1s, 2s, 4s, 8s...
+  maxDelay: 10000        # Cap at 10s
 ```
 
 #### Custom Strategy
-```typescript
-retry: {
-  enabled: true,
-  delayFn: (attempt) => {
-    // Custom delay calculation
-    return Math.min(1000 * Math.pow(2, attempt), 30000);
-  },
-}
-```
+
+> **Note**: Custom delay functions cannot be expressed in YAML. These are configured programmatically in plugin code or custom config modules.
 
 ### 3. **Conditional Retry**
 
 #### Retry Only on Specific Errors
-```typescript
-retry: {
-  enabled: true,
-  retryOn: [
-    "timeout",
-    "network error",
-    /connection refused/i,
-  ],
-}
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  retryOn:
+    - "timeout"
+    - "network error"
 ```
 
 #### Skip Retry on Specific Errors
-```typescript
-retry: {
-  enabled: true,
-  skipRetryOn: [
-    "assertion failed",
-    /validation error/i,
-  ],
-}
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  skipRetryOn:
+    - "assertion failed"
 ```
 
 #### Custom Retry Logic
-```typescript
-retry: {
-  enabled: true,
-  shouldRetry: (error, attempt) => {
-    const msg = typeof error === "string" ? error : error.message;
-    if (msg.toLowerCase().includes("rate limit")) {
-      return attempt <= 5;  // Retry rate limits up to 5 times
-    }
-    if (msg.toLowerCase().includes("server error")) {
-      return attempt <= 3;  // Retry server errors up to 3 times
-    }
-    return false;  // Don't retry other errors
-  },
-}
-```
+
+> **Note**: Custom retry functions (e.g., `shouldRetry`) cannot be expressed in YAML. These are configured programmatically in plugin code or custom config modules.
 
 ### 4. **Flaky Test Detection**
 
 Automatically tracks and reports tests that pass only after retries:
 
-```typescript
-retry: {
-  enabled: true,
-  trackFlaky: true,
-  flakyThreshold: 2,  // Consider flaky if passes after 2+ retries
-  onFlakyDetected: (scenarioName, attempts) => {
-    console.warn(`⚠️ Flaky test: "${scenarioName}" passed on attempt ${attempts}`);
-    // Could send notification, create GitHub issue, etc.
-  },
-}
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  trackFlaky: true
+  flakyThreshold: 2  # Consider flaky if passes after 2+ retries
 ```
+
+> **Note**: The `onFlakyDetected` callback is configured programmatically in plugin code or custom config modules.
 
 ### 5. **Enhanced Reporting**
 
@@ -203,7 +177,7 @@ Added 46 comprehensive unit tests covering:
 
 ## Usage Examples
 
-See `examples/README.md` and `examples/retry-example.ts` for complete examples.
+See `examples/README.md` and `examples/retry-example.feature.md` for complete examples.
 
 ## Benefits
 
@@ -217,10 +191,10 @@ See `examples/README.md` and `examples/retry-example.ts` for complete examples.
 ## Future Enhancements (Not Implemented)
 
 The following features from the original issue were not implemented but could be added later:
-- Per-step retry override (e.g., `.retry(5, { delay: 2000 })`)
-- Recovery actions (e.g., `.onFailure(async ({ page }) => { ... })`)
+- Per-step retry overrides via YAML frontmatter
+- Recovery actions (e.g., plugin-based `onFailure` hooks)
 - Wait strategies (networkIdle, elementStable, custom conditions)
 - Auto-heal selectors
 - Circuit breaker pattern
 
-These features would require DSL changes and more complex state management, so they were deferred to maintain minimal changes and avoid breaking existing code.
+These features would require more complex state management and were deferred to maintain minimal changes and avoid breaking existing behavior.

@@ -7,36 +7,38 @@ CopilotTest includes a powerful interactive debugging mode to help you develop a
 ### 1. **Breakpoints**
 Pause execution at specific steps to inspect state and verify behavior.
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: [
-    'When I click the submit button',
-    'Then I should see an error message'
-  ]
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+breakpoints:
+  - "When I click the submit button"
+  - "Then I should see an error message"
 ```
 
 ### 2. **Step-through Execution**
 Execute one step at a time with user confirmation.
 
-```typescript
-configure({
-  debugMode: true,
-  interactive: true  // Enables step-through mode
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+interactive: true  # Enables step-through mode
 ```
 
 ### 3. **Scenario-level Debug**
 Enable debug mode for specific scenarios only.
 
-```typescript
-feature('Login')
-  .scenario('Admin login')
-    .debug()  // Debug this scenario only
-    .given('I am on the login page')
-    .when('I enter credentials')
-    .then('I should be logged in')
+```markdown
+<!-- tests/login.feature.md -->
+---
+platform: web
+debug: true  # Debug this scenario only
+---
+# Feature: Login
+
+## Scenario: Admin login
+- Given I am on the login page
+- When I enter credentials
+- Then I should be logged in
 ```
 
 ### 4. **Interactive Console**
@@ -56,104 +58,109 @@ copilot-debug> exit (q)         - Exit debug mode
 
 ### Example 1: Global Debug Mode
 
-```typescript
-import { configure, feature, test, run, webPlatform } from 'copilot-test';
+```yaml
+# copilot-test.config.yaml
+debugMode: true  # Enable debug for all tests
+platforms:
+  web:
+    type: web
+    browser: chromium
+```
 
-configure({
-  debugMode: true,  // Enable debug for all tests
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```markdown
+<!-- tests/login.feature.md -->
+---
+platform: web
+---
+# Feature: User Login
 
-const loginTest = feature('User Login')
-  .scenario('Failed login')
-    .given('I am on the login page')
-    .when('I enter invalid credentials')
-    .then('I should see an error')
-    .done()
-  ._build();
-
-test(loginTest, 'web');
-await run();
+## Scenario: Failed login
+- Given I am on the login page
+- When I enter invalid credentials
+- Then I should see an error
 ```
 
 ### Example 2: Breakpoints on Specific Steps
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: [
-    'When I click the submit button',
-    'Then I should see a confirmation'
-  ],
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+breakpoints:
+  - "When I click the submit button"
+  - "Then I should see a confirmation"
+platforms:
+  web:
+    type: web
+    browser: chromium
+```
 
-const checkoutTest = feature('Checkout')
-  .scenario('Complete purchase')
-    .given('I have items in cart')
-    .when('I proceed to checkout')
-    .and('I click the submit button')  // Breakpoint here
-    .then('I should see a confirmation')  // Breakpoint here
-    .done()
-  ._build();
+```markdown
+<!-- tests/checkout.feature.md -->
+---
+platform: web
+---
+# Feature: Checkout
 
-test(checkoutTest, 'web');
-await run();
+## Scenario: Complete purchase
+- Given I have items in cart
+- When I proceed to checkout
+- And I click the submit button          <!-- Breakpoint here -->
+- Then I should see a confirmation       <!-- Breakpoint here -->
 ```
 
 ### Example 3: Scenario-specific Debug
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+    browser: chromium
+```
 
-const tests = feature('User Management')
-  .scenario('Create user')
-    .given('I am logged in as admin')
-    .when('I create a new user')
-    .then('User should be created')
-  .scenario('Delete user')
-    .debug()  // Only debug this scenario
-    .given('I am logged in as admin')
-    .when('I delete a user')
-    .then('User should be deleted')
-    .done()
-  ._build();
+```markdown
+<!-- tests/user-management.feature.md -->
+---
+platform: web
+---
+# Feature: User Management
 
-test(tests, 'web');
-await run();
+## Scenario: Create user
+- Given I am logged in as admin
+- When I create a new user
+- Then User should be created
+
+## Scenario: Delete user
+<!-- debug: true — Only debug this scenario -->
+- Given I am logged in as admin
+- When I delete a user
+- Then User should be deleted
 ```
 
 ### Example 4: Step-through Mode
 
-```typescript
-configure({
-  debugMode: true,
-  interactive: true,  // Pause before each step
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+interactive: true  # Pause before each step
+platforms:
+  web:
+    type: web
+    browser: chromium
+```
 
-// Every step will pause for confirmation
-const test = feature('Registration')
-  .scenario('New user signup')
-    .given('I am on the signup page')
-    .when('I fill in the registration form')
-    .and('I submit the form')
-    .then('I should see a success message')
-    .done()
-  ._build();
+```markdown
+<!-- tests/registration.feature.md -->
+---
+platform: web
+---
+# Feature: Registration
 
-test(test, 'web');
-await run();
+## Scenario: New user signup
+- Given I am on the signup page
+- When I fill in the registration form
+- And I submit the form
+- Then I should see a success message
 ```
 
 ## Interactive Console Commands
@@ -269,22 +276,20 @@ Note: The scenario will be marked as "skipped" in the report, not "failed", sinc
 
 ### CopilotTestConfig Debug Options
 
-```typescript
-interface CopilotTestConfig {
-  // ... other options ...
-
-  debugMode?: boolean;        // Enable debug features globally
-  breakpoints?: string[];     // List of step texts to break on
-  interactive?: boolean;      // Enable step-through mode
-}
+```yaml
+# copilot-test.config.yaml
+debugMode: true              # Enable debug features globally
+breakpoints:                 # List of step texts to break on
+  - "When I click the submit button"
+interactive: true            # Enable step-through mode
 ```
 
-### Scenario Debug Method
+### Scenario Debug Annotation
 
-```typescript
-class ScenarioBuilder {
-  debug(): this;  // Enable debug for this scenario only
-}
+In Markdown tests, use a comment annotation to enable debug for a specific scenario:
+
+```markdown
+<!-- debug: true -->
 ```
 
 ## Use Cases
@@ -292,27 +297,26 @@ class ScenarioBuilder {
 ### 1. Developing New Tests
 Enable step-through mode to verify each step executes correctly:
 
-```typescript
-configure({
-  debugMode: true,
-  interactive: true
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+interactive: true
 ```
 
 ### 2. Debugging Failures
 Set breakpoints on failing steps to inspect state:
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: ['Then I should see the dashboard']
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+breakpoints:
+  - "Then I should see the dashboard"
 ```
 
 ### 3. Investigating Flaky Tests
 Use inspect commands to understand timing and state issues:
 
-```typescript
+```
 // At breakpoint:
 copilot-debug> inspect results
 copilot-debug> inspect context
@@ -321,11 +325,7 @@ copilot-debug> inspect context
 ### 4. Testing Specific Scenarios
 Enable debug only for problematic scenarios:
 
-```typescript
-.scenario('Problematic test')
-  .debug()
-  .given(...)
-```
+In your `.feature.md` file, add a `<!-- debug: true -->` comment annotation before the problematic scenario's steps to enable debug for that scenario only.
 
 ## Tips
 
@@ -345,4 +345,4 @@ Enable debug only for problematic scenarios:
 
 ## Examples
 
-See `tests/debug-example.spec.ts` for complete working examples.
+See `tests/debug-example.feature.md` for complete working examples.

@@ -16,14 +16,14 @@ This example suite covers core SaaS application functionality:
 ```
 saas-app/
 ├── features/
-│   ├── user-registration.spec.ts       # Sign-up and onboarding
-│   ├── subscription-management.spec.ts # Plans and billing
-│   ├── dashboard.spec.ts               # Main dashboard features
-│   └── settings.spec.ts                # Account and team settings
+│   ├── user-registration.feature.md       # Sign-up and onboarding
+│   ├── subscription-management.feature.md # Plans and billing
+│   ├── dashboard.feature.md               # Main dashboard features
+│   └── settings.feature.md                # Account and team settings
 ├── fixtures/
-│   ├── users.ts                        # Test users by tier
-│   └── plans.ts                        # Subscription plans
-└── README.md                           # This file
+│   ├── users.ts                           # Test users by tier
+│   └── plans.ts                           # Subscription plans
+└── README.md                              # This file
 ```
 
 ## Running Tests
@@ -31,20 +31,18 @@ saas-app/
 ```bash
 # Run all SaaS tests (explicit file list)
 copilot-test run \
-  examples/saas-app/features/user-registration.spec.ts \
-  examples/saas-app/features/subscription-management.spec.ts \
-  examples/saas-app/features/dashboard.spec.ts \
-  examples/saas-app/features/settings.spec.ts
+  examples/saas-app/features/user-registration.feature.md \
+  examples/saas-app/features/subscription-management.feature.md \
+  examples/saas-app/features/dashboard.feature.md \
+  examples/saas-app/features/settings.feature.md
 
 # Run specific feature
-copilot-test run examples/saas-app/features/subscription-management.spec.ts
-
-# Note: Each spec file includes configure() and can be run standalone
+copilot-test run examples/saas-app/features/subscription-management.feature.md
 ```
 
 ## Test Features
 
-### 1. User Registration (`user-registration.spec.ts`)
+### 1. User Registration (`user-registration.feature.md`)
 
 Tests the complete user onboarding experience from sign-up to first login.
 
@@ -61,7 +59,7 @@ Tests the complete user onboarding experience from sign-up to first login.
 - OAuth integration testing
 - Form validation
 
-### 2. Subscription Management (`subscription-management.spec.ts`)
+### 2. Subscription Management (`subscription-management.feature.md`)
 
 Covers subscription lifecycle from free trial to enterprise plans.
 
@@ -81,7 +79,7 @@ Covers subscription lifecycle from free trial to enterprise plans.
 - Billing cycle handling
 - Grace period testing
 
-### 3. Dashboard (`dashboard.spec.ts`)
+### 3. Dashboard (`dashboard.feature.md`)
 
 Tests main application dashboard with data visualization and customization.
 
@@ -99,7 +97,7 @@ Tests main application dashboard with data visualization and customization.
 - Real-time feature testing
 - Export functionality
 
-### 4. Settings (`settings.spec.ts`)
+### 4. Settings (`settings.feature.md`)
 
 Account, security, team, and integration settings.
 
@@ -123,111 +121,113 @@ Account, security, team, and integration settings.
 
 ### User Fixtures
 
-```typescript
-import { freeUser, professionalUser, enterpriseUser } from '../fixtures/users.js';
+Reference fixture values in your Markdown step descriptions:
 
-// Test with different subscription tiers
-.given(`I am logged in as free user "${freeUser.email}"`)
-.given(`I am logged in as professional user "${professionalUser.email}"`)
+```markdown
+## Scenario: Free user hits feature limit
+- Given I am logged in as free user "free@example.com"
+
+## Scenario: Professional user accesses advanced features
+- Given I am logged in as professional user "pro@example.com"
 ```
 
 ### Plan Fixtures
 
-```typescript
-import { freePlan, professionalPlan, enterprisePlan } from '../fixtures/plans.js';
-
-// Reference plan details
-.when(`I select the "${professionalPlan.name}" plan`)
-.then(`I should see the price $${professionalPlan.monthlyPrice}/month`)
+```markdown
+## Scenario: User upgrades plan
+- When I select the "Professional" plan
+- Then I should see the price $29/month
 ```
 
 ## SaaS-Specific Patterns
 
 ### Subscription Upgrade Flow
 
-```typescript
-.scenario('Free user upgrades to Professional')
-.given('I am on free plan')
-.when('I navigate to pricing page')
-.and('I select Professional plan')
-.and('I enter payment information')
-.and('I confirm upgrade')
-.then('my plan should be upgraded')
-.and('I should have access to professional features')
+```markdown
+## Scenario: Free user upgrades to Professional
+- Given I am on free plan
+- When I navigate to pricing page
+- And I select Professional plan
+- And I enter payment information
+- And I confirm upgrade
+- Then my plan should be upgraded
+- And I should have access to professional features
 ```
 
 ### Multi-Tenant Team Management
 
-```typescript
-.scenario('Admin invites team member')
-.given('I am an admin')
-.when('I navigate to team settings')
-.and('I invite a new member with role "Editor"')
-.then('invitation should be sent')
-.and('member should appear as pending')
+```markdown
+## Scenario: Admin invites team member
+- Given I am an admin
+- When I navigate to team settings
+- And I invite a new member with role "Editor"
+- Then invitation should be sent
+- And member should appear as pending
 ```
 
 ### Usage Limit Tracking
 
-```typescript
-.scenario('Dashboard shows usage limits')
-.given('I am on a plan with limits')
-.when('I view the dashboard')
-.then('I should see current usage vs limits')
-.and('I should see warnings if approaching limits')
+```markdown
+## Scenario: Dashboard shows usage limits
+- Given I am on a plan with limits
+- When I view the dashboard
+- Then I should see current usage vs limits
+- And I should see warnings if approaching limits
 ```
 
 ## Configuration
 
-```typescript
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',
-      headless: true,
-    }),
-  },
-  baseUrl: 'https://app.example-saas.com',
-  stepTimeout: 30000,
-  outputDir: 'copilot-test-results/saas-app',
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+baseUrl: https://app.example-saas.com
+stepTimeout: 30000
+outputDir: copilot-test-results/saas-app
 ```
 
 ## Best Practices
 
 ### 1. Test All Subscription Tiers
 
-```typescript
-// Free tier limitations
-.scenario('Free user encounters feature limit')
-.then('I should see upgrade prompt')
+```markdown
+## Scenario: Free user encounters feature limit
+- Given I am on the free plan
+- When I try to access a premium feature
+- Then I should see upgrade prompt
 
-// Professional tier features
-.scenario('Professional user accesses advanced features')
-.then('I should have full access')
+## Scenario: Professional user accesses advanced features
+- Given I am on the professional plan
+- When I access advanced features
+- Then I should have full access
 ```
 
 ### 2. Handle Billing Edge Cases
 
-```typescript
-// Payment failure
-.scenario('Payment fails at renewal')
-.then('I should receive notification')
-.and('I should have grace period to update payment')
+```markdown
+## Scenario: Payment fails at renewal
+- Given my payment method is expired
+- When renewal is attempted
+- Then I should receive notification
+- And I should have grace period to update payment
 
-// Proration
-.scenario('Upgrade mid-billing cycle')
-.then('I should see prorated charge')
+## Scenario: Upgrade mid-billing cycle
+- Given I am mid-billing cycle
+- When I upgrade my plan
+- Then I should see prorated charge
 ```
 
 ### 3. Test Team Collaboration
 
-```typescript
-.scenario('Team member permissions')
-.given('I am a member with limited role')
-.when('I try to access admin features')
-.then('I should see permission denied')
+```markdown
+## Scenario: Team member permissions
+- Given I am a member with limited role
+- When I try to access admin features
+- Then I should see permission denied
 ```
 
 ## Troubleshooting
@@ -237,9 +237,10 @@ configure({
 **Problem**: Cannot test real payment processing
 
 **Solution**: Use test/sandbox payment credentials
-```typescript
-// Use test card numbers
-const testCard = '4242424242424242'; // Stripe test card
+```markdown
+<!-- Use test card numbers in step descriptions -->
+## Scenario: Complete payment with test card
+- When I enter card number "4242424242424242"
 ```
 
 ### Email Verification Delays
@@ -247,9 +248,9 @@ const testCard = '4242424242424242'; // Stripe test card
 **Problem**: Email verification tests are slow
 
 **Solution**: Mock email service or use test APIs
-```typescript
-// Skip email verification in test environment
-.when('I verify email using test token')
+```markdown
+## Scenario: Verify email
+- When I verify email using test token
 ```
 
 ### Multi-Tenant Data Isolation
@@ -257,20 +258,20 @@ const testCard = '4242424242424242'; // Stripe test card
 **Problem**: Data from one test affects another
 
 **Solution**: Use unique tenant IDs per test
-```typescript
-const testCompany = `TestCorp_${Date.now()}`;
-.when(`I create company "${testCompany}"`)
+```markdown
+## Scenario: Create isolated tenant
+- When I create company "TestCorp_unique_id"
 ```
 
 ## Customization
 
 ### Add Your Features
 
-```typescript
-.scenario('Your SaaS-specific feature')
-.given('initial state')
-.when('user action')
-.then('expected result')
+```markdown
+## Scenario: Your SaaS-specific feature
+- Given initial state
+- When user action
+- Then expected result
 ```
 
 ### Extend Fixtures
@@ -286,6 +287,9 @@ export const customPlan: SubscriptionPlan = {
 };
 ```
 
+> **Note:** Fixture data files are still TypeScript. Only test specifications
+> have migrated to Markdown (`.feature.md`) format.
+
 ## CI/CD Integration
 
 ```yaml
@@ -298,7 +302,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: npm ci
-      - run: npx tsx examples/saas-app/features/*.spec.ts
+      - run: copilot-test run examples/saas-app/features/*.feature.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```

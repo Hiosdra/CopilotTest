@@ -55,14 +55,12 @@ AI Reasoning:
 
 See what the browser is doing:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({
-      headless: false  // Show browser window
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    platform: web
+    headless: false    # Show browser window
 ```
 
 Watch the test execute in real-time to spot issues.
@@ -71,10 +69,9 @@ Watch the test execute in real-time to spot issues.
 
 ### Enable Debug Mode
 
-```typescript
-configure({
-  debugMode: true
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
 ```
 
 This provides:
@@ -87,11 +84,10 @@ This provides:
 
 Step through tests manually:
 
-```typescript
-configure({
-  debugMode: true,
-  interactive: true
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+interactive: true
 ```
 
 Available commands during execution:
@@ -109,30 +105,31 @@ exit (q)        - Exit debug mode
 
 Pause execution at specific steps:
 
-```typescript
-configure({
-  debugMode: true,
-  breakpoints: [
-    'When I click submit',
-    'Then I should see',
-    'payment'  // Matches any step containing "payment"
-  ]
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
+breakpoints:
+  - "When I click submit"
+  - "Then I should see"
+  - "payment"    # Matches any step containing "payment"
 ```
 
 ### Scenario-Level Debug
 
-Debug specific scenarios:
+Debug specific scenarios by adding `debug: true` to the frontmatter of a `.feature.md` file to enable debug mode for all scenarios in that file:
 
-```typescript
-feature('Login')
-  .scenario('Admin login')
-    .debug()  // Enable debug for this scenario only
-    .given('I am on the login page')
-    .when('I enter credentials')
-    .then('I should be logged in')
-    .done()
-  ._build();
+```markdown
+---
+platform: web
+debug: true
+---
+
+# Feature: Login
+
+## Scenario: Admin login
+- Given I am on the login page
+- When I enter credentials
+- Then I should be logged in
 ```
 
 ## Common Failure Patterns
@@ -148,28 +145,28 @@ Error: Element not found: button with text "Submit"
 **Solutions:**
 
 **A. Check element selector:**
-```typescript
-// Too specific - might fail
-.when('I click the "Submit Order" button')
+```markdown
+<!-- Too specific - might fail -->
+- When I click the "Submit Order" button
 
-// More flexible
-.when('I click the Submit button')
-.when('I click the button containing "Submit"')
+<!-- More flexible -->
+- When I click the Submit button
+- When I click the button containing "Submit"
 ```
 
 **B. Wait for element:**
-```typescript
-.when('I wait for the Submit button to appear')
-.and('I click the Submit button')
+```markdown
+- When I wait for the Submit button to appear
+- And I click the Submit button
 ```
 
 **C. Check exact text:**
-```typescript
-// Wrong case
-.when('I click the "submit" button')  // ✗
+```markdown
+<!-- Wrong case -->
+- When I click the "submit" button  <!-- ✗ -->
 
-// Correct case
-.when('I click the "Submit" button')  // ✓
+<!-- Correct case -->
+- When I click the "Submit" button  <!-- ✓ -->
 ```
 
 ### 2. Timeout Errors
@@ -183,17 +180,16 @@ Error: Step timed out after 30000ms
 **Solutions:**
 
 **A. Increase timeout:**
-```typescript
-configure({
-  stepTimeout: 60000  // 60 seconds
-});
+```yaml
+# copilot-test.config.yaml
+stepTimeout: 60000    # 60 seconds
 ```
 
 **B. Add explicit waits:**
-```typescript
-.when('I submit the form')
-.and('I wait for the response')
-.then('I should see confirmation')
+```markdown
+- When I submit the form
+- And I wait for the response
+- Then I should see confirmation
 ```
 
 **C. Check network/server:**
@@ -210,42 +206,39 @@ configure({
 **Solutions:**
 
 **A. Enable retry:**
-```typescript
-configure({
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-    trackFlaky: true,
-    flakyThreshold: 2,
-    onFlakyDetected: (name, attempts) => {
-      console.warn(`Flaky test: ${name} (${attempts} attempts)`);
-    }
-  }
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
+  trackFlaky: true
+  flakyThreshold: 2
 ```
 
-**B. Add explicit waits:**
-```typescript
-// Bad - assumes immediate load
-.when('I click "Load Data"')
-.then('the table should have 10 rows')
+> **Note:** The `onFlakyDetected` callback requires a [plugin](../advanced/plugins.md).
 
-// Good - wait for data
-.when('I click "Load Data"')
-.and('I wait for the loading to complete')
-.then('the table should have 10 rows')
+**B. Add explicit waits:**
+```markdown
+<!-- Bad - assumes immediate load -->
+- When I click "Load Data"
+- Then the table should have 10 rows
+
+<!-- Good - wait for data -->
+- When I click "Load Data"
+- And I wait for the loading to complete
+- Then the table should have 10 rows
 ```
 
 **C. Make tests independent:**
-```typescript
-// Bad - depends on previous test
-.scenario('Delete user')
-  .when('I delete the user')  // Which user?
+```markdown
+<!-- Bad - depends on previous test -->
+## Scenario: Delete user
+- When I delete the user  <!-- Which user? -->
 
-// Good - sets up own state
-.scenario('Delete user')
-  .given('I have created a test user')
-  .when('I delete the test user')
+<!-- Good - sets up own state -->
+## Scenario: Delete user
+- Given I have created a test user
+- When I delete the test user
 ```
 
 ### 4. Assertion Failures
@@ -259,25 +252,25 @@ Error: Expected "Welcome" but found "Welcome!"
 **Solutions:**
 
 **A. Use partial matching:**
-```typescript
-// Strict - might fail
-.then('I should see "Welcome, John Doe"')
+```markdown
+<!-- Strict - might fail -->
+- Then I should see "Welcome, John Doe"
 
-// Flexible - more robust
-.then('I should see text containing "Welcome"')
-.and('I should see text containing "John"')
+<!-- Flexible - more robust -->
+- Then I should see text containing "Welcome"
+- And I should see text containing "John"
 ```
 
 **B. Check actual vs expected:**
 Review the AI reasoning to see what was actually found.
 
 **C. Account for dynamic content:**
-```typescript
-// Bad - exact match on dynamic data
-.then('the timestamp should be "2024-01-15 10:30:00"')
+```markdown
+<!-- Bad - exact match on dynamic data -->
+- Then the timestamp should be "2024-01-15 10:30:00"
 
-// Good - check format
-.then('the timestamp should be in format YYYY-MM-DD HH:MM:SS')
+<!-- Good - check format -->
+- Then the timestamp should be in format YYYY-MM-DD HH:MM:SS
 ```
 
 ### 5. Authentication Issues
@@ -291,26 +284,28 @@ Error: Redirected to login page (401 Unauthorized)
 **Solutions:**
 
 **A. Verify credentials:**
-```typescript
-// Check environment variables
-console.log('Username:', process.env.TEST_USERNAME);
-console.log('API Token:', process.env.API_TOKEN ? '✓ Set' : '✗ Missing');
+
+Check that the required environment variables are set before running tests:
+
+```bash
+echo "Username: ${TEST_USERNAME}"
+echo "API Token: ${API_TOKEN:+✓ Set}"
+echo "API Token: ${API_TOKEN:-✗ Missing}"
 ```
 
 **B. Add login step:**
-```typescript
-.scenario('View dashboard')
-  .given('I am logged in as "admin@example.com"')
-  .when('I navigate to the dashboard')
-  .then('I should see the dashboard')
-  .done()
+```markdown
+## Scenario: View dashboard
+- Given I am logged in as "admin@example.com"
+- When I navigate to the dashboard
+- Then I should see the dashboard
 ```
 
 **C. Check session persistence:**
-```typescript
-.given('I am logged in')
-.when('I reload the page')
-.then('I should still be logged in')  // Session should persist
+```markdown
+- Given I am logged in
+- When I reload the page
+- Then I should still be logged in
 ```
 
 ## Debugging by Platform
@@ -329,13 +324,12 @@ defineStep(/^I check the browser console$/, async (context) => {
 
 **Check network requests:**
 
-```typescript
-.scenario('Debug API calls')
-  .given('I am on the page')
-  .when('I perform an action')
-  .then('I should see the network request to /api/users')
-  .and('the request should return 200')
-  .done()
+```markdown
+## Scenario: Debug API calls
+- Given I am on the page
+- When I perform an action
+- Then I should see the network request to /api/users
+- And the request should return 200
 ```
 
 **Inspect page source:**
@@ -346,10 +340,9 @@ Use headless: false and manually inspect the page when tests pause.
 
 **Log request/response:**
 
-```typescript
-configure({
-  debugMode: true  // Shows full request/response
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true    # Shows full request/response
 ```
 
 **Verify API endpoint:**
@@ -362,12 +355,11 @@ curl -X GET https://api.example.com/users \
 
 **Check API status:**
 
-```typescript
-.scenario('Health check')
-  .when('I send a GET request to /health')
-  .then('the response status should be 200')
-  .and('the response should contain "status: ok"')
-  .done()
+```markdown
+## Scenario: Health check
+- When I send a GET request to /health
+- Then the response status should be 200
+- And the response should contain "status: ok"
 ```
 
 ### Mobile Testing
@@ -424,13 +416,11 @@ defineStep(/^I verify the stored user ID$/, async (context) => {
 
 Enable performance monitoring:
 
-```typescript
-configure({
-  performance: {
-    warnThreshold: 5000,   // Warn if step > 5s
-    failThreshold: 30000   // Fail if step > 30s
-  }
-});
+```yaml
+# copilot-test.config.yaml
+performance:
+  warnThreshold: 5000     # Warn if step > 5s
+  failThreshold: 30000    # Fail if step > 30s
 ```
 
 The report will highlight slow steps:
@@ -443,12 +433,11 @@ The report will highlight slow steps:
 
 For web tests:
 
-```typescript
-.scenario('Monitor page load')
-  .when('I navigate to https://example.com')
-  .then('the page should load in less than 3 seconds')
-  .and('all resources should be loaded')
-  .done()
+```markdown
+## Scenario: Monitor page load
+- When I navigate to https://example.com
+- Then the page should load in less than 3 seconds
+- And all resources should be loaded
 ```
 
 ## Screenshot Debugging
@@ -457,10 +446,9 @@ For web tests:
 
 Screenshots are captured on failure by default:
 
-```typescript
-configure({
-  screenshotOnFailure: true
-});
+```yaml
+# copilot-test.config.yaml
+screenshotOnFailure: true
 ```
 
 Find screenshots in:
@@ -471,13 +459,12 @@ copilot-test-results/screenshots/
 
 ### Manual Screenshots
 
-```typescript
-.scenario('Debug visual issue')
-  .given('I am on the page')
-  .when('I perform an action')
-  .and('I take a screenshot')  // Manual screenshot
-  .then('I verify the result')
-  .done()
+```markdown
+## Scenario: Debug visual issue
+- Given I am on the page
+- When I perform an action
+- And I take a screenshot
+- Then I verify the result
 ```
 
 ## Error Messages
@@ -558,9 +545,14 @@ const debugPlugin = definePlugin({
   }
 });
 
-configure({
-  plugins: [debugPlugin]
-});
+```
+
+Then reference the plugin in your config:
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - "./plugins/debug-plugin.ts"
 ```
 
 ## CI/CD Debugging
@@ -580,17 +572,12 @@ configure({
 
 ### Check Environment
 
-```typescript
-configure({
-  debugMode: process.env.CI === 'true'
-});
-
-if (process.env.CI) {
-  console.log('Running in CI environment');
-  console.log('Node version:', process.version);
-  console.log('Environment:', process.env.NODE_ENV);
-}
+```yaml
+# copilot-test.config.yaml
+debugMode: "${CI:-false}"
 ```
+
+> **Tip:** In CI environments, set the `CI` environment variable to `true` to automatically enable debug mode and capture additional diagnostic output.
 
 ## Getting Help
 
@@ -604,18 +591,18 @@ If you're still stuck:
    - [GitHub Issues](https://github.com/Hiosdra/CopilotTest/issues)
 
 3. **Create a minimal reproduction:**
-   ```typescript
-   // Simplify your test to the failing step
-   test(
-     feature('Debug')
-       .scenario('Minimal reproduction')
-         .given('setup')
-         .when('failing step')
-         .then('expected result')
-         .done()
-       ._build(),
-     'web'
-   );
+   ```markdown
+   ---
+   platform: web
+   debug: true
+   ---
+
+   # Feature: Debug
+
+   ## Scenario: Minimal reproduction
+   - Given setup
+   - When failing step
+   - Then expected result
    ```
 
 5. **Report the issue:**

@@ -89,15 +89,13 @@ Error: Invalid configuration: platforms is required
 **Solutions:**
 
 **Ensure you have a valid configuration:**
-```typescript
-import { configure, webPlatform } from 'copilot-test';
-
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({ browser: 'chromium' })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    type: web
+    browser: chromium
 ```
 
 ### Error: Unknown platform
@@ -110,17 +108,13 @@ Error: Unknown platform: 'mobile'
 **Solutions:**
 
 **Import and configure the platform:**
-```typescript
-import { configure, mobilePlatform } from 'copilot-test';
-
-configure({
-  platforms: {
-    mobile: mobilePlatform({
-      device: 'emulator-5554',
-      appPackage: 'com.example.app'
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  mobile:
+    type: mobile
+    device: emulator-5554
+    appPackage: com.example.app
 ```
 
 ## Runtime Errors
@@ -136,16 +130,15 @@ Error: Step timed out after 30000ms
 **Solutions:**
 
 1. **Increase timeout:**
-   ```typescript
-   configure({
-     stepTimeout: 60000  // 60 seconds
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   stepTimeout: 60000  # 60 seconds
    ```
 
 2. **Add explicit waits:**
-   ```typescript
-   .when('I wait for the page to load')
-   .and('I click the Submit button')
+   ```markdown
+   - When I wait for the page to load
+   - And I click the Submit button
    ```
 
 3. **Check if element exists:**
@@ -164,30 +157,30 @@ Error: Element not found: button with text "Login"
 **Solutions:**
 
 1. **Check exact text:**
-   ```typescript
-   // Wrong case
-   .when('I click the "login" button')  // ✗
+   ```markdown
+   <!-- Wrong case -->
+   - When I click the "login" button   <!-- ✗ -->
 
-   // Correct case
-   .when('I click the "Login" button')  // ✓
+   <!-- Correct case -->
+   - When I click the "Login" button   <!-- ✓ -->
    ```
 
 2. **Use partial matching:**
-   ```typescript
-   .when('I click the button containing "Login"')
+   ```markdown
+   - When I click the button containing "Login"
    ```
 
 3. **Wait for element:**
-   ```typescript
-   .when('I wait for the Login button to appear')
-   .and('I click the Login button')
+   ```markdown
+   - When I wait for the Login button to appear
+   - And I click the Login button
    ```
 
 4. **Check page loaded:**
-   ```typescript
-   .given('I am on https://example.com/login')
-   .and('the page has finished loading')
-   .when('I click the "Login" button')
+   ```markdown
+   - Given I am on https://example.com/login
+   - And the page has finished loading
+   - When I click the "Login" button
    ```
 
 ### Error: Connection refused
@@ -208,14 +201,12 @@ Error: connect ECONNREFUSED 127.0.0.1:3000
    ```
 
 2. **Check the URL:**
-   ```typescript
-   configure({
-     platforms: {
-       web: webPlatform({
-         baseUrl: 'http://localhost:3000'  // Verify port
-       })
-     }
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   platforms:
+     web:
+       type: web
+       baseUrl: http://localhost:3000  # Verify port
    ```
 
 3. **Verify server is accessible:**
@@ -234,17 +225,14 @@ Error: 401 Unauthorized
 **Solutions:**
 
 1. **Check authentication token:**
-   ```typescript
-   configure({
-     platforms: {
-       api: apiPlatform({
-         baseUrl: 'https://api.example.com',
-         defaultHeaders: {
-           'Authorization': `Bearer ${process.env.API_TOKEN}`
-         }
-       })
-     }
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   platforms:
+     api:
+       type: api
+       baseUrl: https://api.example.com
+       defaultHeaders:
+         Authorization: "Bearer ${API_TOKEN}"
    ```
 
 2. **Verify token is set:**
@@ -276,16 +264,16 @@ Error: Failed to connect to MCP server: playwright
    ```
 
 3. **Check MCP configuration:**
-   ```typescript
-   configure({
-     mcpServers: {
-       playwright: {
-         type: 'stdio',
-         command: 'npx',
-         args: ['@playwright/mcp', '--browser', 'chromium']
-       }
-     }
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   mcpServers:
+     playwright:
+       type: stdio
+       command: npx
+       args:
+         - "@playwright/mcp"
+         - "--browser"
+         - chromium
    ```
 
 ## Mobile Testing Errors
@@ -334,15 +322,13 @@ Error: App package 'com.example.app' not found
    ```
 
 3. **Check package name:**
-   ```typescript
-   configure({
-     platforms: {
-       mobile: mobilePlatform({
-         appPackage: 'com.example.app',  // Verify correct package
-         appActivity: '.MainActivity'
-       })
-     }
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   platforms:
+     mobile:
+       type: mobile
+       appPackage: com.example.app    # Verify correct package
+       appActivity: .MainActivity
    ```
 
 ## API Testing Errors
@@ -358,12 +344,14 @@ Error: Invalid JSON in request body
 **Solutions:**
 
 **Ensure valid JSON syntax:**
-```typescript
-.when('I send a POST request to /users')
-.withDocString(`{
-  "name": "John Doe",
-  "email": "john@example.com"
-}`)
+```markdown
+- When I send a POST request to /users
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+  ```
 ```
 
 **Check for:**
@@ -434,18 +422,16 @@ Error: Worker timed out after 300000ms
 **Solutions:**
 
 1. **Increase worker timeout:**
-   ```typescript
-   configure({
-     parallel: true,
-     workerTimeout: 600000  // 10 minutes
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   parallel: true
+   workerTimeout: 600000  # 10 minutes
    ```
 
 2. **Reduce worker count:**
-   ```typescript
-   configure({
-     maxWorkers: 2  // Reduce from 4 to 2
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   maxWorkers: 2  # Reduce from 4 to 2
    ```
 
 ### Error: Too many workers
@@ -458,11 +444,10 @@ Error: Cannot spawn worker: Resource temporarily unavailable
 **Solutions:**
 
 **Reduce worker count:**
-```typescript
-configure({
-  parallel: true,
-  maxWorkers: 2  // Instead of 'auto' or high number
-});
+```yaml
+# copilot-test.config.yaml
+parallel: true
+maxWorkers: 2  # Instead of 'auto' or high number
 ```
 
 ## Watch Mode Errors
@@ -498,11 +483,12 @@ Error: Failed to start interactive debug session
    - Won't work in CI without TTY
 
 2. **Disable interactive mode in CI:**
-   ```typescript
-   configure({
-     debugMode: !process.env.CI,
-     interactive: !process.env.CI
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   # Disable debug mode in CI by using environment-specific config
+   # or set debugMode: false in CI overrides
+   debugMode: false
+   interactive: false
    ```
 
 ## Common Pitfalls
@@ -510,98 +496,94 @@ Error: Failed to start interactive debug session
 ### 1. Using Relative Paths Without Base URL
 
 ❌ **Wrong:**
-```typescript
-.given('I am on /login')  // Will fail without baseUrl
+```markdown
+- Given I am on /login   <!-- Will fail without baseUrl -->
 ```
 
 ✅ **Right:**
-```typescript
-// Option 1: Set baseUrl
-configure({
-  platforms: {
-    web: webPlatform({
-      baseUrl: 'https://example.com'
-    })
-  }
-});
-
-.given('I am on /login')  // Now works
-
-// Option 2: Use full URL
-.given('I am on https://example.com/login')
+```yaml
+# Option 1: Set baseUrl in copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+    baseUrl: https://example.com
+```
+```markdown
+- Given I am on /login   <!-- Now works -->
 ```
 
-### 2. Forgetting await run()
+```markdown
+<!-- Option 2: Use full URL -->
+- Given I am on https://example.com/login
+```
+
+### 2. Missing Platform in Config
 
 ❌ **Wrong:**
-```typescript
-test(myFeature, 'web');
-run();  // Missing await
+```yaml
+# copilot-test.config.yaml
+# No platforms defined
+model: gpt-4o
 ```
 
 ✅ **Right:**
-```typescript
-test(myFeature, 'web');
-await run();
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    type: web
 ```
 
-### 3. Passing Wrong Type to test()
+### 3. Missing Front Matter in Test File
 
 ❌ **Wrong:**
-```typescript
-const myScenario = feature('Test')
-  .scenario('Test scenario')
-    .given('step')
-    .done();  // Returns ScenarioBuilder, not FeatureBuilder
-
-test(myScenario, 'web');  // Error: expected Feature or FeatureBuilder
+```markdown
+# Feature: My Test
+## Scenario: Test something
+- Given a step
 ```
 
 ✅ **Right:**
-```typescript
-// Option 1: Call ._build() to get Feature object
-const myFeature = feature('Test')
-  .scenario('Test scenario')
-    .given('step')
-    .done()
-  ._build();
-
-test(myFeature, 'web');
-
-// Option 2: Pass FeatureBuilder directly (._build() called automatically)
-test(
-  feature('Test')
-    .scenario('Test scenario')
-      .given('step')
-      .done(),
-  'web'
-);
+```markdown
+---
+platform: web
+---
+# Feature: My Test
+## Scenario: Test something
+- Given a step
 ```
 
 ### 4. Platform Mismatch
 
 ❌ **Wrong:**
-```typescript
-configure({
-  platforms: {
-    web: webPlatform()
-  }
-});
-
-// Testing with wrong platform
-test(apiFeature, 'api');  // Error: platform 'api' not configured
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+```
+```markdown
+<!-- tests/api-test.feature.md -->
+---
+platform: api   <!-- Error: platform 'api' not configured -->
+---
 ```
 
 ✅ **Right:**
-```typescript
-configure({
-  platforms: {
-    web: webPlatform(),
-    api: apiPlatform()  // Configure the platform you're using
-  }
-});
-
-test(apiFeature, 'api');  // Now works
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+  api:
+    type: api    # Configure the platform you're using
+```
+```markdown
+<!-- tests/api-test.feature.md -->
+---
+platform: api   <!-- Now works -->
+---
 ```
 
 ## Getting More Help
@@ -609,10 +591,9 @@ test(apiFeature, 'api');  // Now works
 If you're still experiencing issues:
 
 1. **Enable debug mode:**
-   ```typescript
-   configure({
-     debugMode: true
-   });
+   ```yaml
+   # copilot-test.config.yaml
+   debugMode: true
    ```
 
 2. **Check the HTML report:**

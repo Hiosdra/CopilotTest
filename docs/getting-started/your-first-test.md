@@ -18,154 +18,108 @@ We'll create a complete login test that:
 
 ## Step 1: Create the Test File
 
-Create a new file `tests/login.spec.ts`:
+Create a new file `tests/login.feature.md`:
 
 ```bash
 mkdir -p tests
-touch tests/login.spec.ts
+touch tests/login.feature.md
 ```
 
-## Step 2: Import CopilotTest
+## Step 2: Set Up Configuration
 
-Add the necessary imports:
+Ensure your `copilot-test.config.yaml` in the project root has the web platform configured:
 
-```typescript
-import { configure, feature, test, run } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+```yaml
+model: gpt-4o
+stepTimeout: 30000
+screenshotOnFailure: true
+outputDir: test-results
+
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: false
+    baseUrl: "https://demo.example.com"
 ```
 
-**What these do:**
-- `configure`: Set up test configuration
-- `feature`: Create a feature (high-level functionality)
-- `test`: Register a test for execution
-- `run`: Execute all registered tests
-- `webPlatform`: Web testing configuration
+## Step 3: Define the Feature
 
-## Step 3: Configure CopilotTest
+Open `tests/login.feature.md` and add the feature header with YAML frontmatter:
 
-Add configuration at the top of your file:
+```markdown
+---
+platform: web
+tags: [critical, smoke]
+---
 
-```typescript
-configure({
-  model: 'gpt-4o',                   // AI model to use
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',            // Browser choice
-      headless: false,                // Show browser window
-      baseUrl: 'https://demo.example.com'  // Base URL for relative paths
-    })
-  },
-  stepTimeout: 30000,                 // 30 seconds per step
-  screenshotOnFailure: true,          // Capture screenshots on failure
-  outputDir: 'test-results'           // Report output directory
-});
-```
+# Feature: User Authentication
 
-## Step 4: Define the Feature
-
-Create a feature representing the login functionality:
-
-```typescript
-const loginFeature = feature('User Authentication')
-  .tag('@critical', '@smoke')
-  .description('Tests for user login functionality')
+Tests for user login functionality.
 ```
 
 **Feature elements:**
-- `feature('name')`: Creates a new feature
-- `.tag(...)`: Add tags for filtering (e.g., `@smoke`, `@regression`)
-- `.description(...)`: Describe the feature (optional)
+- **Frontmatter** (`---`): YAML metadata — `platform` and `tags`
+- **`# Feature: Name`**: H1 heading declares the feature
+- Description text below the heading (optional)
 
-## Step 5: Add Your First Scenario
+## Step 4: Add Your First Scenario
 
 Add a scenario for successful login:
 
-```typescript
-const loginFeature = feature('User Authentication')
-  .tag('@critical', '@smoke')
-  .description('Tests for user login functionality')
-
-  .scenario('Successful admin login')
-    .tag('@auth')
-    .given('I am on the login page')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "SecurePassword123"')
-    .and('I click the "Login" button')
-    .then('I should see the dashboard')
-    .and('I should see a welcome message "Welcome, Admin"')
-    .done()
-
-  ._build();
+```markdown
+## Scenario: Successful admin login @auth
+- Given I am on the login page
+- When I enter username "admin@example.com"
+- And I enter password "SecurePassword123"
+- And I click the "Login" button
+- Then I should see the dashboard
+- And I should see a welcome message "Welcome, Admin"
 ```
 
 **Scenario structure:**
-- `.scenario('name')`: Start a new scenario
-- `.given(...)`: Setup/precondition steps
-- `.when(...)`: Action steps
-- `.then(...)`: Assertion/verification steps
-- `.and(...)`: Additional steps of any type
-- `.done()`: Complete the scenario
-- `._build()`: Build the complete feature
+- `## Scenario: Name`: H2 heading starts a new scenario
+- `@tag` annotations can be added inline after the scenario name
+- `- Given ...`: Setup/precondition steps
+- `- When ...`: Action steps
+- `- Then ...`: Assertion/verification steps
+- `- And ...`: Additional steps of any type
 
-## Step 6: Register the Test
+## Step 5: Register the Test
 
-Tell CopilotTest about this feature:
-
-```typescript
-test(loginFeature, 'web');
-```
-
-**Note:** When using the CLI (`copilot-test run`), you don't need to call `await run()` in your test file—the CLI handles execution. If you want to run the test file directly with Node.js/tsx, you would add `await run()` at the end.
+No registration is needed! The CLI discovers `.feature.md` files automatically. The `platform: web` frontmatter tells CopilotTest which platform to use.
 
 ## Complete Test File
 
-Here's the complete `tests/login.spec.ts`:
+Here's the complete `tests/login.feature.md`:
 
-```typescript
-import { configure, feature, test } from 'copilot-test';
-import { webPlatform } from 'copilot-test';
+```markdown
+---
+platform: web
+tags: [critical, smoke]
+---
 
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    web: webPlatform({
-      browser: 'chromium',
-      headless: false,
-      baseUrl: 'https://demo.example.com'
-    })
-  },
-  stepTimeout: 30000,
-  screenshotOnFailure: true,
-  outputDir: 'test-results'
-});
+# Feature: User Authentication
 
-const loginFeature = feature('User Authentication')
-  .tag('@critical', '@smoke')
-  .description('Tests for user login functionality')
+Tests for user login functionality.
 
-  .scenario('Successful admin login')
-    .tag('@auth')
-    .given('I am on the login page')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "SecurePassword123"')
-    .and('I click the "Login" button')
-    .then('I should see the dashboard')
-    .and('I should see a welcome message "Welcome, Admin"')
-    .done()
-
-  ._build();
-
-test(loginFeature, 'web');
+## Scenario: Successful admin login @auth
+- Given I am on the login page
+- When I enter username "admin@example.com"
+- And I enter password "SecurePassword123"
+- And I click the "Login" button
+- Then I should see the dashboard
+- And I should see a welcome message "Welcome, Admin"
 ```
 
-**Note:** This file doesn't include `await run()` because it's designed to be executed via the CLI. The CLI imports the file and calls `run()` itself.
+That's it — no imports, no build step, no boilerplate. Configuration is handled by `copilot-test.config.yaml`.
 
-## Step 7: Run Your Test
+## Step 6: Run Your Test
 
 Execute the test:
 
 ```bash
-npx copilot-test run tests/login.spec.ts
+npx copilot-test run tests/login.feature.md
 ```
 
 Expected output:
@@ -190,41 +144,37 @@ Feature: User Authentication [@critical, @smoke]
 📊 Report: test-results/report.html
 ```
 
-## Step 8: Add More Scenarios
+## Step 7: Add More Scenarios
 
-Expand your test by adding negative test cases:
+Expand your test by adding negative test cases to the same file:
 
-```typescript
-const loginFeature = feature('User Authentication')
-  .tag('@critical', '@smoke')
+```markdown
+---
+platform: web
+tags: [critical, smoke]
+---
 
-  .scenario('Successful admin login')
-    .tag('@auth')
-    .given('I am on the login page')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "SecurePassword123"')
-    .and('I click the "Login" button')
-    .then('I should see the dashboard')
-    .done()
+# Feature: User Authentication
 
-  .scenario('Login with invalid credentials')
-    .tag('@auth', '@negative')
-    .given('I am on the login page')
-    .when('I enter username "admin@example.com"')
-    .and('I enter password "WrongPassword"')
-    .and('I click the "Login" button')
-    .then('I should see an error message "Invalid credentials"')
-    .and('I should remain on the login page')
-    .done()
+## Scenario: Successful admin login @auth
+- Given I am on the login page
+- When I enter username "admin@example.com"
+- And I enter password "SecurePassword123"
+- And I click the "Login" button
+- Then I should see the dashboard
 
-  .scenario('Login with empty fields')
-    .tag('@auth', '@validation')
-    .given('I am on the login page')
-    .when('I click the "Login" button')
-    .then('I should see an error message "Username is required"')
-    .done()
+## Scenario: Login with invalid credentials @auth @negative
+- Given I am on the login page
+- When I enter username "admin@example.com"
+- And I enter password "WrongPassword"
+- And I click the "Login" button
+- Then I should see an error message "Invalid credentials"
+- And I should remain on the login page
 
-  ._build();
+## Scenario: Login with empty fields @auth @validation
+- Given I am on the login page
+- When I click the "Login" button
+- Then I should see an error message "Username is required"
 ```
 
 ## Understanding What Happens
@@ -269,33 +219,46 @@ When you run the test:
 Write steps as if instructing a person:
 
 ✅ **Clear and specific:**
-```typescript
-.given('I am on https://example.com/login')
-.when('I enter "john@example.com" in the email field')
-.and('I enter "password123" in the password field')
-.and('I click the "Sign In" button')
-.then('I should be redirected to https://example.com/dashboard')
+```markdown
+- Given I am on https://example.com/login
+- When I enter "john@example.com" in the email field
+- And I enter "password123" in the password field
+- And I click the "Sign In" button
+- Then I should be redirected to https://example.com/dashboard
 ```
 
 ❌ **Vague and unclear:**
-```typescript
-.given('I navigate')
-.when('I login')
-.then('it works')
+```markdown
+- Given I navigate
+- When I login
+- Then it works
 ```
 
 ### Tags for Organization
 
-Use tags to organize and filter tests:
+Use tags in the frontmatter or inline with scenario headings:
 
-```typescript
-.tag('@smoke')      // Quick smoke tests
-.tag('@regression') // Full regression suite
-.tag('@critical')   // Critical path tests
-.tag('@slow')       // Slow-running tests
-.tag('@api')        // API tests
-.tag('@ui')         // UI tests
+```markdown
+---
+tags: [smoke, regression]    # Feature-level tags in frontmatter
+---
+
+# Feature: User Management
+
+## Scenario: Create user @critical
+- Given ...
+
+## Scenario: Delete user @slow @cleanup
+- Given ...
 ```
+
+Common tag conventions:
+- `smoke` — Quick smoke tests
+- `regression` — Full regression suite
+- `critical` — Critical path tests
+- `slow` — Slow-running tests
+- `api` — API tests
+- `ui` — UI tests
 
 Run specific tags:
 
@@ -317,60 +280,58 @@ Now that you've created your first test:
 
 ### Testing Forms
 
-```typescript
-.scenario('Submit contact form')
-  .given('I am on the contact page')
-  .when('I enter "John Doe" in the name field')
-  .and('I enter "john@example.com" in the email field')
-  .and('I enter "Hello!" in the message field')
-  .and('I click the "Send" button')
-  .then('I should see "Message sent successfully"')
+```markdown
+## Scenario: Submit contact form
+- Given I am on the contact page
+- When I enter "John Doe" in the name field
+- And I enter "john@example.com" in the email field
+- And I enter "Hello!" in the message field
+- And I click the "Send" button
+- Then I should see "Message sent successfully"
 ```
 
 ### Testing Navigation
 
-```typescript
-.scenario('Navigate to product page')
-  .given('I am on the home page')
-  .when('I click the "Products" link')
-  .and('I click on "Product ABC"')
-  .then('I should see "Product ABC" in the heading')
-  .and('I should see the price "$99.99"')
+```markdown
+## Scenario: Navigate to product page
+- Given I am on the home page
+- When I click the "Products" link
+- And I click on "Product ABC"
+- Then I should see "Product ABC" in the heading
+- And I should see the price "$99.99"
 ```
 
 ### Testing Authentication
 
-```typescript
-.scenario('Logout')
-  .given('I am logged in as "admin@example.com"')
-  .when('I click the user menu')
-  .and('I click "Logout"')
-  .then('I should be redirected to the login page')
-  .and('I should see "You have been logged out"')
+```markdown
+## Scenario: Logout
+- Given I am logged in as "admin@example.com"
+- When I click the user menu
+- And I click "Logout"
+- Then I should be redirected to the login page
+- And I should see "You have been logged out"
 ```
 
 ## Troubleshooting
 
 ### Test Times Out
 
-If steps timeout, increase the timeout:
+If steps timeout, increase the timeout in `copilot-test.config.yaml`:
 
-```typescript
-configure({
-  stepTimeout: 60000  // 60 seconds
-});
+```yaml
+stepTimeout: 60000  # 60 seconds
 ```
 
 ### AI Misunderstands Step
 
 Rephrase the step to be more specific:
 
-```typescript
-// Instead of:
-.when('I submit the form')
+```markdown
+# Instead of:
+- When I submit the form
 
-// Use:
-.when('I click the "Submit" button')
+# Use:
+- When I click the "Submit" button
 ```
 
 ### Browser Not Found

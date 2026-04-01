@@ -30,7 +30,7 @@ By default, CopilotTest uses AI to interpret and execute test steps. Custom step
 ## Quick Start
 
 ```typescript
-import { feature, configure, test, run, defineStep, webPlatform } from '@copilot-test/core';
+import { defineStep } from '@copilot-test/core';
 
 // Define a custom step
 defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username, password) => {
@@ -43,24 +43,28 @@ defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username,
   // Note: Direct page access is not available in the context.
   // You need to interact through the session or implement your own page management.
 });
+```
 
-// Configure tests
-configure({
-  model: "gpt-4o",
-  platforms: { web: webPlatform() },
-  useCustomStepDefinitions: true, // Default: true
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+useCustomStepDefinitions: true  # Default: true
+platforms:
+  web:
+    type: web
+```
 
-// Use in scenario
-const loginFeature = feature('Login')
-  .scenario('Admin login')
-    .given('I login as "admin" with password "admin123"') // Uses custom definition
-    .when('I click on the profile menu')                   // Uses AI
-    .then('I should see my username')                       // Uses AI
-  .done();
+```markdown
+<!-- tests/login.feature.md -->
+---
+platform: web
+---
+# Feature: Login
 
-test(loginFeature, 'web');
-await run();
+## Scenario: Admin login
+- Given I login as "admin" with password "admin123"   <!-- Uses custom definition -->
+- When I click on the profile menu                     <!-- Uses AI -->
+- Then I should see my username                         <!-- Uses AI -->
 ```
 
 ## API Reference
@@ -116,12 +120,10 @@ console.log(`Registered ${definitions.length} custom steps`);
 
 Control custom step definitions via configuration:
 
-```typescript
-configure({
-  // ... other config
-  useCustomStepDefinitions: true,  // Enable custom steps (default: true)
-  // Set to false to disable custom steps and use only AI
-});
+```yaml
+# copilot-test.config.yaml
+useCustomStepDefinitions: true  # Enable custom steps (default: true)
+# Set to false to disable custom steps and use only AI
 ```
 
 ## Use Cases
@@ -155,7 +157,7 @@ export function registerAuthSteps() {
   });
 }
 
-// test.spec.ts
+// setup.ts — register steps before running tests
 import { registerAuthSteps } from './auth-steps';
 registerAuthSteps();
 ```
@@ -293,34 +295,43 @@ defineStep(/^I send the following JSON payload$/, async (context) => {
 Use custom definitions strategically:
 
 ```typescript
-// Custom step for critical setup
+// Custom step for critical setup (registered in TypeScript)
 defineStep(/^I have a valid session token$/, async (context) => {
   const token = await authService.generateToken();
   context.session.setToken(token);
 });
+```
 
-// Feature that mixes custom and AI steps
-feature('API Testing')
-  .scenario('Create resource')
-    .given('I have a valid session token')    // Custom (deterministic)
-    .when('I create a new user')              // AI (flexible)
-    .then('the user should be persisted')     // AI (flexible)
-    .and('I should receive a success response') // AI (flexible)
-  .done();
+```markdown
+<!-- tests/api-testing.feature.md -->
+---
+platform: api
+---
+# Feature: API Testing
+
+## Scenario: Create resource
+- Given I have a valid session token         <!-- Custom (deterministic) -->
+- When I create a new user                   <!-- AI (flexible) -->
+- Then the user should be persisted          <!-- AI (flexible) -->
+- And I should receive a success response    <!-- AI (flexible) -->
 ```
 
 ## Examples
 
 ### Complete Example: E-commerce Testing
 
-```typescript
-import { feature, configure, test, run, defineStep, webPlatform } from '@copilot-test/core';
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    type: web
+    baseUrl: https://shop.example.com
+```
 
-// Setup
-configure({
-  model: "gpt-4o",
-  platforms: { web: webPlatform({ baseUrl: "https://shop.example.com" }) },
-});
+```typescript
+// steps/checkout-steps.ts
+import { defineStep } from '@copilot-test/core';
 
 // Custom steps for critical flows
 defineStep(/^I login as "(.+)" with password "(.+)"$/, async (ctx, username, password) => {
@@ -347,41 +358,46 @@ defineStep(/^I complete the checkout with card ending in "(.+)"$/, async (ctx, l
   await page.click('#submit-payment');
   await page.waitForSelector('.order-confirmation');
 });
+```
 
-// Test feature
-const checkoutFeature = feature('Checkout Process')
-  .tag('@critical')
+```markdown
+<!-- tests/checkout.feature.md -->
+---
+platform: web
+tags: [critical]
+---
+# Feature: Checkout Process
 
-  .scenario('Successful purchase')
-    .given('I login as "testuser" with password "test123"')  // Custom
-    .and('my cart contains 3 items')                          // Custom
-    .when('I complete the checkout with card ending in "4242"') // Custom
-    .then('I should see the order confirmation page')         // AI
-    .and('I should receive an order confirmation email')      // AI
+## Scenario: Successful purchase
+- Given I login as "testuser" with password "test123"    <!-- Custom -->
+- And my cart contains 3 items                            <!-- Custom -->
+- When I complete the checkout with card ending in "4242" <!-- Custom -->
+- Then I should see the order confirmation page           <!-- AI -->
+- And I should receive an order confirmation email        <!-- AI -->
 
-  .scenario('Checkout with discount code')
-    .given('I login as "testuser" with password "test123"')  // Custom
-    .and('my cart contains 2 items')                          // Custom
-    .when('I apply the discount code "SAVE20"')              // AI
-    .and('I complete the checkout with card ending in "1234"') // Custom
-    .then('I should see a 20% discount applied')              // AI
-    .and('I should see the discounted total on the confirmation page') // AI
-
-  .done();
-
-test(checkoutFeature, 'web');
-await run();
+## Scenario: Checkout with discount code
+- Given I login as "testuser" with password "test123"    <!-- Custom -->
+- And my cart contains 2 items                            <!-- Custom -->
+- When I apply the discount code "SAVE20"                <!-- AI -->
+- And I complete the checkout with card ending in "1234"  <!-- Custom -->
+- Then I should see a 20% discount applied                <!-- AI -->
+- And I should see the discounted total on the confirmation page <!-- AI -->
 ```
 
 ### Example: API Testing with Custom Steps
 
-```typescript
-import { feature, configure, test, run, defineStep, apiPlatform } from '@copilot-test/core';
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  api:
+    type: api
+    baseUrl: https://api.example.com
+```
 
-configure({
-  model: "gpt-4o",
-  platforms: { api: apiPlatform({ baseUrl: "https://api.example.com" }) },
-});
+```typescript
+// steps/api-steps.ts
+import { defineStep } from '@copilot-test/core';
 
 // Custom step for authentication
 defineStep(/^I authenticate as "(.+)"$/, async (ctx, role) => {
@@ -393,18 +409,21 @@ defineStep(/^I authenticate as "(.+)"$/, async (ctx, role) => {
 defineStep(/^the database contains (\d+) users$/, async (ctx, count) => {
   await testDb.seedUsers(parseInt(count, 10));
 });
+```
 
-const apiFeature = feature('User API')
-  .scenario('List users')
-    .given('I authenticate as "admin"')         // Custom
-    .and('the database contains 10 users')      // Custom
-    .when('I send a GET request to /users')     // AI
-    .then('the response status should be 200')  // AI
-    .and('the response should contain 10 users') // AI
-  .done();
+```markdown
+<!-- tests/user-api.feature.md -->
+---
+platform: api
+---
+# Feature: User API
 
-test(apiFeature, 'api');
-await run();
+## Scenario: List users
+- Given I authenticate as "admin"              <!-- Custom -->
+- And the database contains 10 users           <!-- Custom -->
+- When I send a GET request to /users          <!-- AI -->
+- Then the response status should be 200       <!-- AI -->
+- And the response should contain 10 users     <!-- AI -->
 ```
 
 ## Migration from Traditional BDD Frameworks
@@ -450,5 +469,5 @@ If multiple patterns match a step, the first registered definition wins. Be spec
 ## See Also
 
 - [Main README](../README.md) - Framework overview
-- [Examples](../tests/custom-steps-example.spec.ts) - Complete working example
+- [Examples](../tests/custom-steps-example.feature.md) - Complete working example
 - [API Documentation](../src/types.ts) - Type definitions

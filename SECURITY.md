@@ -76,20 +76,15 @@ When using CopilotTest, follow these security best practices:
 
 CopilotTest uses the GitHub Copilot SDK for AI-powered test execution. The SDK handles authentication automatically through your GitHub credentials - no API keys are required in your test configuration.
 
-```typescript
-// ✅ Good: CopilotTest configuration (no API keys needed)
-configure({
-  platform: "web",
-  baseUrl: "https://example.com",
-  stepTimeout: 30000
-});
-
-// The GitHub Copilot SDK handles authentication automatically
-// through your GitHub credentials and VS Code/CLI session
-
-// ❌ Bad: Don't add API keys to configuration
-// CopilotTest doesn't use or require API keys
+```yaml
+# ✅ Good: copilot-test.config.yaml (no API keys needed)
+platform: web
+baseUrl: "https://example.com"
+stepTimeout: 30000
+# The GitHub Copilot SDK handles authentication automatically
 ```
+
+> **❌ Bad**: Don't add API keys to configuration — CopilotTest doesn't use or require them.
 
 ### Test Data
 
@@ -160,39 +155,37 @@ We'll announce security updates through:
 
 Configure appropriate timeouts to prevent resource exhaustion:
 
-```typescript
-configure({
-  stepTimeout: 30000,     // 30 seconds per step
-  workerTimeout: 60000    // 1 minute per worker
-});
+```yaml
+# copilot-test.config.yaml
+stepTimeout: 30000     # 30 seconds per step
+workerTimeout: 60000   # 1 minute per worker
 ```
 
 ### Retry Limits
 
 Limit retry attempts to prevent infinite loops:
 
-```typescript
-configure({
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-    strategy: "exponential",
-    initialDelay: 1000,
-    backoffFactor: 2
-  }
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
+  strategy: exponential
+  initialDelay: 1000
+  backoffFactor: 2
 ```
 
 ### Debug Mode
 
 Be cautious with debug mode in production:
 
-```typescript
-// Only enable in development
-configure({
-  debugMode: process.env.NODE_ENV === "development"
-});
+```yaml
+# copilot-test.config.yaml
+# Enable debug mode only in development environments
+debugMode: true
 ```
+
+> **Note**: Ensure `debugMode` is set to `false` (or omitted) in production configurations.
 
 ## Questions?
 

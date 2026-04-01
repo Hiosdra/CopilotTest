@@ -89,33 +89,34 @@ const myPlugin = definePlugin({
 
 Add plugins to your configuration:
 
-```typescript
-import { configure } from '@copilot-test/core';
-import { webPlatform } from '@copilot-test/platforms';
-import { myPlugin } from './plugins/my-plugin';
-
-configure({
-  platforms: {
-    web: webPlatform({ headless: true }),
-  },
-  plugins: [myPlugin],
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+    headless: true
+plugins:
+  - ./plugins/my-plugin
 ```
 
 You can register multiple plugins:
 
-```typescript
-configure({
-  platforms: {
-    web: webPlatform({ headless: true }),
-  },
-  plugins: [
-    slackPlugin({ webhook: process.env.SLACK_WEBHOOK }),
-    junitPlugin({ outputFile: 'junit-results.xml' }),
-    performancePlugin({ threshold: 5000 }),
-  ],
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+    headless: true
+plugins:
+  - name: slack-notifier
+    webhook: ${SLACK_WEBHOOK}
+  - name: junit-reporter
+    outputFile: junit-results.xml
+  - name: performance-monitor
+    threshold: 5000
 ```
+
+> **Note:** Plugins are still defined in TypeScript using `definePlugin()`. The YAML config references plugin modules or configures built-in plugins.
 
 ## Lifecycle Hooks
 
@@ -271,15 +272,15 @@ const slackPlugin = (options: {
   }
 });
 
-configure({
-  plugins: [
-    slackPlugin({
-      webhook: process.env.SLACK_WEBHOOK,
-      onlyFailures: true,
-      channel: '#test-results',
-    }),
-  ],
-});
+```
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - name: slack-notifier
+    webhook: ${SLACK_WEBHOOK}
+    onlyFailures: true
+    channel: "#test-results"
 ```
 
 ### 2. JUnit Reporter
@@ -297,13 +298,13 @@ const junitPlugin = (options: { outputFile: string }) => ({
   }
 });
 
-configure({
-  plugins: [
-    junitPlugin({
-      outputFile: 'junit-results.xml',
-    }),
-  ],
-});
+```
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - name: junit-reporter
+    outputFile: junit-results.xml
 ```
 
 ### 3. Performance Monitor
@@ -321,14 +322,14 @@ const performancePlugin = (options: { threshold: number; report: string }) => ({
   }
 });
 
-configure({
-  plugins: [
-    performancePlugin({
-      threshold: 5000, // Warn if step > 5s
-      report: 'performance.json',
-    }),
-  ],
-});
+```
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - name: performance-monitor
+    threshold: 5000  # Warn if step > 5s
+    report: performance.json
 ```
 
 ### 4. Console Logger
@@ -345,9 +346,12 @@ const consoleLoggerPlugin = {
   }
 };
 
-configure({
-  plugins: [consoleLoggerPlugin],
-});
+```
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - name: console-logger
 ```
 
 ### 5. JSON Reporter
@@ -363,13 +367,13 @@ const jsonReporterPlugin = (options: { outputFile: string }) => ({
   }
 });
 
-configure({
-  plugins: [
-    jsonReporterPlugin({
-      outputFile: 'test-results.json',
-    }),
-  ],
-});
+```
+
+```yaml
+# copilot-test.config.yaml
+plugins:
+  - name: json-reporter
+    outputFile: test-results.json
 ```
 
 ## Best Practices

@@ -54,7 +54,6 @@ The CLI will prompt you for:
 - **Project name**: Name of your test project
 - **Platforms**: Choose from web, API, mobile, or multiple
 - **AI Model**: Select the model (gpt-4o, gpt-4o-mini, claude-sonnet)
-- **Language**: TypeScript or JavaScript
 - **Install dependencies**: Automatically install required packages
 
 ### What Gets Created
@@ -63,15 +62,14 @@ The `init` command creates:
 
 ```
 your-project/
-├── copilot-test.config.ts    # Main configuration file
-├── tests/                     # Test directory
-│   ├── example-web.spec.ts    # Web test example
-│   ├── example-api.spec.ts    # API test example (if selected)
-│   └── example-mobile.spec.ts # Mobile test example (if selected)
-├── package.json               # Node.js dependencies
-├── tsconfig.json              # TypeScript config (if TS selected)
-├── .gitignore                 # Git ignore file
-└── README.md                  # Project README
+├── copilot-test.config.yaml       # Main configuration file (YAML)
+├── tests/                          # Test directory
+│   ├── example-web.feature.md      # Web test example
+│   ├── example-api.feature.md      # API test example (if selected)
+│   └── example-mobile.feature.md   # Mobile test example (if selected)
+├── package.json                    # Node.js dependencies
+├── .gitignore                      # Git ignore file
+└── README.md                       # Project README
 ```
 
 ## Environment Setup

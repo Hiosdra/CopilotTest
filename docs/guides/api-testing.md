@@ -10,571 +10,542 @@ CopilotTest uses the curl MCP server to test REST APIs. The AI interprets your t
 
 ### Basic Setup
 
-```typescript
-import { configure, apiPlatform } from 'copilot-test';
-
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    api: apiPlatform({
-      baseUrl: 'https://api.example.com',
-      defaultHeaders: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_TOKEN'
-      }
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  api:
+    platform: api
+    baseUrl: "https://api.example.com"
+    defaultHeaders:
+      Content-Type: application/json
+      Authorization: "Bearer ${API_TOKEN}"
 ```
 
 ### Environment-Specific Configuration
 
-```typescript
-const API_CONFIG = {
-  development: 'http://localhost:3000/api',
-  staging: 'https://api-staging.example.com',
-  production: 'https://api.example.com'
-};
-
-configure({
-  platforms: {
-    api: apiPlatform({
-      baseUrl: API_CONFIG[process.env.NODE_ENV || 'development']
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  api:
+    platform: api
+    baseUrl: "${API_BASE_URL:-http://localhost:3000/api}"
 ```
+
+> Override the base URL per environment using environment variables or separate config files.
 
 ## HTTP Methods
 
 ### GET Requests
 
-```typescript
-.scenario('Get list of users')
-  .given('the Users API is available')
-  .when('I send a GET request to /users')
-  .then('the response status should be 200')
-  .and('the response should contain a list of users')
-  .and('each user should have an id, name, and email')
-  .done()
+```markdown
+## Scenario: Get list of users
+- Given the Users API is available
+- When I send a GET request to /users
+- Then the response status should be 200
+- And the response should contain a list of users
+- And each user should have an id, name, and email
 
-.scenario('Get specific user')
-  .given('a user with ID 123 exists')
-  .when('I send a GET request to /users/123')
-  .then('the response status should be 200')
-  .and('the response should contain user with ID 123')
-  .and('the user name should be "John Doe"')
-  .done()
+## Scenario: Get specific user
+- Given a user with ID 123 exists
+- When I send a GET request to /users/123
+- Then the response status should be 200
+- And the response should contain user with ID 123
+- And the user name should be "John Doe"
 ```
 
 ### POST Requests
 
-```typescript
-.scenario('Create a new user')
-  .given('the Users API is available')
-  .when('I send a POST request to /users')
-  .withDocString(`{
+```markdown
+## Scenario: Create a new user
+- Given the Users API is available
+- When I send a POST request to /users with body:
+  ```json
+  {
     "name": "Alice Smith",
     "email": "alice@example.com",
     "role": "user"
-  }`)
-  .then('the response status should be 201')
-  .and('the response should contain the created user')
-  .and('the user should have a generated id')
-  .done()
+  }
+  ```
+- Then the response status should be 201
+- And the response should contain the created user
+- And the user should have a generated id
 ```
 
 ### PUT Requests
 
-```typescript
-.scenario('Update user details')
-  .given('a user with ID 123 exists')
-  .when('I send a PUT request to /users/123')
-  .withDocString(`{
+```markdown
+## Scenario: Update user details
+- Given a user with ID 123 exists
+- When I send a PUT request to /users/123 with body:
+  ```json
+  {
     "name": "John Updated",
     "email": "john.updated@example.com"
-  }`)
-  .then('the response status should be 200')
-  .and('the response should contain the updated user')
-  .and('the name should be "John Updated"')
-  .done()
+  }
+  ```
+- Then the response status should be 200
+- And the response should contain the updated user
+- And the name should be "John Updated"
 ```
 
 ### PATCH Requests
 
-```typescript
-.scenario('Partially update user')
-  .given('a user with ID 123 exists')
-  .when('I send a PATCH request to /users/123')
-  .withDocString(`{
+```markdown
+## Scenario: Partially update user
+- Given a user with ID 123 exists
+- When I send a PATCH request to /users/123 with body:
+  ```json
+  {
     "email": "newemail@example.com"
-  }`)
-  .then('the response status should be 200')
-  .and('the email should be updated')
-  .and('other fields should remain unchanged')
-  .done()
+  }
+  ```
+- Then the response status should be 200
+- And the email should be updated
+- And other fields should remain unchanged
 ```
 
 ### DELETE Requests
 
-```typescript
-.scenario('Delete a user')
-  .given('a user with ID 123 exists')
-  .when('I send a DELETE request to /users/123')
-  .then('the response status should be 204')
-
-  .when('I send a GET request to /users/123')
-  .then('the response status should be 404')
-  .done()
+```markdown
+## Scenario: Delete a user
+- Given a user with ID 123 exists
+- When I send a DELETE request to /users/123
+- Then the response status should be 204
+- When I send a GET request to /users/123
+- Then the response status should be 404
 ```
 
 ## Request/Response Patterns
 
 ### Request Headers
 
-```typescript
-.scenario('API with custom headers')
-  .given('the API is available')
-  .when('I send a GET request to /protected')
-  .and('I set header "X-API-Key" to "secret-key"')
-  .and('I set header "X-Request-ID" to "12345"')
-  .then('the response status should be 200')
-  .done()
+```markdown
+## Scenario: API with custom headers
+- Given the API is available
+- When I send a GET request to /protected
+- And I set header "X-API-Key" to "secret-key"
+- And I set header "X-Request-ID" to "12345"
+- Then the response status should be 200
 ```
 
 ### Query Parameters
 
-```typescript
-.scenario('Filter users by role')
-  .given('the Users API has multiple users')
-  .when('I send a GET request to /users?role=admin&status=active')
-  .then('the response status should be 200')
-  .and('all users should have role "admin"')
-  .and('all users should have status "active"')
-  .done()
+```markdown
+## Scenario: Filter users by role
+- Given the Users API has multiple users
+- When I send a GET request to /users?role=admin&status=active
+- Then the response status should be 200
+- And all users should have role "admin"
+- And all users should have status "active"
 
-.scenario('Paginated results')
-  .given('the Users API has 100 users')
-  .when('I send a GET request to /users?page=2&limit=10')
-  .then('the response status should be 200')
-  .and('the response should contain 10 users')
-  .and('the response should include pagination metadata')
-  .done()
+## Scenario: Paginated results
+- Given the Users API has 100 users
+- When I send a GET request to /users?page=2&limit=10
+- Then the response status should be 200
+- And the response should contain 10 users
+- And the response should include pagination metadata
 ```
 
 ### Response Validation
 
 #### Status Codes
 
-```typescript
-.then('the response status should be 200')      // OK
-.then('the response status should be 201')      // Created
-.then('the response status should be 204')      // No Content
-.then('the response status should be 400')      // Bad Request
-.then('the response status should be 401')      // Unauthorized
-.then('the response status should be 403')      // Forbidden
-.then('the response status should be 404')      // Not Found
-.then('the response status should be 500')      // Internal Server Error
+```markdown
+- Then the response status should be 200      <!-- OK -->
+- Then the response status should be 201      <!-- Created -->
+- Then the response status should be 204      <!-- No Content -->
+- Then the response status should be 400      <!-- Bad Request -->
+- Then the response status should be 401      <!-- Unauthorized -->
+- Then the response status should be 403      <!-- Forbidden -->
+- Then the response status should be 404      <!-- Not Found -->
+- Then the response status should be 500      <!-- Internal Server Error -->
 ```
 
 #### Response Body
 
-```typescript
-// JSON structure
-.then('the response should be valid JSON')
-.and('the response should have property "data"')
-.and('the response.data should be an array')
-.and('the response.data should have length 10')
+```markdown
+<!-- JSON structure -->
+- Then the response should be valid JSON
+- And the response should have property "data"
+- And the response.data should be an array
+- And the response.data should have length 10
 
-// Specific values
-.and('the response.user.name should be "Alice"')
-.and('the response.user.email should be "alice@example.com"')
-.and('the response.user.active should be true')
+<!-- Specific values -->
+- And the response.user.name should be "Alice"
+- And the response.user.email should be "alice@example.com"
+- And the response.user.active should be true
 
-// Type checking
-.and('the response.id should be a number')
-.and('the response.email should be a string')
-.and('the response.tags should be an array')
+<!-- Type checking -->
+- And the response.id should be a number
+- And the response.email should be a string
+- And the response.tags should be an array
 ```
 
 #### Response Headers
 
-```typescript
-.then('the response should have header "Content-Type"')
-.and('the Content-Type should be "application/json"')
-.and('the response should have header "X-RateLimit-Remaining"')
+```markdown
+- Then the response should have header "Content-Type"
+- And the Content-Type should be "application/json"
+- And the response should have header "X-RateLimit-Remaining"
 ```
 
 ## Complete CRUD Example
 
-```typescript
-feature('Users API')
-  .scenario('Complete CRUD flow')
-    .tag('@api', '@crud')
+```markdown
+---
+platform: api
+tags: [api, crud]
+---
 
-    // CREATE
-    .given('the Users API is available')
-    .when('I send a POST request to /users')
-    .withDocString(`{
-      "name": "Test User",
-      "email": "test@example.com",
-      "role": "user"
-    }`)
-    .then('the response status should be 201')
-    .and('the response should contain property "id"')
-    .and('I store the response.id as "userId"')
+# Feature: Users API
 
-    // READ
-    .when('I send a GET request to /users/{userId}')
-    .then('the response status should be 200')
-    .and('the name should be "Test User"')
-    .and('the email should be "test@example.com"')
-
-    // UPDATE
-    .when('I send a PUT request to /users/{userId}')
-    .withDocString(`{
-      "name": "Updated User",
-      "email": "updated@example.com",
-      "role": "admin"
-    }`)
-    .then('the response status should be 200')
-    .and('the name should be "Updated User"')
-    .and('the role should be "admin"')
-
-    // DELETE
-    .when('I send a DELETE request to /users/{userId}')
-    .then('the response status should be 204')
-
-    // VERIFY DELETION
-    .when('I send a GET request to /users/{userId}')
-    .then('the response status should be 404')
-    .done()
-  ._build();
+## Scenario: Complete CRUD flow
+@api @crud
+- Given the Users API is available
+- When I send a POST request to /users with body:
+  ```json
+  {
+    "name": "Test User",
+    "email": "test@example.com",
+    "role": "user"
+  }
+  ```
+- Then the response status should be 201
+- And the response should contain property "id"
+- And I store the response.id as "userId"
+- When I send a GET request to /users/{userId}
+- Then the response status should be 200
+- And the name should be "Test User"
+- And the email should be "test@example.com"
+- When I send a PUT request to /users/{userId} with body:
+  ```json
+  {
+    "name": "Updated User",
+    "email": "updated@example.com",
+    "role": "admin"
+  }
+  ```
+- Then the response status should be 200
+- And the name should be "Updated User"
+- And the role should be "admin"
+- When I send a DELETE request to /users/{userId}
+- Then the response status should be 204
+- When I send a GET request to /users/{userId}
+- Then the response status should be 404
 ```
 
 ## Authentication Testing
 
 ### Bearer Token
 
-```typescript
-.scenario('Access protected endpoint')
-  .given('I have a valid authentication token')
-  .when('I send a GET request to /protected')
-  .and('I set header "Authorization" to "Bearer {token}"')
-  .then('the response status should be 200')
-  .done()
+```markdown
+## Scenario: Access protected endpoint
+- Given I have a valid authentication token
+- When I send a GET request to /protected
+- And I set header "Authorization" to "Bearer {token}"
+- Then the response status should be 200
 
-.scenario('Access without token')
-  .given('I do not have an authentication token')
-  .when('I send a GET request to /protected')
-  .then('the response status should be 401')
-  .and('the error should be "Unauthorized"')
-  .done()
+## Scenario: Access without token
+- Given I do not have an authentication token
+- When I send a GET request to /protected
+- Then the response status should be 401
+- And the error should be "Unauthorized"
 ```
 
 ### API Key
 
-```typescript
-.scenario('Access with API key')
-  .given('I have a valid API key')
-  .when('I send a GET request to /data')
-  .and('I set header "X-API-Key" to "{apiKey}"')
-  .then('the response status should be 200')
-  .done()
+```markdown
+## Scenario: Access with API key
+- Given I have a valid API key
+- When I send a GET request to /data
+- And I set header "X-API-Key" to "{apiKey}"
+- Then the response status should be 200
 ```
 
 ### Basic Auth
 
-```typescript
-.scenario('Basic authentication')
-  .given('the API uses basic authentication')
-  .when('I send a GET request to /admin')
-  .and('I authenticate with username "admin" and password "secret"')
-  .then('the response status should be 200')
-  .done()
+```markdown
+## Scenario: Basic authentication
+- Given the API uses basic authentication
+- When I send a GET request to /admin
+- And I authenticate with username "admin" and password "secret"
+- Then the response status should be 200
 ```
 
 ### OAuth 2.0
 
-```typescript
-.scenario('OAuth token flow')
-  .given('I need to access protected resources')
-  .when('I send a POST request to /oauth/token')
-  .withDocString(`{
+```markdown
+## Scenario: OAuth token flow
+- Given I need to access protected resources
+- When I send a POST request to /oauth/token with body:
+  ```json
+  {
     "grant_type": "client_credentials",
     "client_id": "my-client",
     "client_secret": "my-secret"
-  }`)
-  .then('the response status should be 200')
-  .and('the response should contain "access_token"')
-  .and('I store the response.access_token as "token"')
-
-  .when('I send a GET request to /api/resource')
-  .and('I set header "Authorization" to "Bearer {token}"')
-  .then('the response status should be 200')
-  .done()
+  }
+  ```
+- Then the response status should be 200
+- And the response should contain "access_token"
+- And I store the response.access_token as "token"
+- When I send a GET request to /api/resource
+- And I set header "Authorization" to "Bearer {token}"
+- Then the response status should be 200
 ```
 
 ## Validation Testing
 
 ### Input Validation
 
-```typescript
-feature('Input Validation')
-  .scenario('Required field missing')
-    .given('the Users API requires name and email')
-    .when('I send a POST request to /users')
-    .withDocString(`{
-      "name": "John"
-    }`)
-    .then('the response status should be 400')
-    .and('the error should mention "email is required"')
-    .done()
+```markdown
+---
+platform: api
+---
 
-  .scenario('Invalid email format')
-    .given('the Users API validates email format')
-    .when('I send a POST request to /users')
-    .withDocString(`{
-      "name": "John",
-      "email": "invalid-email"
-    }`)
-    .then('the response status should be 400')
-    .and('the error should mention "invalid email format"')
-    .done()
+# Feature: Input Validation
 
-  .scenario('Duplicate email')
-    .given('a user with email "john@example.com" exists')
-    .when('I send a POST request to /users')
-    .withDocString(`{
-      "name": "Another John",
-      "email": "john@example.com"
-    }`)
-    .then('the response status should be 409')
-    .and('the error should be "Email already exists"')
-    .done()
-  ._build();
+## Scenario: Required field missing
+- Given the Users API requires name and email
+- When I send a POST request to /users with body:
+  ```json
+  {
+    "name": "John"
+  }
+  ```
+- Then the response status should be 400
+- And the error should mention "email is required"
+
+## Scenario: Invalid email format
+- Given the Users API validates email format
+- When I send a POST request to /users with body:
+  ```json
+  {
+    "name": "John",
+    "email": "invalid-email"
+  }
+  ```
+- Then the response status should be 400
+- And the error should mention "invalid email format"
+
+## Scenario: Duplicate email
+- Given a user with email "john@example.com" exists
+- When I send a POST request to /users with body:
+  ```json
+  {
+    "name": "Another John",
+    "email": "john@example.com"
+  }
+  ```
+- Then the response status should be 409
+- And the error should be "Email already exists"
 ```
 
 ## Error Handling
 
 ### 4xx Client Errors
 
-```typescript
-.scenario('Bad Request - Invalid JSON')
-  .when('I send a POST request to /users')
-  .withDocString(`{ invalid json }`)
-  .then('the response status should be 400')
-  .and('the error should mention "invalid JSON"')
-  .done()
+```markdown
+## Scenario: Bad Request - Invalid JSON
+- When I send a POST request to /users with body:
+  ```
+  { invalid json }
+  ```
+- Then the response status should be 400
+- And the error should mention "invalid JSON"
 
-.scenario('Unauthorized Access')
-  .when('I send a GET request to /admin without credentials')
-  .then('the response status should be 401')
-  .done()
+## Scenario: Unauthorized Access
+- When I send a GET request to /admin without credentials
+- Then the response status should be 401
 
-.scenario('Forbidden Resource')
-  .given('I am authenticated as a regular user')
-  .when('I send a GET request to /admin/users')
-  .then('the response status should be 403')
-  .done()
+## Scenario: Forbidden Resource
+- Given I am authenticated as a regular user
+- When I send a GET request to /admin/users
+- Then the response status should be 403
 
-.scenario('Resource Not Found')
-  .when('I send a GET request to /users/99999')
-  .then('the response status should be 404')
-  .and('the error should be "User not found"')
-  .done()
+## Scenario: Resource Not Found
+- When I send a GET request to /users/99999
+- Then the response status should be 404
+- And the error should be "User not found"
 ```
 
 ### 5xx Server Errors
 
-```typescript
-.scenario('Internal Server Error')
-  .given('the server is experiencing issues')
-  .when('I send a GET request to /users')
-  .then('the response status should be 500')
-  .and('the error should contain "Internal Server Error"')
-  .done()
+```markdown
+## Scenario: Internal Server Error
+- Given the server is experiencing issues
+- When I send a GET request to /users
+- Then the response status should be 500
+- And the error should contain "Internal Server Error"
 ```
 
 ## Advanced Patterns
 
 ### Chained Requests
 
-```typescript
-.scenario('Create order and add items')
-  .given('the Order API is available')
-
-  // Create order
-  .when('I send a POST request to /orders')
-  .withDocString(`{"customerId": 123}`)
-  .then('the response status should be 201')
-  .and('I store the response.id as "orderId"')
-
-  // Add first item
-  .when('I send a POST request to /orders/{orderId}/items')
-  .withDocString(`{"productId": 456, "quantity": 2}`)
-  .then('the response status should be 201')
-
-  // Add second item
-  .when('I send a POST request to /orders/{orderId}/items')
-  .withDocString(`{"productId": 789, "quantity": 1}`)
-  .then('the response status should be 201')
-
-  // Verify order
-  .when('I send a GET request to /orders/{orderId}')
-  .then('the response status should be 200')
-  .and('the order should have 2 items')
-  .and('the total quantity should be 3')
-  .done()
+```markdown
+## Scenario: Create order and add items
+- Given the Order API is available
+- When I send a POST request to /orders with body:
+  ```json
+  {"customerId": 123}
+  ```
+- Then the response status should be 201
+- And I store the response.id as "orderId"
+- When I send a POST request to /orders/{orderId}/items with body:
+  ```json
+  {"productId": 456, "quantity": 2}
+  ```
+- Then the response status should be 201
+- When I send a POST request to /orders/{orderId}/items with body:
+  ```json
+  {"productId": 789, "quantity": 1}
+  ```
+- Then the response status should be 201
+- When I send a GET request to /orders/{orderId}
+- Then the response status should be 200
+- And the order should have 2 items
+- And the total quantity should be 3
 ```
 
 ### Conditional Logic
 
-```typescript
-.scenario('Different responses based on query')
-  .given('the API supports different response formats')
-
-  .when('I send a GET request to /users?format=json')
-  .then('the response status should be 200')
-  .and('the Content-Type should be "application/json"')
-
-  .when('I send a GET request to /users?format=xml')
-  .then('the response status should be 200')
-  .and('the Content-Type should be "application/xml"')
-  .done()
+```markdown
+## Scenario: Different responses based on query
+- Given the API supports different response formats
+- When I send a GET request to /users?format=json
+- Then the response status should be 200
+- And the Content-Type should be "application/json"
+- When I send a GET request to /users?format=xml
+- Then the response status should be 200
+- And the Content-Type should be "application/xml"
 ```
 
 ### Rate Limiting
 
-```typescript
-.scenario('API rate limiting')
-  .given('the API has rate limit of 10 requests per minute')
-  .when('I send 11 GET requests to /users rapidly')
-  .then('the 11th request should return status 429')
-  .and('the response should have header "X-RateLimit-Reset"')
-  .and('the error should be "Rate limit exceeded"')
-  .done()
+```markdown
+## Scenario: API rate limiting
+- Given the API has rate limit of 10 requests per minute
+- When I send 11 GET requests to /users rapidly
+- Then the 11th request should return status 429
+- And the response should have header "X-RateLimit-Reset"
+- And the error should be "Rate limit exceeded"
 ```
 
 ### Data-Driven API Testing
 
-```typescript
-feature('Product API Validation')
-  .scenarioOutline('Create products with different data')
-    .when('I send a POST request to /products')
-    .withDocString(`{
-      "name": "<name>",
-      "price": <price>,
-      "category": "<category>"
-    }`)
-    .then('the response status should be <status>')
-    .and('the response should contain "<message>"')
-    .examples([
-      { name: 'Laptop', price: 999, category: 'Electronics', status: 201, message: 'id' },
-      { name: '', price: 999, category: 'Electronics', status: 400, message: 'name is required' },
-      { name: 'Laptop', price: -10, category: 'Electronics', status: 400, message: 'price must be positive' },
-      { name: 'Laptop', price: 999, category: '', status: 400, message: 'category is required' }
-    ])
-    .done()
-  ._build();
+```markdown
+## Scenario Outline: Create products with different data
+- When I send a POST request to /products with body:
+  ```json
+  {
+    "name": "<name>",
+    "price": <price>,
+    "category": "<category>"
+  }
+  ```
+- Then the response status should be <status>
+- And the response should contain "<message>"
+
+### Examples:
+| name   | price | category    | status | message                |
+|--------|-------|-------------|--------|------------------------|
+| Laptop | 999   | Electronics | 201    | id                     |
+|        | 999   | Electronics | 400    | name is required       |
+| Laptop | -10   | Electronics | 400    | price must be positive |
+| Laptop | 999   |             | 400    | category is required   |
 ```
 
 ## Testing Async Operations
 
 ### Polling for Completion
 
-```typescript
-.scenario('Wait for async job completion')
-  .given('the API supports background jobs')
-  .when('I send a POST request to /jobs/process')
-  .withDocString(`{"data": "large-dataset"}`)
-  .then('the response status should be 202')
-  .and('the response should contain "jobId"')
-  .and('I store the response.jobId as "jobId"')
-
-  .when('I poll GET /jobs/{jobId} every 2 seconds')
-  .then('the job status should eventually be "completed"')
-  .and('the result should be available')
-  .done()
+```markdown
+## Scenario: Wait for async job completion
+- Given the API supports background jobs
+- When I send a POST request to /jobs/process with body:
+  ```json
+  {"data": "large-dataset"}
+  ```
+- Then the response status should be 202
+- And the response should contain "jobId"
+- And I store the response.jobId as "jobId"
+- When I poll GET /jobs/{jobId} every 2 seconds
+- Then the job status should eventually be "completed"
+- And the result should be available
 ```
 
 ### Webhooks
 
-```typescript
-.scenario('Webhook delivery')
-  .given('I have a webhook endpoint configured')
-  .when('an event occurs in the system')
-  .then('a POST request should be sent to my webhook URL')
-  .and('the payload should contain event details')
-  .and('the webhook should include signature for verification')
-  .done()
+```markdown
+## Scenario: Webhook delivery
+- Given I have a webhook endpoint configured
+- When an event occurs in the system
+- Then a POST request should be sent to my webhook URL
+- And the payload should contain event details
+- And the webhook should include signature for verification
 ```
 
 ## Performance Testing
 
 ### Response Time
 
-```typescript
-.scenario('API response time')
-  .when('I send a GET request to /users')
-  .then('the response status should be 200')
-  .and('the response time should be less than 500ms')
-  .done()
+```markdown
+## Scenario: API response time
+- When I send a GET request to /users
+- Then the response status should be 200
+- And the response time should be less than 500ms
 ```
 
 ### Concurrent Requests
 
-```typescript
-.scenario('Handle concurrent requests')
-  .when('I send 100 concurrent GET requests to /users')
-  .then('all requests should return status 200')
-  .and('no requests should fail')
-  .done()
+```markdown
+## Scenario: Handle concurrent requests
+- When I send 100 concurrent GET requests to /users
+- Then all requests should return status 200
+- And no requests should fail
 ```
 
 ## Best Practices
 
 ### 1. Store and Reuse Data
 
-```typescript
-// Store created resource ID
-.and('I store the response.id as "userId"')
+```markdown
+<!-- Store created resource ID -->
+- And I store the response.id as "userId"
 
-// Use stored ID in subsequent requests
-.when('I send a GET request to /users/{userId}')
+<!-- Use stored ID in subsequent requests -->
+- When I send a GET request to /users/{userId}
 ```
 
 ### 2. Test Error Responses
 
 Always test both success and failure cases:
 
-```typescript
-.scenario('Successful creation')
-  // ... happy path
-  .done()
+```markdown
+## Scenario: Successful creation
+<!-- ... happy path -->
 
-.scenario('Creation fails with invalid data')
-  // ... error case
-  .done()
+## Scenario: Creation fails with invalid data
+<!-- ... error case -->
 ```
 
 ### 3. Verify Response Structure
 
-```typescript
-.then('the response should have property "id"')
-.and('the response should have property "name"')
-.and('the response should have property "createdAt"')
-.and('the createdAt should be a valid ISO date')
+```markdown
+- Then the response should have property "id"
+- And the response should have property "name"
+- And the response should have property "createdAt"
+- And the createdAt should be a valid ISO date
 ```
 
 ### 4. Clean Up After Tests
 
-```typescript
-.scenario('Cleanup test data')
-  .given('I created a test user with ID {userId}')
-  .when('I send a DELETE request to /users/{userId}')
-  .then('the response status should be 204')
-  .done()
+```markdown
+## Scenario: Cleanup test data
+- Given I created a test user with ID {userId}
+- When I send a DELETE request to /users/{userId}
+- Then the response status should be 204
 ```
 
 ## Debugging API Tests
@@ -583,10 +554,9 @@ Always test both success and failure cases:
 
 Enable debug mode to see full request and response:
 
-```typescript
-configure({
-  debugMode: true
-});
+```yaml
+# copilot-test.config.yaml
+debugMode: true
 ```
 
 ### Check AI Reasoning
@@ -595,12 +565,12 @@ Review the AI's reasoning in the HTML report to understand how it interpreted yo
 
 ### Use Verbose Assertions
 
-```typescript
-// Good - specific assertion
-.then('the response.user.email should be "alice@example.com"')
+```markdown
+<!-- Good - specific assertion -->
+- Then the response.user.email should be "alice@example.com"
 
-// Avoid - vague assertion
-.then('the response should be correct')
+<!-- Avoid - vague assertion -->
+- Then the response should be correct
 ```
 
 ## Next Steps

@@ -64,16 +64,15 @@ Mobile app testing patterns for Android/iOS.
 ### Running Examples
 
 ```bash
-# Run all examples (requires config file)
-copilot-test run examples/e-commerce/features/authentication.spec.ts
+# Run all examples
+copilot-test run examples/e-commerce/features/authentication.feature.md
 
 # Run specific suite with explicit files
 copilot-test run \
-  examples/e-commerce/features/authentication.spec.ts \
-  examples/e-commerce/features/product-catalog.spec.ts
+  examples/e-commerce/features/authentication.feature.md \
+  examples/e-commerce/features/product-catalog.feature.md
 
-# Note: Each spec file is self-contained with configure() call
-# They can be run individually without a separate config file
+# Each .feature.md file is self-contained and can be run individually
 ```
 
 ### Using as Templates
@@ -112,9 +111,9 @@ Each example suite follows a consistent structure:
 ```
 example-suite/
 ├── features/              # Test specifications
-│   ├── feature1.spec.ts
-│   ├── feature2.spec.ts
-│   └── feature3.spec.ts
+│   ├── feature1.feature.md
+│   ├── feature2.feature.md
+│   └── feature3.feature.md
 ├── fixtures/              # Test data and fixtures
 │   ├── users.ts
 │   ├── products.ts
@@ -127,27 +126,27 @@ example-suite/
 ### 1. Background Steps
 Reusable setup steps that run before each scenario:
 
-```typescript
-.background()
-.given('the application is available')
-.and('I am logged in as a test user')
+```markdown
+## Background
+- Given the application is available
+- And I am logged in as a test user
 ```
 
 ### 2. Fixtures for Test Data
-Centralized, reusable test data:
+Centralized, reusable test data. Reference fixture values in your step descriptions or configure them in `copilot-test.config.yaml`:
 
-```typescript
-import { registeredCustomer } from '../fixtures/users.js';
-
-.given(`I am logged in as "${registeredCustomer.username}"`)
+```markdown
+## Scenario: Customer logs in
+- Given I am logged in as "registeredCustomer"
 ```
 
 ### 3. Descriptive Tags
-Organize tests with meaningful tags:
+Organize tests with meaningful tags in YAML frontmatter and inline annotations:
 
-```typescript
-.scenario('Critical checkout flow')
-.tag('@smoke', '@critical', '@checkout')
+```markdown
+---
+tags: [smoke, critical, checkout]
+---
 ```
 
 Tags help categorize and identify test scenarios for documentation and organization purposes.
@@ -155,185 +154,182 @@ Tags help categorize and identify test scenarios for documentation and organizat
 ### 4. Positive and Negative Testing
 Test both success and failure cases:
 
-```typescript
-// Positive case
-.scenario('User logs in successfully')
-  .given('I have valid credentials')
-  .then('I should be logged in')
+```markdown
+## Scenario: User logs in successfully
+- Given I have valid credentials
+- Then I should be logged in
 
-// Negative case
-.scenario('Login fails with invalid password')
-  .given('I have wrong password')
-  .then('I should see an error')
+## Scenario: Login fails with invalid password
+- Given I have wrong password
+- Then I should see an error
 ```
 
 ### 5. Comprehensive Assertions
 Verify complete user experience:
 
-```typescript
-.then('I should see order confirmation')
-.and('I should see my order number')
-.and('I should receive a confirmation email')
-.and('the order should appear in my history')
+```markdown
+## Scenario: Order confirmation
+- Then I should see order confirmation
+- And I should see my order number
+- And I should receive a confirmation email
+- And the order should appear in my history
 ```
 
 ## 📝 Common Patterns
 
 ### Form Submission Pattern
-```typescript
-.scenario('Submit contact form')
-.when('I enter name "John Doe"')
-.and('I enter email "john@example.com"')
-.and('I enter message "Test message"')
-.and('I click "Submit"')
-.then('I should see success confirmation')
-.and('I should receive confirmation email')
+```markdown
+## Scenario: Submit contact form
+- When I enter name "John Doe"
+- And I enter email "john@example.com"
+- And I enter message "Test message"
+- And I click "Submit"
+- Then I should see success confirmation
+- And I should receive confirmation email
 ```
 
 ### Search and Filter Pattern
-```typescript
-.scenario('Search and filter products')
-.when('I search for "laptop"')
-.and('I filter by category "Electronics"')
-.and('I set price range "$500-$1500"')
-.then('I should see matching products')
-.and('all results should be laptops in price range')
+```markdown
+## Scenario: Search and filter products
+- When I search for "laptop"
+- And I filter by category "Electronics"
+- And I set price range "$500-$1500"
+- Then I should see matching products
+- And all results should be laptops in price range
 ```
 
 ### Multi-Step Wizard Pattern
-```typescript
-.scenario('Complete checkout wizard')
-.when('I enter shipping information')
-.and('I continue to payment')
-.and('I enter payment details')
-.and('I review my order')
-.and('I confirm purchase')
-.then('I should see order confirmation')
+```markdown
+## Scenario: Complete checkout wizard
+- When I enter shipping information
+- And I continue to payment
+- And I enter payment details
+- And I review my order
+- And I confirm purchase
+- Then I should see order confirmation
 ```
 
 ### Error Handling Pattern
-```typescript
-.scenario('Handle API timeout gracefully')
-.given('the API is slow to respond')
-.when('I submit the form')
-.then('I should see a loading indicator')
-.and('if timeout occurs, I should see retry option')
-.and('my data should not be lost')
+```markdown
+## Scenario: Handle API timeout gracefully
+- Given the API is slow to respond
+- When I submit the form
+- Then I should see a loading indicator
+- And if timeout occurs, I should see retry option
+- And my data should not be lost
 ```
 
 ## 🔧 Configuration Examples
 
 ### Basic Configuration
-```typescript
-configure({
-  model: 'gpt-4o',
-  platforms: { web: webPlatform({ browser: 'chromium', headless: true }) },
-  stepTimeout: 30000,
-  outputDir: 'copilot-test-results',
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+stepTimeout: 30000
+outputDir: copilot-test-results
 ```
 
 ### With Retry Mechanism
-```typescript
-configure({
-  model: 'gpt-4o',
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-    stepRetryDelay: 1000,
-  },
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+retry:
+  enabled: true
+  stepRetries: 3
+  stepRetryDelay: 1000
 ```
 
 ### With Parallel Execution
-```typescript
-configure({
-  model: 'gpt-4o',
-  platforms: { web: webPlatform() },
-  parallel: true,
-  maxWorkers: 4,
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    platform: web
+parallel: true
+maxWorkers: 4
 ```
 
 ## 🐛 Troubleshooting
 
 ### Tests Timing Out
-**Solution**: Increase timeout or add intermediate steps
-```typescript
-configure({ stepTimeout: 60000 });
+**Solution**: Increase timeout in `copilot-test.config.yaml` or add intermediate steps
+```yaml
+# copilot-test.config.yaml
+stepTimeout: 60000
+```
 
-// Or add waiting step
-.when('I click submit')
-.and('I wait for the page to load')
-.then('I should see confirmation')
+```markdown
+## Scenario: Submit and wait
+- When I click submit
+- And I wait for the page to load
+- Then I should see confirmation
 ```
 
 ### Elements Not Found
 **Solution**: Be more specific in step descriptions
-```typescript
-// ❌ Vague
-.when('I click the button')
+```markdown
+<!-- ❌ Vague -->
+- When I click the button
 
-// ✅ Specific
-.when('I click the "Submit Order" button in the checkout form')
+<!-- ✅ Specific -->
+- When I click the "Submit Order" button in the checkout form
 ```
 
 ### Flaky Tests
 **Solution**: Use retry mechanisms and explicit waits
-```typescript
-configure({
-  retry: {
-    enabled: true,
-    stepRetries: 3,
-  },
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
 ```
 
 ## 📦 Using with Different Platforms
 
 ### Web (Playwright)
-```typescript
-import { webPlatform } from 'copilot-test';
-
-configure({
-  platforms: {
-    web: webPlatform({ browser: 'chromium', headless: true })
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
 ```
 
 ### API (curl MCP)
-```typescript
-import { apiPlatform } from 'copilot-test';
-
-configure({
-  platforms: {
-    api: apiPlatform({ baseUrl: 'https://api.example.com' })
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  api:
+    platform: api
+    baseUrl: https://api.example.com
 ```
 
 ### Mobile (Android Emulator)
-```typescript
-import { mobilePlatform } from 'copilot-test';
-
-configure({
-  platforms: {
-    mobile: mobilePlatform({
-      device: 'emulator-5554',
-      appPackage: 'com.example.app'
-    })
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  mobile:
+    platform: mobile
+    device: emulator-5554
+    appPackage: com.example.app
 ```
 
 ## 🎓 Additional Resources
 
 ### In This Repository
-- [Retry Examples](./retry-example.ts) - Retry mechanisms and error recovery
-- [Performance Monitoring](./performance-monitoring.ts) - Track test performance
-- [Plugin Examples](./plugins.ts) - Custom plugins and lifecycle hooks
+- [Retry Examples](./retry-example.feature.md) - Retry mechanisms and error recovery
+- [Performance Monitoring](./performance-monitoring.feature.md) - Track test performance
+- [Plugin Examples](../docs/PLUGINS.md) - Custom plugins and lifecycle hooks
 
 ### Documentation
 - [Main README](../README.md) - Framework overview

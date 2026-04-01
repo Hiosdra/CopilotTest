@@ -28,518 +28,482 @@ adb devices
 
 ### Basic Setup
 
-```typescript
-import { configure, mobilePlatform } from 'copilot-test';
-
-configure({
-  model: 'gpt-4o',
-  platforms: {
-    mobile: mobilePlatform({
-      device: 'emulator-5554',              // Device ID from 'adb devices'
-      appPackage: 'com.example.myapp',      // App package name
-      appActivity: '.MainActivity'          // Main activity
-    })
-  }
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  mobile:
+    platform: mobile
+    device: emulator-5554              # Device ID from 'adb devices'
+    appPackage: com.example.myapp      # App package name
+    appActivity: .MainActivity         # Main activity
 ```
 
 ### Multiple Devices
 
-```typescript
-configure({
-  platforms: {
-    mobile_emulator: mobilePlatform({
-      device: 'emulator-5554',
-      appPackage: 'com.example.myapp'
-    }),
-    mobile_real_device: mobilePlatform({
-      device: 'ABCD123456',  // Physical device ID
-      appPackage: 'com.example.myapp'
-    })
-  }
-});
+```yaml
+platforms:
+  mobile_emulator:
+    platform: mobile
+    device: emulator-5554
+    appPackage: com.example.myapp
+  mobile_real_device:
+    platform: mobile
+    device: ABCD123456      # Physical device ID
+    appPackage: com.example.myapp
 ```
 
 ### AVD (Android Virtual Device)
 
-```typescript
-configure({
-  platforms: {
-    mobile: mobilePlatform({
-      avd: 'Pixel_6_API_33',  // AVD name
-      appPackage: 'com.example.myapp',
-      appActivity: '.MainActivity'
-    })
-  }
-});
+```yaml
+platforms:
+  mobile:
+    platform: mobile
+    avd: Pixel_6_API_33       # AVD name
+    appPackage: com.example.myapp
+    appActivity: .MainActivity
 ```
 
 ## Common Mobile Testing Patterns
 
 ### App Launch
 
-```typescript
-.scenario('Launch app')
-  .given('the app is installed')
-  .when('I launch the app')
-  .then('I should see the home screen')
-  .and('the app title should be visible')
-  .done()
+```markdown
+## Scenario: Launch app
+- Given the app is installed
+- When I launch the app
+- Then I should see the home screen
+- And the app title should be visible
 ```
 
 ### Tapping Elements
 
-```typescript
-.scenario('Tap button')
-  .given('the app is launched')
-  .when('I tap the "Login" button')
-  .then('I should see the login screen')
-  .done()
+```markdown
+## Scenario: Tap button
+- Given the app is launched
+- When I tap the "Login" button
+- Then I should see the login screen
 
-.scenario('Tap by coordinates')
-  .given('the app is launched')
-  .when('I tap at coordinates (500, 800)')
-  .then('the action should be performed')
-  .done()
+## Scenario: Tap by coordinates
+- Given the app is launched
+- When I tap at coordinates (500, 800)
+- Then the action should be performed
 ```
 
 ### Text Input
 
-```typescript
-.scenario('Enter text in field')
-  .given('I am on the login screen')
-  .when('I tap the username field')
-  .and('I enter "john@example.com"')
-  .and('I tap the password field')
-  .and('I enter "password123"')
-  .and('I tap the "Sign In" button')
-  .then('I should see the dashboard')
-  .done()
+```markdown
+## Scenario: Enter text in field
+- Given I am on the login screen
+- When I tap the username field
+- And I enter "john@example.com"
+- And I tap the password field
+- And I enter "password123"
+- And I tap the "Sign In" button
+- Then I should see the dashboard
 ```
 
 ### Swipe Gestures
 
-```typescript
-.scenario('Swipe to refresh')
-  .given('I am on the home screen')
-  .when('I swipe down from the top')
-  .then('the content should refresh')
-  .and('I should see updated data')
-  .done()
+```markdown
+## Scenario: Swipe to refresh
+- Given I am on the home screen
+- When I swipe down from the top
+- Then the content should refresh
+- And I should see updated data
 
-.scenario('Swipe between tabs')
-  .given('I am viewing tab 1')
-  .when('I swipe left')
-  .then('I should see tab 2')
-  .done()
+## Scenario: Swipe between tabs
+- Given I am viewing tab 1
+- When I swipe left
+- Then I should see tab 2
 
-.scenario('Dismiss notification')
-  .given('a notification is visible')
-  .when('I swipe right on the notification')
-  .then('the notification should be dismissed')
-  .done()
+## Scenario: Dismiss notification
+- Given a notification is visible
+- When I swipe right on the notification
+- Then the notification should be dismissed
 ```
 
 ### Scrolling
 
-```typescript
-.scenario('Scroll down list')
-  .given('I am viewing a long list')
-  .when('I scroll down')
-  .then('I should see more items')
-  .and('the "Load More" button should be visible')
-  .done()
+```markdown
+## Scenario: Scroll down list
+- Given I am viewing a long list
+- When I scroll down
+- Then I should see more items
+- And the "Load More" button should be visible
 
-.scenario('Scroll to element')
-  .given('I am viewing a long list')
-  .when('I scroll until I see "Item 50"')
-  .then('"Item 50" should be visible')
-  .done()
+## Scenario: Scroll to element
+- Given I am viewing a long list
+- When I scroll until I see "Item 50"
+- Then "Item 50" should be visible
 ```
 
 ### Long Press
 
-```typescript
-.scenario('Long press for context menu')
-  .given('I am viewing a message')
-  .when('I long press on the message')
-  .then('a context menu should appear')
-  .and('I should see options "Copy", "Delete", "Forward"')
-  .done()
+```markdown
+## Scenario: Long press for context menu
+- Given I am viewing a message
+- When I long press on the message
+- Then a context menu should appear
+- And I should see options "Copy", "Delete", "Forward"
 ```
 
 ## App Navigation
 
 ### Back Button
 
-```typescript
-.scenario('Navigate back')
-  .given('I am on the details screen')
-  .when('I press the back button')
-  .then('I should return to the list screen')
-  .done()
+```markdown
+## Scenario: Navigate back
+- Given I am on the details screen
+- When I press the back button
+- Then I should return to the list screen
 ```
 
 ### Home Button
 
-```typescript
-.scenario('Go to home screen')
-  .given('the app is open')
-  .when('I press the home button')
-  .then('I should see the device home screen')
-  .and('the app should be in the background')
-  .done()
+```markdown
+## Scenario: Go to home screen
+- Given the app is open
+- When I press the home button
+- Then I should see the device home screen
+- And the app should be in the background
 ```
 
 ### Recent Apps
 
-```typescript
-.scenario('Switch between apps')
-  .given('multiple apps are running')
-  .when('I press the recent apps button')
-  .then('I should see the list of recent apps')
-  .when('I tap on "Browser"')
-  .then('the browser app should open')
-  .done()
+```markdown
+## Scenario: Switch between apps
+- Given multiple apps are running
+- When I press the recent apps button
+- Then I should see the list of recent apps
+- When I tap on "Browser"
+- Then the browser app should open
 ```
 
 ### Deep Links
 
-```typescript
-.scenario('Open app with deep link')
-  .given('the app supports deep links')
-  .when('I open the deep link "myapp://profile/123"')
-  .then('the app should launch')
-  .and('I should see the profile page for user 123')
-  .done()
+```markdown
+## Scenario: Open app with deep link
+- Given the app supports deep links
+- When I open the deep link "myapp://profile/123"
+- Then the app should launch
+- And I should see the profile page for user 123
 ```
 
 ## Authentication Testing
 
 ### Login Flow
 
-```typescript
-feature('Authentication')
-  .scenario('Successful login')
-    .tag('@mobile', '@auth')
-    .given('I have launched the app')
-    .and('I am on the login screen')
-    .when('I enter email "john@example.com"')
-    .and('I enter password "SecurePass123"')
-    .and('I tap "Sign In"')
-    .then('I should see the home screen')
-    .and('I should see "Welcome, John"')
-    .done()
+```markdown
+---
+platform: mobile
+tags: [mobile, auth]
+---
 
-  .scenario('Login with invalid credentials')
-    .tag('@mobile', '@auth', '@negative')
-    .given('I am on the login screen')
-    .when('I enter email "john@example.com"')
-    .and('I enter password "WrongPassword"')
-    .and('I tap "Sign In"')
-    .then('I should see an error "Invalid credentials"')
-    .and('I should remain on the login screen')
-    .done()
+# Feature: Authentication
 
-  .scenario('Logout')
-    .given('I am logged in')
-    .when('I tap the menu icon')
-    .and('I tap "Logout"')
-    .then('I should see a confirmation dialog')
-    .when('I tap "Confirm"')
-    .then('I should be redirected to the login screen')
-    .done()
-  ._build();
+## Scenario: Successful login
+@mobile @auth
+- Given I have launched the app
+- And I am on the login screen
+- When I enter email "john@example.com"
+- And I enter password "SecurePass123"
+- And I tap "Sign In"
+- Then I should see the home screen
+- And I should see "Welcome, John"
+
+## Scenario: Login with invalid credentials
+@mobile @auth @negative
+- Given I am on the login screen
+- When I enter email "john@example.com"
+- And I enter password "WrongPassword"
+- And I tap "Sign In"
+- Then I should see an error "Invalid credentials"
+- And I should remain on the login screen
+
+## Scenario: Logout
+- Given I am logged in
+- When I tap the menu icon
+- And I tap "Logout"
+- Then I should see a confirmation dialog
+- When I tap "Confirm"
+- Then I should be redirected to the login screen
 ```
 
 ### Biometric Authentication
 
-```typescript
-.scenario('Login with fingerprint')
-  .given('I am on the login screen')
-  .and('biometric authentication is enabled')
-  .when('I tap "Use Fingerprint"')
-  .then('the fingerprint prompt should appear')
-  .when('I authenticate with fingerprint')
-  .then('I should be logged in')
-  .and('I should see the home screen')
-  .done()
+```markdown
+## Scenario: Login with fingerprint
+- Given I am on the login screen
+- And biometric authentication is enabled
+- When I tap "Use Fingerprint"
+- Then the fingerprint prompt should appear
+- When I authenticate with fingerprint
+- Then I should be logged in
+- And I should see the home screen
 ```
 
 ## Form Testing
 
 ### Multi-Step Form
 
-```typescript
-.scenario('Complete registration')
-  .given('I am on the registration screen')
+```markdown
+## Scenario: Complete registration
+- Given I am on the registration screen
 
-  // Step 1: Personal Info
-  .when('I enter name "John Doe"')
-  .and('I enter email "john@example.com"')
-  .and('I tap "Next"')
-  .then('I should see the address form')
+<!-- Step 1: Personal Info -->
+- When I enter name "John Doe"
+- And I enter email "john@example.com"
+- And I tap "Next"
+- Then I should see the address form
 
-  // Step 2: Address
-  .when('I enter street "123 Main St"')
-  .and('I enter city "Springfield"')
-  .and('I enter zip "12345"')
-  .and('I tap "Next"')
-  .then('I should see the confirmation screen')
+<!-- Step 2: Address -->
+- When I enter street "123 Main St"
+- And I enter city "Springfield"
+- And I enter zip "12345"
+- And I tap "Next"
+- Then I should see the confirmation screen
 
-  // Step 3: Confirm
-  .when('I tap "Register"')
-  .then('I should see "Registration successful"')
-  .and('I should be redirected to the home screen')
-  .done()
+<!-- Step 3: Confirm -->
+- When I tap "Register"
+- Then I should see "Registration successful"
+- And I should be redirected to the home screen
 ```
 
 ### Date/Time Picker
 
-```typescript
-.scenario('Select date of birth')
-  .given('I am on the profile form')
-  .when('I tap the "Date of Birth" field')
-  .then('a date picker should appear')
-  .when('I select January 15, 1990')
-  .and('I tap "Done"')
-  .then('the date field should show "01/15/1990"')
-  .done()
+```markdown
+## Scenario: Select date of birth
+- Given I am on the profile form
+- When I tap the "Date of Birth" field
+- Then a date picker should appear
+- When I select January 15, 1990
+- And I tap "Done"
+- Then the date field should show "01/15/1990"
 ```
 
 ### Dropdown/Spinner
 
-```typescript
-.scenario('Select country')
-  .given('I am on the registration form')
-  .when('I tap the country dropdown')
-  .then('a list of countries should appear')
-  .when('I select "United States"')
-  .then('the dropdown should show "United States"')
-  .done()
+```markdown
+## Scenario: Select country
+- Given I am on the registration form
+- When I tap the country dropdown
+- Then a list of countries should appear
+- When I select "United States"
+- Then the dropdown should show "United States"
 ```
 
 ## List and RecyclerView
 
 ### Infinite Scroll
 
-```typescript
-.scenario('Load more items')
-  .given('I am viewing a list of items')
-  .when('I scroll to the bottom')
-  .then('more items should load')
-  .and('I should see a loading indicator')
-  .and('the new items should appear')
-  .done()
+```markdown
+## Scenario: Load more items
+- Given I am viewing a list of items
+- When I scroll to the bottom
+- Then more items should load
+- And I should see a loading indicator
+- And the new items should appear
 ```
 
 ### Pull to Refresh
 
-```typescript
-.scenario('Refresh content')
-  .given('I am on the home feed')
-  .when('I pull down from the top')
-  .then('I should see a refresh indicator')
-  .and('the content should reload')
-  .and('I should see updated items')
-  .done()
+```markdown
+## Scenario: Refresh content
+- Given I am on the home feed
+- When I pull down from the top
+- Then I should see a refresh indicator
+- And the content should reload
+- And I should see updated items
 ```
 
 ### Item Selection
 
-```typescript
-.scenario('Select list item')
-  .given('I am viewing a list of products')
-  .when('I tap on "Product ABC"')
-  .then('I should see the product details')
-  .and('the product name should be "Product ABC"')
-  .and('I should see the price and description')
-  .done()
+```markdown
+## Scenario: Select list item
+- Given I am viewing a list of products
+- When I tap on "Product ABC"
+- Then I should see the product details
+- And the product name should be "Product ABC"
+- And I should see the price and description
 ```
 
 ## Permissions
 
 ### Request Permission
 
-```typescript
-.scenario('Request location permission')
-  .given('the app needs location access')
-  .when('I navigate to the map screen')
-  .then('a permission dialog should appear')
-  .and('the dialog should request "Location access"')
-  .when('I tap "Allow"')
-  .then('the map should show my location')
-  .done()
+```markdown
+## Scenario: Request location permission
+- Given the app needs location access
+- When I navigate to the map screen
+- Then a permission dialog should appear
+- And the dialog should request "Location access"
+- When I tap "Allow"
+- Then the map should show my location
 
-.scenario('Deny permission')
-  .given('the app requests camera permission')
-  .when('the permission dialog appears')
-  .and('I tap "Deny"')
-  .then('I should see a message "Camera access required"')
-  .and('the camera should not activate')
-  .done()
+## Scenario: Deny permission
+- Given the app requests camera permission
+- When the permission dialog appears
+- And I tap "Deny"
+- Then I should see a message "Camera access required"
+- And the camera should not activate
 ```
 
 ## Notifications
 
 ### Local Notifications
 
-```typescript
-.scenario('Receive local notification')
-  .given('I have scheduled a reminder')
-  .when('the reminder time arrives')
-  .then('I should see a notification')
-  .and('the notification should show "Time for your meeting"')
-  .when('I tap the notification')
-  .then('the app should open to the meeting details')
-  .done()
+```markdown
+## Scenario: Receive local notification
+- Given I have scheduled a reminder
+- When the reminder time arrives
+- Then I should see a notification
+- And the notification should show "Time for your meeting"
+- When I tap the notification
+- Then the app should open to the meeting details
 ```
 
 ### Push Notifications
 
-```typescript
-.scenario('Receive push notification')
-  .given('the app is in the background')
-  .when('a push notification is sent')
-  .then('the notification should appear in the status bar')
-  .when('I pull down the notification shade')
-  .then('I should see the notification')
-  .when('I tap the notification')
-  .then('the app should open to the relevant content')
-  .done()
+```markdown
+## Scenario: Receive push notification
+- Given the app is in the background
+- When a push notification is sent
+- Then the notification should appear in the status bar
+- When I pull down the notification shade
+- Then I should see the notification
+- When I tap the notification
+- Then the app should open to the relevant content
 ```
 
 ## Camera and Gallery
 
 ### Take Photo
 
-```typescript
-.scenario('Capture profile picture')
-  .given('I am on the profile edit screen')
-  .when('I tap "Change Photo"')
-  .and('I select "Take Photo"')
-  .then('the camera should open')
-  .when('I take a photo')
-  .and('I tap "Use Photo"')
-  .then('the profile picture should be updated')
-  .done()
+```markdown
+## Scenario: Capture profile picture
+- Given I am on the profile edit screen
+- When I tap "Change Photo"
+- And I select "Take Photo"
+- Then the camera should open
+- When I take a photo
+- And I tap "Use Photo"
+- Then the profile picture should be updated
 ```
 
 ### Select from Gallery
 
-```typescript
-.scenario('Select image from gallery')
-  .given('I am creating a post')
-  .when('I tap "Add Image"')
-  .and('I select "Choose from Gallery"')
-  .then('the gallery should open')
-  .when('I select an image')
-  .then('the image should be added to the post')
-  .done()
+```markdown
+## Scenario: Select image from gallery
+- Given I am creating a post
+- When I tap "Add Image"
+- And I select "Choose from Gallery"
+- Then the gallery should open
+- When I select an image
+- Then the image should be added to the post
 ```
 
 ## Device Features
 
 ### Rotate Device
 
-```typescript
-.scenario('Landscape orientation')
-  .given('the app is in portrait mode')
-  .when('I rotate the device to landscape')
-  .then('the app should adapt to landscape layout')
-  .and('all content should be visible')
-  .done()
+```markdown
+## Scenario: Landscape orientation
+- Given the app is in portrait mode
+- When I rotate the device to landscape
+- Then the app should adapt to landscape layout
+- And all content should be visible
 ```
 
 ### Network Conditions
 
-```typescript
-.scenario('Offline mode')
-  .given('the app is connected')
-  .when('I disable network connectivity')
-  .then('I should see "No internet connection"')
-  .and('cached content should still be available')
-  .done()
+```markdown
+## Scenario: Offline mode
+- Given the app is connected
+- When I disable network connectivity
+- Then I should see "No internet connection"
+- And cached content should still be available
 
-.scenario('Slow network')
-  .given('the network is slow')
-  .when('I load content')
-  .then('I should see a loading indicator')
-  .and('the content should eventually load')
-  .done()
+## Scenario: Slow network
+- Given the network is slow
+- When I load content
+- Then I should see a loading indicator
+- And the content should eventually load
 ```
 
 ## Complete App Flow Examples
 
 ### Onboarding
 
-```typescript
-feature('App Onboarding')
-  .scenario('First-time user onboarding')
-    .tag('@mobile', '@onboarding')
-    .given('I am launching the app for the first time')
-    .then('I should see the welcome screen')
+```markdown
+---
+platform: mobile
+tags: [mobile, onboarding]
+---
 
-    .when('I swipe left')
-    .then('I should see the features screen')
+# Feature: App Onboarding
 
-    .when('I swipe left')
-    .then('I should see the permissions screen')
-
-    .when('I tap "Get Started"')
-    .then('I should see the registration screen')
-    .done()
-  ._build();
+## Scenario: First-time user onboarding
+@mobile @onboarding
+- Given I am launching the app for the first time
+- Then I should see the welcome screen
+- When I swipe left
+- Then I should see the features screen
+- When I swipe left
+- Then I should see the permissions screen
+- When I tap "Get Started"
+- Then I should see the registration screen
 ```
 
 ### E-commerce Checkout
 
-```typescript
-feature('Shopping Cart')
-  .scenario('Complete purchase')
-    .tag('@mobile', '@e2e')
-    .given('I am logged in')
-    .and('I have added a product to my cart')
+```markdown
+---
+platform: mobile
+tags: [mobile, e2e]
+---
 
-    .when('I tap the cart icon')
-    .then('I should see my cart with 1 item')
+# Feature: Shopping Cart
 
-    .when('I tap "Proceed to Checkout"')
-    .then('I should see the checkout screen')
-
-    .when('I enter shipping address')
-    .and('I tap "Continue"')
-    .then('I should see payment options')
-
-    .when('I select "Credit Card"')
-    .and('I enter card details')
-    .and('I tap "Place Order"')
-    .then('I should see "Order placed successfully"')
-    .and('I should receive an order number')
-    .done()
-  ._build();
+## Scenario: Complete purchase
+@mobile @e2e
+- Given I am logged in
+- And I have added a product to my cart
+- When I tap the cart icon
+- Then I should see my cart with 1 item
+- When I tap "Proceed to Checkout"
+- Then I should see the checkout screen
+- When I enter shipping address
+- And I tap "Continue"
+- Then I should see payment options
+- When I select "Credit Card"
+- And I enter card details
+- And I tap "Place Order"
+- Then I should see "Order placed successfully"
+- And I should receive an order number
 ```
 
 ### Social Media Post
 
-```typescript
-feature('Social Feed')
-  .scenario('Create post with image')
-    .given('I am on the home feed')
-    .when('I tap the "Create Post" button')
-    .then('I should see the post creation screen')
+```markdown
+---
+platform: mobile
+---
 
-    .when('I enter "Check out this view!" in the text field')
-    .and('I tap "Add Photo"')
-    .and('I select a photo from the gallery')
-    .then('the photo should appear in the post preview')
+# Feature: Social Feed
 
-    .when('I tap "Post"')
-    .then('I should see "Post created successfully"')
-    .and('I should return to the home feed')
-    .and('my post should appear at the top of the feed')
-    .done()
-  ._build();
+## Scenario: Create post with image
+- Given I am on the home feed
+- When I tap the "Create Post" button
+- Then I should see the post creation screen
+- When I enter "Check out this view!" in the text field
+- And I tap "Add Photo"
+- And I select a photo from the gallery
+- Then the photo should appear in the post preview
+- When I tap "Post"
+- Then I should see "Post created successfully"
+- And I should return to the home feed
+- And my post should appear at the top of the feed
 ```
 
 ## Testing Best Practices
@@ -548,60 +512,50 @@ feature('Social Feed')
 
 Mobile apps often have animations and loading states:
 
-```typescript
-.when('I tap "Load Data"')
-.then('I should see a loading spinner')
-.and('I wait for the data to load')
-.and('the list should contain items')
+```markdown
+- When I tap "Load Data"
+- Then I should see a loading spinner
+- And I wait for the data to load
+- And the list should contain items
 ```
 
 ### 2. Test Different Screen Sizes
 
-```typescript
-// Test on different device configurations
-const devices = [
-  { avd: 'Pixel_6_API_33', name: 'Pixel 6' },
-  { avd: 'Pixel_Tablet_API_33', name: 'Tablet' }
-];
-
-devices.forEach(device => {
-  configure({
-    platforms: {
-      mobile: mobilePlatform({ avd: device.avd })
-    }
-  });
-
-  test(
-    feature(`Login on ${device.name}`)
-      // ... test scenarios
-      ._build(),
-    'mobile'
-  );
-});
+```yaml
+# Test on different devices by creating separate configs or platform entries:
+platforms:
+  pixel6:
+    platform: mobile
+    avd: Pixel_6_API_33
+    appPackage: com.example.myapp
+  tablet:
+    platform: mobile
+    avd: Pixel_Tablet_API_33
+    appPackage: com.example.myapp
 ```
+
+Run tests against specific platforms: `copilot-test run --platform pixel6`
 
 ### 3. Test Orientation Changes
 
-```typescript
-.scenario('Support both orientations')
-  .given('the app is in portrait mode')
-  .and('I am viewing content')
-  .when('I rotate to landscape')
-  .then('the content should remain accessible')
-  .and('the layout should adapt')
-  .done()
+```markdown
+## Scenario: Support both orientations
+- Given the app is in portrait mode
+- And I am viewing content
+- When I rotate to landscape
+- Then the content should remain accessible
+- And the layout should adapt
 ```
 
 ### 4. Handle System Interruptions
 
-```typescript
-.scenario('Incoming call interruption')
-  .given('the app is active')
-  .when('an incoming call arrives')
-  .and('I answer the call')
-  .and('I end the call')
-  .then('the app should resume where I left off')
-  .done()
+```markdown
+## Scenario: Incoming call interruption
+- Given the app is active
+- When an incoming call arrives
+- And I answer the call
+- And I end the call
+- Then the app should resume where I left off
 ```
 
 ## Debugging Mobile Tests
@@ -619,10 +573,9 @@ adb pull /sdcard/window_dump.xml
 
 ### Screenshot on Failure
 
-```typescript
-configure({
-  screenshotOnFailure: true  // Captures screenshot when test fails
-});
+```yaml
+# copilot-test.config.yaml
+screenshotOnFailure: true
 ```
 
 ### Slow Down Animations
@@ -638,23 +591,21 @@ adb shell settings put global animator_duration_scale 0
 
 ### App Launch Time
 
-```typescript
-.scenario('App launches quickly')
-  .when('I launch the app')
-  .then('the app should launch in less than 3 seconds')
-  .and('the home screen should be visible')
-  .done()
+```markdown
+## Scenario: App launches quickly
+- When I launch the app
+- Then the app should launch in less than 3 seconds
+- And the home screen should be visible
 ```
 
 ### Memory Usage
 
-```typescript
-.scenario('App handles memory efficiently')
-  .given('the app is running')
-  .when('I navigate through multiple screens')
-  .then('memory usage should remain stable')
-  .and('no memory leaks should occur')
-  .done()
+```markdown
+## Scenario: App handles memory efficiently
+- Given the app is running
+- When I navigate through multiple screens
+- Then memory usage should remain stable
+- And no memory leaks should occur
 ```
 
 ## Next Steps

@@ -17,14 +17,13 @@ The `ScenarioContext` class provides a shared state object that persists across 
 
 When using the AI-driven testing mode, the AI agent automatically manages context:
 
-```typescript
-feature('User Management')
-  .scenario('Create and verify user')
-    .given('I create a new user with name "Alice"')
-    // AI stores the user ID in context automatically
-    .when('I fetch the user with ID from the previous step')
-    // AI reads the user ID from context
-    .then('The user details should match');
+```markdown
+## Scenario: Create and verify user
+- Given I create a new user with name "Alice"
+  <!-- AI stores the user ID in context automatically -->
+- When I fetch the user with ID from the previous step
+  <!-- AI reads the user ID from context -->
+- Then The user details should match
 ```
 
 The AI agent:
@@ -150,76 +149,92 @@ context.fromJSON({
 
 ### Example 1: User Creation and Verification
 
-```typescript
-const userFlow = feature('User Management')
-  .scenario('Create and verify user')
-    .given('I have a JSON API at https://api.example.com')
-    .when('I create a user with name "Alice" and email "alice@example.com"')
-    // AI stores: {"userId": "123"}
-    .then('I should receive a 201 status')
-    .when('I fetch the user using the ID from context')
-    // AI uses context.userId in the request
-    .then('the user name should be "Alice"')
-    .and('the email should be "alice@example.com"')
-    .done();
+```markdown
+---
+platform: api
+tags: [user-management]
+---
+# Feature: User Management
+
+## Scenario: Create and verify user
+- Given I have a JSON API at https://api.example.com
+- When I create a user with name "Alice" and email "alice@example.com"
+  <!-- AI stores: {"userId": "123"} -->
+- Then I should receive a 201 status
+- When I fetch the user using the ID from context
+  <!-- AI uses context.userId in the request -->
+- Then the user name should be "Alice"
+- And the email should be "alice@example.com"
 ```
 
 ### Example 2: Authentication Flow
 
-```typescript
-const authFlow = feature('Authentication')
-  .scenario('Login and make authenticated request')
-    .given('I have an auth API')
-    .when('I login with username "test" and password "pass"')
-    // AI stores: {"authToken": "jwt-token-here"}
-    .then('I receive an authentication token')
-    .when('I make a GET request to /profile with the auth token')
-    // AI uses context.authToken in Authorization header
-    .then('I should see my profile data')
-    .done();
+```markdown
+---
+platform: api
+tags: [authentication]
+---
+# Feature: Authentication
+
+## Scenario: Login and make authenticated request
+- Given I have an auth API
+- When I login with username "test" and password "pass"
+  <!-- AI stores: {"authToken": "jwt-token-here"} -->
+- Then I receive an authentication token
+- When I make a GET request to /profile with the auth token
+  <!-- AI uses context.authToken in Authorization header -->
+- Then I should see my profile data
 ```
 
 ### Example 3: Shopping Cart Workflow
 
-```typescript
-const cartFlow = feature('Shopping Cart')
-  .scenario('Add items and checkout')
-    .given('I have an e-commerce API')
-    .when('I create a new shopping cart')
-    // AI stores: {"cartId": "cart-abc"}
-    .then('I receive a cart ID')
-    .when('I add product "prod-1" to the cart')
-    // AI uses context.cartId
-    .then('the item is added successfully')
-    .when('I add product "prod-2" to the cart')
-    .then('the cart should contain 2 items')
-    .when('I checkout with the cart')
-    // AI uses context.cartId, stores: {"orderId": "order-xyz"}
-    .then('I receive an order confirmation')
-    .done();
+```markdown
+---
+platform: api
+tags: [shopping-cart]
+---
+# Feature: Shopping Cart
+
+## Scenario: Add items and checkout
+- Given I have an e-commerce API
+- When I create a new shopping cart
+  <!-- AI stores: {"cartId": "cart-abc"} -->
+- Then I receive a cart ID
+- When I add product "prod-1" to the cart
+  <!-- AI uses context.cartId -->
+- Then the item is added successfully
+- When I add product "prod-2" to the cart
+- Then the cart should contain 2 items
+- When I checkout with the cart
+  <!-- AI uses context.cartId, stores: {"orderId": "order-xyz"} -->
+- Then I receive an order confirmation
 ```
 
 ### Example 4: Multi-Step API Testing
 
-```typescript
-const apiTest = feature('Complex API Flow')
-  .scenario('Create, update, and delete resource')
-    .given('I have a REST API')
-    .when('I POST a new resource with data {"name": "Test"}')
-    // AI stores: {"resourceId": "res-123"}
-    .then('the response status should be 201')
-    .when('I GET the resource using the ID from context')
-    // AI uses context.resourceId
-    .then('the response should include the name "Test"')
-    .when('I PUT an update to the resource with {"name": "Updated"}')
-    // AI uses context.resourceId
-    .then('the update should succeed')
-    .when('I GET the resource again')
-    .then('the name should be "Updated"')
-    .when('I DELETE the resource')
-    // AI uses context.resourceId
-    .then('the resource should be deleted successfully')
-    .done();
+```markdown
+---
+platform: api
+tags: [api-testing]
+---
+# Feature: Complex API Flow
+
+## Scenario: Create, update, and delete resource
+- Given I have a REST API
+- When I POST a new resource with data {"name": "Test"}
+  <!-- AI stores: {"resourceId": "res-123"} -->
+- Then the response status should be 201
+- When I GET the resource using the ID from context
+  <!-- AI uses context.resourceId -->
+- Then the response should include the name "Test"
+- When I PUT an update to the resource with {"name": "Updated"}
+  <!-- AI uses context.resourceId -->
+- Then the update should succeed
+- When I GET the resource again
+- Then the name should be "Updated"
+- When I DELETE the resource
+  <!-- AI uses context.resourceId -->
+- Then the resource should be deleted successfully
 ```
 
 ## Best Practices
@@ -236,9 +251,9 @@ const apiTest = feature('Complex API Flow')
    - ❌ "I fetch the user" (ambiguous which user)
 
 5. **Verify Context Values**: Include verification steps to ensure context values are correct:
-   ```typescript
-   .then('the user ID should be stored in context')
-   .and('the user ID should be a valid UUID')
+   ```markdown
+   - Then the user ID should be stored in context
+   - And the user ID should be a valid UUID
    ```
 
 ## Implementation Details

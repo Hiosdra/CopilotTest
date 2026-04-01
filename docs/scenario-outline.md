@@ -8,31 +8,24 @@ Scenario Outlines allow you to run the same test scenario with multiple sets of 
 
 ## Basic Usage
 
-```typescript
-import { feature, test, configure, run } from "copilot-test";
-import { webPlatform } from "copilot-test";
+```markdown
+<!-- tests/login.feature.md -->
+---
+platform: web
+---
+# Feature: User Login
 
-configure({
-  platforms: { web: webPlatform() }
-});
+## Scenario Outline: Login with different credentials
+- Given I am on the login page
+- When I enter username "<username>" and password "<password>"
+- Then I should see "<message>"
 
-test(
-  feature("User Login")
-    .scenarioOutline("Login with different credentials")
-      .given("I am on the login page")
-      .when('I enter username "<username>" and password "<password>"')
-      .then('I should see "<message>"')
-      .examples([
-        { username: "admin", password: "admin123", message: "Welcome Admin" },
-        { username: "user", password: "wrong", message: "Invalid credentials" },
-        { username: "", password: "", message: "Please fill all fields" }
-      ])
-      .done()
-    ._build(),
-  "web"
-);
-
-run();
+### Examples:
+| username | password | message |
+|----------|----------|---------|
+| admin | admin123 | Welcome Admin |
+| user | wrong | Invalid credentials |
+| | | Please fill all fields |
 ```
 
 ## How It Works
@@ -53,24 +46,28 @@ run();
 
 Any text in angle brackets `<name>` in step definitions will be replaced with values from the examples:
 
-```typescript
-.when('I search for "<query>"')
-.then('I should see "<count>" results')
-.examples([
-  { query: "typescript", count: "10" },
-  { query: "python", count: "8" }
-])
+```markdown
+- When I search for "<query>"
+- Then I should see "<count>" results
+
+### Examples:
+| query | count |
+|-------|-------|
+| typescript | 10 |
+| python | 8 |
 ```
 
 ### Special Characters Support
 
 Parameter keys and values support special characters:
 
-```typescript
-.given('I use "<key.with.dots>" and "<value>"')
-.examples([
-  { "key.with.dots": "value1", value: "$100 price" }
-])
+```markdown
+- Given I use "<key.with.dots>" and "<value>"
+
+### Examples:
+| key.with.dots | value |
+|---------------|-------|
+| value1 | $100 price |
 ```
 
 Both regex metacharacters in keys (`.`, `(`, `)`, `*`, etc.) and replacement patterns in values (`$1`, `$$`, etc.) are handled safely.
@@ -79,49 +76,64 @@ Both regex metacharacters in keys (`.`, `(`, `)`, `*`, etc.) and replacement pat
 
 You can combine regular scenarios with scenario outlines in the same feature:
 
-```typescript
-feature("Shopping Cart")
-  .scenario("Empty cart on start")
-    .given("I am a new user")
-    .then("my cart should be empty")
-    .done()
-  .scenarioOutline("Add items with different quantities")
-    .when('I add "<quantity>" items')
-    .then('cart should have "<quantity>" items')
-    .examples([
-      { quantity: "1" },
-      { quantity: "5" },
-      { quantity: "10" }
-    ])
-    .done()
-  ._build()
+```markdown
+# Feature: Shopping Cart
+
+## Scenario: Empty cart on start
+- Given I am a new user
+- Then my cart should be empty
+
+## Scenario Outline: Add items with different quantities
+- When I add "<quantity>" items
+- Then cart should have "<quantity>" items
+
+### Examples:
+| quantity |
+|----------|
+| 1 |
+| 5 |
+| 10 |
 ```
 
 ### Using Tags
 
 Scenario outlines support tags just like regular scenarios:
 
-```typescript
-.scenarioOutline("Parameterized test")
-  .tag("@smoke", "@critical")
-  .given('step with "<param>"')
-  .examples([...])
-  // ...
+```markdown
+## Scenario Outline: Parameterized test
+<!-- tags: [smoke, critical] -->
+- Given step with "<param>"
+
+### Examples:
+| param |
+|-------|
+| ... |
 ```
 
 ### Chaining Multiple Outlines
 
 You can chain multiple scenario outlines:
 
-```typescript
-feature("API Testing")
-  .scenarioOutline("Test GET endpoints")
-    .when('I request "<endpoint>"')
-    .examples([{ endpoint: "/users" }, { endpoint: "/posts" }])
-  .scenarioOutline("Test POST endpoints")
-    .when('I POST to "<endpoint>"')
-    .examples([{ endpoint: "/users" }, { endpoint: "/comments" }])
-    .done()
+```markdown
+# Feature: API Testing
+
+## Scenario Outline: Test GET endpoints
+- When I request "<endpoint>"
+
+### Examples:
+| endpoint |
+|----------|
+| /users |
+| /posts |
+
+## Scenario Outline: Test POST endpoints
+- When I POST to "<endpoint>"
+
+### Examples:
+| endpoint |
+|----------|
+| /users |
+| /comments |
 ```
 
 ## Test Reports
@@ -143,7 +155,7 @@ This makes it easy to identify which specific data set caused a failure.
 
 ## Complete Example
 
-See `tests/scenario-outline.example.ts` for a comprehensive demonstration including:
+See `tests/scenario-outline.example.feature.md` for a comprehensive demonstration including:
 - Login with multiple user types
 - Search with different queries
 - Form validation with various inputs
@@ -169,16 +181,18 @@ interface Scenario {
 }
 ```
 
+> **Markdown equivalent:** In `.feature.md` files, scenario outlines use `## Scenario Outline:` headings with `### Examples:` tables containing the parameter data.
+
 ## Error Handling
 
 If you forget to provide examples, a clear error will be thrown:
 
-```typescript
-// This will throw an error:
-feature("Test")
-  .scenarioOutline("Outline without examples")
-    .given("some step")
-    .done() // Error: Scenario Outline "Outline without examples" must have at least one example
+```markdown
+<!-- This will cause a validation error: -->
+## Scenario Outline: Outline without examples
+- Given some step
+<!-- Error: Scenario Outline "Outline without examples" must have at least one example -->
+<!-- (Missing ### Examples: table) -->
 ```
 
 ## Migration from Regular Scenarios
@@ -186,22 +200,22 @@ feature("Test")
 Converting duplicate scenarios to outlines:
 
 **Before:**
-```typescript
-.scenario("Login as admin")
-  .when('I enter username "admin"')
-  .done()
-.scenario("Login as user")
-  .when('I enter username "user"')
-  .done()
+```markdown
+## Scenario: Login as admin
+- When I enter username "admin"
+
+## Scenario: Login as user
+- When I enter username "user"
 ```
 
 **After:**
-```typescript
-.scenarioOutline("Login as different users")
-  .when('I enter username "<username>"')
-  .examples([
-    { username: "admin" },
-    { username: "user" }
-  ])
-  .done()
+```markdown
+## Scenario Outline: Login as different users
+- When I enter username "<username>"
+
+### Examples:
+| username |
+|----------|
+| admin |
+| user |
 ```

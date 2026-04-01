@@ -13,33 +13,32 @@ npm run test:watch
 
 ## Configuration
 
-Add watch configuration to your `copilot-test.config.ts`:
+Add watch configuration to your `copilot-test.config.yaml`:
 
-```typescript
-import { configure } from "./src/index.js";
-import { webPlatform } from "./src/platforms/web.js";
-
-configure({
-  model: "gpt-4o",
-  platforms: {
-    web: webPlatform({
-      browser: "chromium",
-      headless: true,
-    }),
-  },
-  watch: {
-    enabled: true,
-    include: ["src/**/*.ts", "tests/**/*.spec.ts"],
-    exclude: ["node_modules/**", "dist/**", "**/.*"],
-    debounce: 300,           // Wait 300ms before re-running
-    runMode: "all",          // 'all' | 'related' | 'changed-files' (only 'all' currently implemented)
-    failedFirst: true,       // Run failed tests first (future enhancement)
-    clearConsole: false,     // Clear console before each run
-    notifications: false,    // OS notifications (future enhancement)
-    verbose: true,           // Verbose output
-    maxWorkers: 2,           // Limit workers in watch mode (uses global maxWorkers for now)
-  },
-});
+```yaml
+# copilot-test.config.yaml
+model: gpt-4o
+platforms:
+  web:
+    type: web
+    browser: chromium
+    headless: true
+watch:
+  enabled: true
+  include:
+    - "src/**/*.ts"
+    - "tests/**/*.feature.md"
+  exclude:
+    - "node_modules/**"
+    - "dist/**"
+    - "**/.*"
+  debounce: 300             # Wait 300ms before re-running
+  runMode: all              # 'all' | 'related' | 'changed-files' (only 'all' currently implemented)
+  failedFirst: true         # Run failed tests first (future enhancement)
+  clearConsole: false       # Clear console before each run
+  notifications: false      # OS notifications (future enhancement)
+  verbose: true             # Verbose output
+  maxWorkers: 2             # Limit workers in watch mode (uses global maxWorkers for now)
 ```
 
 **Note**: Some configuration options like `runMode: "related"/"changed-files"`, `failedFirst`, `notifications`, and watch-specific `maxWorkers` are defined in the API but not fully implemented yet. They are reserved for future enhancements. Currently supported options are: `enabled`, `include`, `exclude`, `debounce`, and `clearConsole`.
@@ -50,7 +49,7 @@ configure({
 Enable or disable watch mode. Default: `false`
 
 ### `include`
-Array of glob patterns for files to watch. Default: `["src/**/*.ts", "tests/**/*.ts", "**/*.spec.ts"]`
+Array of glob patterns for files to watch. Default: `["src/**/*.ts", "tests/**/*.ts", "**/*.feature.md"]`
 
 ### `exclude`
 Array of glob patterns to exclude from watching. Default: `["node_modules/**", "dist/**", "**/.*"]`
@@ -111,64 +110,66 @@ Press `Enter` to re-run the tests without waiting for file changes.
 
 ### Basic Watch Mode
 
-```typescript
-import { configure, test, feature, getDefaultRunner, startWatchMode, getConfig } from "copilot-test";
-import { webPlatform } from "copilot-test";
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+watch:
+  enabled: true
+```
 
-configure({
-  platforms: { web: webPlatform() },
-  watch: { enabled: true },
-});
+```markdown
+<!-- tests/login.feature.md -->
+---
+platform: web
+---
+# Feature: Login
 
-test(
-  feature("Login")
-    .scenario("Successful login")
-      .given("I am on the login page")
-      .when("I enter valid credentials")
-      .then("I see the dashboard")
-      .done()
-    ._build(),
-  "web"
-);
+## Scenario: Successful login
+- Given I am on the login page
+- When I enter valid credentials
+- Then I see the dashboard
+```
 
-// Start watch mode using the configured singleton runner
-const config = getConfig();
-const runner = getDefaultRunner();
-if (config) {
-  await startWatchMode(config, runner);
-}
+```bash
+# Start watch mode via CLI
+npm run test:watch
 ```
 
 ### Watch Specific Patterns
 
 Watch only specific file patterns:
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  watch: {
-    enabled: true,
-    include: ["src/components/**/*.ts", "tests/components/**/*.spec.ts"],
-    exclude: ["**/*.test.ts"],
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+watch:
+  enabled: true
+  include:
+    - "src/components/**/*.ts"
+    - "tests/components/**/*.feature.md"
+  exclude:
+    - "**/*.test.ts"
 ```
 
 ### Watch with Parallel Execution
 
 Combine watch mode with parallel test execution:
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  parallel: true,
-  maxWorkers: 4,
-  watch: {
-    enabled: true,
-    maxWorkers: 2,  // Use fewer workers in watch mode
-    debounce: 500,
-  },
-});
+```yaml
+# copilot-test.config.yaml
+platforms:
+  web:
+    type: web
+parallel: true
+maxWorkers: 4
+watch:
+  enabled: true
+  maxWorkers: 2    # Use fewer workers in watch mode
+  debounce: 500
 ```
 
 ## Watch Mode UI
@@ -188,7 +189,7 @@ Watch mode displays a clean, informative interface:
 
 📝 Changed files:
   • src/login.ts
-  • tests/login.spec.ts
+  • tests/login.feature.md
 
 [Test execution output...]
 
@@ -227,17 +228,14 @@ If you accidentally run watch mode in CI, it will not hang on interactive prompt
 
 ## Programmatic API
 
-You can also start watch mode programmatically:
+> **Note:** For most users, YAML configuration with `npm run test:watch` is recommended. The programmatic API is for advanced use cases that need custom integration.
+
+For advanced use, you can also start watch mode programmatically:
 
 ```typescript
-import { startWatchMode, getDefaultRunner, configure, getConfig } from "copilot-test";
+import { startWatchMode, getDefaultRunner, loadConfig } from "copilot-test";
 
-configure({
-  platforms: { web: webPlatform() },
-  watch: { enabled: true },
-});
-
-const config = getConfig();
+const config = await loadConfig('./copilot-test.config.yaml');
 const runner = getDefaultRunner();
 
 if (config) {

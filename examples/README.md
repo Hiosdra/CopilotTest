@@ -4,114 +4,80 @@ This directory contains examples of using CopilotTest's retry mechanisms and err
 
 ## Basic Retry Configuration
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
-    stepRetries: 3,        // Retry individual steps up to 3 times
-    stepRetryDelay: 1000,  // Wait 1s between retries
-  },
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3        # Retry individual steps up to 3 times
+  stepRetryDelay: 1000  # Wait 1s between retries
 ```
 
 ## Exponential Backoff
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
-    stepRetries: 5,
-    strategy: "exponential",
-    initialDelay: 1000,     // First retry after 1s
-    maxDelay: 10000,        // Cap at 10s
-    backoffFactor: 2,       // Double delay each time
-    // Delays: 1s, 2s, 4s, 8s, 10s
-  },
-});
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 5
+  strategy: exponential
+  initialDelay: 1000     # First retry after 1s
+  maxDelay: 10000        # Cap at 10s
+  backoffFactor: 2       # Double delay each time
+  # Delays: 1s, 2s, 4s, 8s, 10s
 ```
 
 ## Conditional Retry (Only Retry Specific Errors)
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
-    stepRetries: 3,
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
 
-    // Only retry on network/timeout errors
-    retryOn: [
-      "timeout",
-      "network error",
-      /connection refused/i,
-    ],
+  # Only retry on network/timeout errors
+  retryOn:
+    - timeout
+    - network error
+    - /connection refused/i
 
-    // Don't retry on assertion failures
-    skipRetryOn: [
-      "assertion failed",
-      /validation error/i,
-    ],
-  },
-});
+  # Don't retry on assertion failures
+  skipRetryOn:
+    - assertion failed
+    - /validation error/i
 ```
 
 ## Custom Retry Logic
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
+> **Note:** Custom retry functions (`shouldRetry`, `delayFn`) require programmatic configuration.
+> For simple retry patterns, use the YAML config above. For advanced logic, see the
+> [Custom Steps Guide](../docs/CUSTOM_STEPS.md).
 
-    // Custom retry logic
-    shouldRetry: (error, attempt) => {
-      const msg = typeof error === "string" ? error : error.message;
-
-      // Retry rate limits up to 5 times
-      if (msg.toLowerCase().includes("rate limit")) {
-        return attempt <= 5;
-      }
-
-      // Retry server errors up to 3 times
-      if (msg.toLowerCase().includes("server error")) {
-        return attempt <= 3;
-      }
-
-      // Don't retry other errors
-      return false;
-    },
-
-    // Custom delay calculation
-    delayFn: (attempt) => {
-      return Math.min(1000 * Math.pow(2, attempt), 30000);
-    },
-  },
-});
+```yaml
+# copilot-test.config.yaml — basic retry config
+retry:
+  enabled: true
+  stepRetries: 5
+  strategy: exponential
+  initialDelay: 1000
+  maxDelay: 30000
+  backoffFactor: 2
 ```
 
 ## Flaky Test Detection
 
-```typescript
-configure({
-  platforms: { web: webPlatform() },
-  retry: {
-    enabled: true,
-    stepRetries: 3,
+```yaml
+# copilot-test.config.yaml
+retry:
+  enabled: true
+  stepRetries: 3
 
-    // Track tests that pass only after retries
-    trackFlaky: true,
-    flakyThreshold: 2,  // Consider flaky if passes after 2+ retries
-
-    // Custom callback when flaky test detected
-    onFlakyDetected: (scenarioName, attempts) => {
-      console.warn(`⚠️  Flaky test: "${scenarioName}" passed on attempt ${attempts}`);
-      // Could send notification, create GitHub issue, etc.
-    },
-  },
-});
+  # Track tests that pass only after retries
+  trackFlaky: true
+  flakyThreshold: 2  # Consider flaky if passes after 2+ retries
 ```
+
+> **Note:** Custom callbacks (e.g., `onFlakyDetected`) require programmatic configuration.
+> See the [Plugins Guide](../docs/PLUGINS.md) for lifecycle hooks.
 
 ## Retry Report Output
 
@@ -136,5 +102,5 @@ The HTML report includes:
 
 ## Example Files
 
-- `retry-example.ts` - Complete example with all retry features
+- `retry-example.feature.md` - Complete example with all retry features
 - See the test suite in `tests/unit.test.ts` for more examples
