@@ -45,7 +45,8 @@ Options:
 
 Examples:
   copilot-test init
-  copilot-test run --tag=@smoke
+  copilot-test run tests/login.feature.md
+  copilot-test run --tag=@smoke --parallel
   copilot-test run --env=staging --parallel
   copilot-test report compare --baseline run-1.json --current run-2.json
 

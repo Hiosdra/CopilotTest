@@ -17,7 +17,7 @@ Add watch configuration to your `copilot-test.config.yaml`:
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     type: web

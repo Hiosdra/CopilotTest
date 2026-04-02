@@ -30,7 +30,7 @@ adb devices
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   mobile:
     platform: mobile

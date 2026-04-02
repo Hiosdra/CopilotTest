@@ -12,7 +12,7 @@ CopilotTest uses the curl MCP server to test REST APIs. The AI interprets your t
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   api:
     platform: api

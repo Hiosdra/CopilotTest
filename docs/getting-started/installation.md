@@ -53,7 +53,7 @@ The CLI will prompt you for:
 
 - **Project name**: Name of your test project
 - **Platforms**: Choose from web, API, mobile, or multiple
-- **AI Model**: Select the model (gpt-4o, gpt-4o-mini, claude-sonnet)
+- **AI Model**: Select the model — we recommend **gpt-5-mini** (0x multiplier, no extra cost)
 - **Install dependencies**: Automatically install required packages
 
 ### What Gets Created

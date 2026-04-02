@@ -52,7 +52,7 @@ try {
 
   // Configure the test framework
   configure({
-    model: "gpt-4o",
+    model: "gpt-5-mini",
     platforms: {
       web: webPlatform({
         browser: "chromium",

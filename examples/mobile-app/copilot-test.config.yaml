@@ -1,0 +1,8 @@
+model: gpt-5-mini
+platforms:
+  mobile:
+    type: mobile
+    device: emulator-5554
+    appPackage: com.example.testapp
+stepTimeout: 30000
+outputDir: copilot-test-results/mobile-app

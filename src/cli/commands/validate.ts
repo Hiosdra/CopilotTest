@@ -1,6 +1,5 @@
 import * as fs from "node:fs";
-import { pathToFileURL } from "node:url";
-import * as path from "node:path";
+import { loadConfig } from "../../config-loader.js";
 
 export async function validateCommand(args: string[]) {
   console.log("🔍 Validating configuration...\n");
@@ -9,7 +8,7 @@ export async function validateCommand(args: string[]) {
   const warnings: string[] = [];
 
   // Check for config file
-  const configFiles = ["copilot-test.config.ts", "copilot-test.config.js"];
+  const configFiles = ["copilot-test.config.yaml", "copilot-test.config.yml"];
   let configFile: string | null = null;
 
   for (const file of configFiles) {
@@ -31,17 +30,17 @@ export async function validateCommand(args: string[]) {
 
   // Try to load and parse the config
   try {
-    await import(pathToFileURL(path.resolve(configFile)).href);
-    console.log("✓ Valid TypeScript/JavaScript");
+    await loadConfig(configFile);
+    console.log("✓ Valid YAML configuration");
   } catch (error) {
-    issues.push(`Configuration file has syntax errors: ${error instanceof Error ? error.message : String(error)}`);
+    issues.push(`Configuration file has errors: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Check for tests directory
   if (!fs.existsSync("tests")) {
     warnings.push("No tests/ directory found");
   } else {
-    const testFiles = fs.readdirSync("tests").filter((f) => f.endsWith(".spec.ts") || f.endsWith(".spec.js"));
+    const testFiles = fs.readdirSync("tests").filter((f) => f.endsWith(".feature.md"));
     if (testFiles.length === 0) {
       warnings.push("No test files found in tests/ directory");
     } else {

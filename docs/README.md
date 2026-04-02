@@ -144,7 +144,7 @@ Configure in `copilot-test.config.yaml`:
 
 ```yaml
 # AI
-model: gpt-4o
+model: gpt-5-mini
 reasoningEffort: medium
 
 # Platforms

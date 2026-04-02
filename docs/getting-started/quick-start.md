@@ -10,7 +10,9 @@ npx copilot-test init
 
 Follow the prompts to set up your project. For this quick start, select:
 - Platform: **web**
-- Model: **gpt-4o-mini** (fastest for learning)
+- Model: **gpt-5-mini** (0x multiplier — included in your Copilot plan at no extra cost)
+
+> 💡 **Cost tip:** `gpt-5-mini` has a **0x multiplier**, meaning it doesn't consume premium requests. Always prefer 0x multiplier models for routine test runs. See the [Configuration Guide](../guides/configuration.md#recommended-0x-multiplier-models) for all available 0x models.
 
 ## 2. Set Your GitHub Token
 

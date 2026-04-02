@@ -30,7 +30,7 @@ touch tests/login.feature.md
 Ensure your `copilot-test.config.yaml` in the project root has the web platform configured:
 
 ```yaml
-model: gpt-4o
+model: gpt-5-mini
 stepTimeout: 30000
 screenshotOnFailure: true
 outputDir: test-results

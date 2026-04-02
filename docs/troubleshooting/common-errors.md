@@ -91,7 +91,7 @@ Error: Invalid configuration: platforms is required
 **Ensure you have a valid configuration:**
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     type: web
@@ -523,13 +523,13 @@ platforms:
 ```yaml
 # copilot-test.config.yaml
 # No platforms defined
-model: gpt-4o
+model: gpt-5-mini
 ```
 
 ✅ **Right:**
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     type: web

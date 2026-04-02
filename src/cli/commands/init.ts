@@ -4,65 +4,59 @@ import { execSync } from "node:child_process";
 import { prompt } from "../utils/prompt.js";
 import { spinner } from "../utils/spinner.js";
 
-const CONFIG_TEMPLATE = `import { configure, webPlatform, apiPlatform } from "copilot-test";
+const CONFIG_TEMPLATE = `model: <MODEL>
+reasoningEffort: high
+stepTimeout: 30000
+screenshotOnFailure: true
+outputDir: copilot-test-results
 
-configure({
-  model: "<MODEL>",
-  platforms: {<PLATFORMS>
-  },
-  stepTimeout: 30000,
-  retries: 2,
-  screenshotOnFailure: true,
-  outputDir: "copilot-test-results",
-  parallel: false,
-});
+platforms:
+<PLATFORMS>`;
+
+const WEB_PLATFORM_TEMPLATE = `  web:
+    platform: web
+    browser: chromium
+    headless: true
+    baseUrl: http://localhost:3000`;
+
+const API_PLATFORM_TEMPLATE = `  api:
+    platform: api
+    baseUrl: http://localhost:3000/api
+    defaultHeaders:
+      Content-Type: application/json`;
+
+const WEB_TEST_TEMPLATE = `---
+platform: web
+tags: [web, smoke]
+---
+
+# Feature: User Authentication
+
+User authentication feature tests
+
+## Scenario: Successful login
+@smoke
+- Given I am on the login page
+- When I enter valid credentials
+- And I click the login button
+- Then I should see the dashboard
 `;
 
-const WEB_PLATFORM_TEMPLATE = `
-    web: webPlatform({
-      browser: "chromium",
-      headless: true,
-      baseUrl: process.env.BASE_URL ?? "http://localhost:3000",
-    })`;
+const API_TEST_TEMPLATE = `---
+platform: api
+tags: [api, smoke]
+---
 
-const API_PLATFORM_TEMPLATE = `
-    api: apiPlatform({
-      baseUrl: process.env.API_URL ?? "http://localhost:3000/api",
-      defaultHeaders: { "Content-Type": "application/json" },
-    })`;
+# Feature: User API
 
-const WEB_TEST_TEMPLATE = `import { feature, test } from "copilot-test";
+User API tests
 
-test(
-  feature("User Authentication")
-    .tag("@web")
-    .scenario("Successful login")
-    .tag("@smoke")
-    .given("I am on the login page")
-    .when("I enter valid credentials")
-    .and("I click the login button")
-    .then("I should see the dashboard")
-    .done()
-    ._build(),
-  "web"
-);
-`;
-
-const API_TEST_TEMPLATE = `import { feature, test } from "copilot-test";
-
-test(
-  feature("User API")
-    .tag("@api")
-    .scenario("Create new user")
-    .tag("@smoke")
-    .given("I have valid user data")
-    .when("I send a POST request to /users")
-    .then("I should receive a 201 status code")
-    .and("The response should contain the user ID")
-    .done()
-    ._build(),
-  "api"
-);
+## Scenario: Create new user
+@smoke
+- Given I have valid user data
+- When I send a POST request to /users
+- Then I should receive a 201 status code
+- And The response should contain the user ID
 `;
 
 const PACKAGE_JSON_TEMPLATE = {
@@ -71,8 +65,8 @@ const PACKAGE_JSON_TEMPLATE = {
   type: "module",
   scripts: {
     test: "copilot-test run",
-    "test:web": "copilot-test run tests/*web*.spec.ts",
-    "test:api": "copilot-test run tests/*api*.spec.ts",
+    "test:web": "copilot-test run tests/*web*.feature.md",
+    "test:api": "copilot-test run tests/*api*.feature.md",
   },
   dependencies: {
     "copilot-test": "^0.1.0",
@@ -95,7 +89,7 @@ const TSCONFIG_TEMPLATE = {
     forceConsistentCasingInFileNames: true,
     types: ["node"],
   },
-  include: ["tests/**/*.ts", "copilot-test.config.ts"],
+  include: ["src/**/*.ts"],
 };
 
 const README_TEMPLATE = `# <PROJECT_NAME>
@@ -135,7 +129,7 @@ export async function initCommand(args: string[]) {
   console.log("🚀 Initialize Copilot Test Project\n");
 
   // Check if already initialized
-  if (fs.existsSync("copilot-test.config.ts") || fs.existsSync("copilot-test.config.js")) {
+  if (fs.existsSync("copilot-test.config.yaml") || fs.existsSync("copilot-test.config.yml")) {
     console.error("❌ Project already initialized (config file exists)");
     process.exit(1);
   }
@@ -143,15 +137,14 @@ export async function initCommand(args: string[]) {
   // Get project information
   const projectName = await prompt("Project name:", path.basename(process.cwd()));
   const platforms = await promptPlatforms();
-  const model = await prompt("AI Model:", "gpt-4o");
-  const language = await promptLanguage();
+  const model = await prompt("AI Model:", "gpt-5-mini");
   const installDeps = await promptYesNo("Install dependencies now?", true);
 
   console.log();
 
   // Create configuration file
   const configContent = buildConfigContent(model, platforms);
-  const configFile = language === "typescript" ? "copilot-test.config.ts" : "copilot-test.config.js";
+  const configFile = "copilot-test.config.yaml";
 
   spinner.start("Creating configuration file");
   fs.writeFileSync(configFile, configContent);
@@ -167,14 +160,14 @@ export async function initCommand(args: string[]) {
   // Create example test files
   if (platforms.includes("web")) {
     spinner.start("Creating web test example");
-    fs.writeFileSync("tests/login.spec.ts", WEB_TEST_TEMPLATE);
-    spinner.succeed("Created tests/login.spec.ts");
+    fs.writeFileSync("tests/login.feature.md", WEB_TEST_TEMPLATE);
+    spinner.succeed("Created tests/login.feature.md");
   }
 
   if (platforms.includes("api")) {
     spinner.start("Creating API test example");
-    fs.writeFileSync("tests/api-users.spec.ts", API_TEST_TEMPLATE);
-    spinner.succeed("Created tests/api-users.spec.ts");
+    fs.writeFileSync("tests/api-users.feature.md", API_TEST_TEMPLATE);
+    spinner.succeed("Created tests/api-users.feature.md");
   }
 
   // Create package.json if it doesn't exist
@@ -189,8 +182,8 @@ export async function initCommand(args: string[]) {
     spinner.succeed("Created package.json");
   }
 
-  // Create tsconfig.json for TypeScript projects
-  if (language === "typescript" && !fs.existsSync("tsconfig.json")) {
+  // Create tsconfig.json if it doesn't exist
+  if (!fs.existsSync("tsconfig.json")) {
     spinner.start("Creating tsconfig.json");
     fs.writeFileSync("tsconfig.json", JSON.stringify(TSCONFIG_TEMPLATE, null, 2));
     spinner.succeed("Created tsconfig.json");
@@ -227,23 +220,24 @@ export async function initCommand(args: string[]) {
 
   console.log("\n✅ Project initialized successfully!\n");
   console.log("Next steps:");
-  console.log("  1. Review copilot-test.config.ts and adjust settings");
+  console.log("  1. Review copilot-test.config.yaml and adjust settings");
   console.log("  2. Set up environment variables (BASE_URL, API_URL, etc.)");
   console.log(`  3. Run tests: ${installDeps ? "npm test" : "npm install && npm test"}`);
   console.log();
 }
 
 function buildConfigContent(model: string, platforms: string[]): string {
-  let platformsContent = "";
+  const platformParts: string[] = [];
 
   if (platforms.includes("web")) {
-    platformsContent += WEB_PLATFORM_TEMPLATE;
+    platformParts.push(WEB_PLATFORM_TEMPLATE);
   }
 
   if (platforms.includes("api")) {
-    if (platformsContent) platformsContent += ",";
-    platformsContent += API_PLATFORM_TEMPLATE;
+    platformParts.push(API_PLATFORM_TEMPLATE);
   }
+
+  const platformsContent = platformParts.length > 0 ? platformParts.join("\n\n") : "";
 
   return CONFIG_TEMPLATE.replace("<MODEL>", model).replace("<PLATFORMS>", platformsContent);
 }
@@ -252,11 +246,6 @@ async function promptPlatforms(): Promise<string[]> {
   console.log("Which platforms? (Enter comma-separated values: web, api)");
   const input = await prompt("Platforms:", "web,api");
   return input.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean);
-}
-
-async function promptLanguage(): Promise<"typescript" | "javascript"> {
-  const input = await prompt("TypeScript or JavaScript?", "TypeScript");
-  return input.toLowerCase().startsWith("t") ? "typescript" : "javascript";
 }
 
 async function promptYesNo(question: string, defaultValue: boolean): Promise<boolean> {

@@ -10,13 +10,11 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsx tests/unit.test.ts && tsx tests/plugin.test.ts",
-    "test:types": "tsx tests/types-example.ts",
-    "test:parallel": "tsx tests/parallel.spec.ts",
-    "test:web": "tsx tests/login.spec.ts",
-    "test:api": "tsx tests/api-users.spec.ts",
-    "test:mobile": "tsx tests/mobile-app.spec.ts",
-    "test:all": "tsx tests/login.spec.ts && tsx tests/api-users.spec.ts && tsx tests/mobile-app.spec.ts",
+    "test": "tsx tests/unit.test.ts && tsx tests/plugin.test.ts && tsx tests/parser.test.ts",
+    "test:web": "tsx src/cli-run-feature.ts tests/login.feature.md",
+    "test:api": "tsx src/cli-run-feature.ts tests/api-users.feature.md",
+    "test:mobile": "tsx src/cli-run-feature.ts tests/mobile-app.feature.md",
+    "test:all": "tsx src/cli-run-feature.ts tests/login.feature.md tests/api-users.feature.md tests/mobile-app.feature.md",
     "test:watch": "tsx src/cli-watch.ts",
     "test:integration": "tsx tests/integration/web-integration.test.ts && tsx tests/integration/api-integration.test.ts && tsx tests/integration/report-integration.test.ts",
     "test:integration:web": "tsx tests/integration/web-integration.test.ts",
@@ -45,9 +43,11 @@
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.32",
-    "@playwright/mcp": "^0.0.68"
+    "@playwright/mcp": "^0.0.68",
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.5.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"

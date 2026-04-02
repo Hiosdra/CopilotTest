@@ -47,7 +47,7 @@ defineStep(/^I login as "(.+)" with password "(.+)"$/, async (context, username,
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 useCustomStepDefinitions: true  # Default: true
 platforms:
   web:
@@ -322,7 +322,7 @@ platform: api
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     type: web
@@ -388,7 +388,7 @@ tags: [critical]
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   api:
     type: api

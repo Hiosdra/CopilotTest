@@ -280,7 +280,7 @@ Configure CopilotTest via environment variables:
 export GITHUB_TOKEN=your_token
 
 # Model selection
-export COPILOT_MODEL=gpt-4o
+export COPILOT_MODEL=gpt-5-mini
 
 # Environment
 export TEST_ENV=staging
@@ -296,7 +296,7 @@ export MAX_WORKERS=4
 Access in `copilot-test.config.yaml` (static values; for dynamic env-based config, use the Node.js API):
 
 ```yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web

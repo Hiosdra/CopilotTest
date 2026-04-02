@@ -75,7 +75,7 @@ export async function doctorCommand(args: string[]) {
   }
 
   // Check config file
-  const configFiles = ["copilot-test.config.ts", "copilot-test.config.js"];
+  const configFiles = ["copilot-test.config.yaml", "copilot-test.config.yml"];
   let configFound = false;
 
   for (const configFile of configFiles) {
@@ -94,7 +94,7 @@ export async function doctorCommand(args: string[]) {
 
   // Check for tests directory
   if (fs.existsSync("tests")) {
-    const testFiles = fs.readdirSync("tests").filter((f) => f.endsWith(".spec.ts") || f.endsWith(".spec.js"));
+    const testFiles = fs.readdirSync("tests").filter((f) => f.endsWith(".feature.md"));
     if (testFiles.length > 0) {
       console.log(`✓ Found ${testFiles.length} test file(s)`);
     } else {

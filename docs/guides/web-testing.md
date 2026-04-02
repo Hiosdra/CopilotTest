@@ -12,7 +12,7 @@ CopilotTest uses the Playwright MCP server to automate browser interactions. The
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web

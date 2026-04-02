@@ -33,7 +33,7 @@ try {
 
   // Configure the test framework
   configure({
-    model: "gpt-4o",
+    model: "gpt-5-mini",
     platforms: {
       api: apiPlatform({
         baseUrl: testServer.url,

@@ -10,7 +10,7 @@ Create a `copilot-test.config.yaml` file in your project root:
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 reasoningEffort: medium
 
 platforms:
@@ -42,16 +42,37 @@ retry:
 Choose the AI model that best fits your needs:
 
 ```yaml
-model: gpt-4o             # Default: Fast, accurate, cost-effective
+model: gpt-5-mini             # Default: Fast, accurate, cost-effective
 # model: gpt-4o-mini      # Faster, cheaper, good for simple tests
 # model: claude-sonnet    # Alternative model
+```
+
+### Recommended: 0x Multiplier Models
+
+For cost-effective test execution, we recommend using models with a **0x multiplier** — these are included in your GitHub Copilot plan at no additional cost and don't consume premium requests.
+
+| Model | Multiplier | Speed | Best For |
+|-------|-----------|-------|----------|
+| **gpt-5-mini** | 0x | Fast | Default choice — great balance of speed and quality |
+| **gpt-4.1** | 0x | Fast | Alternative 0x option |
+| gpt-5.4-mini | 0x | Fast | Latest mini model |
+
+> **💡 Tip:** Always prefer 0x multiplier models for CI/CD pipelines and automated test runs to keep costs predictable. Reserve premium models (1x+ multiplier) for debugging complex test failures.
+
+```yaml
+# Recommended: 0x multiplier model (no extra cost)
+model: "gpt-5-mini"
+
+# Premium models (consume premium requests):
+# model: "gpt-5.2"    # 1x multiplier
+# model: "claude-sonnet-4"  # 1x multiplier
 ```
 
 ### Model Comparison
 
 | Model | Speed | Cost | Best For |
 |-------|-------|------|----------|
-| **gpt-4o** | Fast | Moderate | General testing, CI/CD |
+| **gpt-5-mini** ⭐ | Fast | Low | General testing, CI/CD (recommended default) |
 | **gpt-4o-mini** | Very Fast | Low | Simple scenarios, development |
 | **claude-sonnet** | Medium | Moderate | Complex validations, analysis |
 
@@ -112,7 +133,7 @@ platforms:
 Configure multiple platforms in one config:
 
 ```yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web
@@ -356,7 +377,7 @@ mcpServers:
 ### Using Environment Variables
 
 ```yaml
-model: "${AI_MODEL:-gpt-4o}"
+model: "${AI_MODEL:-gpt-5-mini}"
 
 platforms:
   web:
@@ -444,7 +465,7 @@ defineStep(/^I login as "(.+)"$/, async (context, username) => {
 # copilot-test.config.yaml
 
 # AI Configuration
-model: "${AI_MODEL:-gpt-4o}"
+model: "${AI_MODEL:-gpt-5-mini}"
 reasoningEffort: medium
 
 # Platforms

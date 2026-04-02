@@ -272,7 +272,7 @@ export interface Plugin {
  * Main configuration for CopilotTest framework.
  */
 export interface CopilotTestConfig {
-  /** AI model to use (default: gpt-4o) */
+  /** AI model to use (default: gpt-5-mini) */
   model?: string;
   /** Platform configurations keyed by platform name */
   platforms: Record<string, PlatformConfig>;

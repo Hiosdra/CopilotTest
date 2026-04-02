@@ -2,6 +2,9 @@ import type { Feature, CopilotTestConfig, FeatureResult, TestRun, ScenarioResult
 import { CopilotTestRuntime } from "./runtime.js";
 import { generateReport } from "./reporter.js";
 import { generatePerformanceReport } from "./performance.js";
+import { parseFeatureFile } from "./markdown-parser.js";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 import { cpus } from "os";
 
 /**
@@ -36,32 +39,59 @@ class TestRunner {
     this.config = config;
   }
 
-  test(featureOrBuilder: Feature | { _build(): Feature }, platform: string): void {
-    const feat =
-      "_build" in featureOrBuilder
-        ? featureOrBuilder._build()
-        : featureOrBuilder;
-    this.queue.push({ feature: feat, platform });
+  test(feature: Feature, platform: string): void {
+    this.queue.push({ feature, platform });
   }
 
   testOnly(
-    featureOrBuilder: Feature | { _build(): Feature },
+    feature: Feature,
     platform: string,
     tags: string[]
   ): void {
-    const feat =
-      "_build" in featureOrBuilder
-        ? featureOrBuilder._build()
-        : featureOrBuilder;
-
     const filtered = {
-      ...feat,
-      scenarios: feat.scenarios.filter((s) =>
-        tags.some((tag) => s.tags.includes(tag) || feat.tags.includes(tag))
+      ...feature,
+      scenarios: feature.scenarios.filter((s) =>
+        tags.some((tag) => s.tags.includes(tag) || feature.tags.includes(tag))
       ),
     };
 
     this.queue.push({ feature: filtered, platform, tags });
+  }
+
+  /** Load a single .feature.md file and add it to the queue */
+  async loadTest(filePath: string): Promise<void> {
+    const parsed = await parseFeatureFile(filePath);
+    this.queue.push({
+      feature: parsed.feature,
+      platform: parsed.platform,
+      tags: parsed.tags,
+    });
+  }
+
+  /** Load all .feature.md files from a directory (non-recursive) */
+  async loadTests(dir: string): Promise<void> {
+    const files = await readdir(dir);
+    const featureFiles = files
+      .filter(f => f.endsWith(".feature.md"))
+      .sort()
+      .map(f => join(dir, f));
+
+    for (const file of featureFiles) {
+      await this.loadTest(file);
+    }
+  }
+
+  /** Load all .feature.md files matching a pattern from a directory (recursive) */
+  async loadTestsRecursive(dir: string): Promise<void> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await this.loadTestsRecursive(fullPath);
+      } else if (entry.name.endsWith(".feature.md")) {
+        await this.loadTest(fullPath);
+      }
+    }
   }
 
   getConfig(): CopilotTestConfig | null {
@@ -268,7 +298,7 @@ const defaultRunner = new TestRunner();
  * Basic configuration with web platform:
  * ```typescript
  * configure({
- *   model: 'gpt-4o',
+ *   model: 'gpt-5-mini',
  *   stepTimeout: 30000,
  *   platforms: {
  *     web: webPlatform({ headless: true }),
@@ -280,7 +310,7 @@ const defaultRunner = new TestRunner();
  * Multi-platform configuration:
  * ```typescript
  * configure({
- *   model: 'gpt-4o',
+ *   model: 'gpt-5-mini',
  *   platforms: {
  *     web: webPlatform({ headless: false }),
  *     api: apiPlatform({ baseUrl: 'https://api.example.com' }),
@@ -295,7 +325,7 @@ const defaultRunner = new TestRunner();
  * Parallel execution with debug mode:
  * ```typescript
  * configure({
- *   model: 'gpt-4o',
+ *   model: 'gpt-5-mini',
  *   platforms: { web: webPlatform() },
  *   parallel: true,
  *   maxWorkers: 4,
@@ -305,7 +335,7 @@ const defaultRunner = new TestRunner();
  * ```
  *
  * @param config - Test configuration options
- * @param config.model - AI model to use (default: 'gpt-4o')
+ * @param config.model - AI model to use (default: 'gpt-5-mini')
  * @param config.platforms - Platform configurations (web, api, mobile, desktop)
  * @param config.stepTimeout - Timeout per step in milliseconds (default: 30000)
  * @param config.retries - Number of retries for failed scenarios (default: 0)
@@ -319,18 +349,26 @@ export function configure(config: CopilotTestConfig): void {
 }
 
 export function test(
-  featureOrBuilder: Feature | { _build(): Feature },
+  feature: Feature,
   platform: string
 ): void {
-  defaultRunner.test(featureOrBuilder, platform);
+  defaultRunner.test(feature, platform);
 }
 
 export function testOnly(
-  featureOrBuilder: Feature | { _build(): Feature },
+  feature: Feature,
   platform: string,
   tags: string[]
 ): void {
-  defaultRunner.testOnly(featureOrBuilder, platform, tags);
+  defaultRunner.testOnly(feature, platform, tags);
+}
+
+export async function loadTest(filePath: string): Promise<void> {
+  return defaultRunner.loadTest(filePath);
+}
+
+export async function loadTests(dir: string): Promise<void> {
+  return defaultRunner.loadTests(dir);
 }
 
 function getMaxWorkers(config: CopilotTestConfig): number {

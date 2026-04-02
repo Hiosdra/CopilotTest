@@ -179,7 +179,7 @@ Reference fixture values in your Markdown step descriptions:
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web

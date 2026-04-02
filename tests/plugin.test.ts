@@ -1,4 +1,4 @@
-import { feature, definePlugin } from "../src/index.js";
+import { definePlugin } from "../src/index.js";
 import { webPlatform } from "../src/platforms/web.js";
 import { TestRunner } from "../src/runner.js";
 import type {
@@ -148,11 +148,17 @@ await test("plugins receive onTestRunStart hook", async () => {
     plugins: [testPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -178,11 +184,17 @@ await test("plugins receive onTestRunEnd hook", async () => {
     plugins: [endPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -209,11 +221,17 @@ await test("plugins receive onFeatureStart hook", async () => {
     plugins: [featurePlugin],
   });
 
-  const testFeature = feature("My Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "My Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -241,11 +259,17 @@ await test("plugins receive onFeatureEnd hook with results", async () => {
     plugins: [featureEndPlugin],
   });
 
-  const testFeature = feature("My Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "My Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -273,11 +297,17 @@ await test("plugins receive onScenarioStart hook", async () => {
     plugins: [scenarioPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("My Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "My Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -305,11 +335,17 @@ await test("plugins receive onScenarioEnd hook with results", async () => {
     plugins: [scenarioEndPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("My Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "My Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -339,13 +375,19 @@ await test("plugins receive onStepStart hook", async () => {
     plugins: [stepPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("first step")
-    .when("second step")
-    .then("third step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "first step" },
+        { keyword: "When", text: "second step" },
+        { keyword: "Then", text: "third step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -375,12 +417,18 @@ await test("plugins receive onStepEnd hook with results", async () => {
     plugins: [stepEndPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("first step")
-    .when("second step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "first step" },
+        { keyword: "When", text: "second step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -422,11 +470,17 @@ await test("multiple plugins all receive hooks", async () => {
     plugins: [plugin1, plugin2, plugin3],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -466,11 +520,17 @@ await test("plugin errors don't break test execution", async () => {
     plugins: [errorPlugin, normalPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -499,11 +559,17 @@ await test("plugins can use async hooks", async () => {
     plugins: [asyncPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("a test step")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "a test step" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 
@@ -534,13 +600,26 @@ await test("plugin can count test results", async () => {
     plugins: [counterPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Scenario 1")
-    .given("step 1")
-    .scenario("Scenario 2")
-    .given("step 2")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [
+      {
+        name: "Scenario 1",
+        tags: [],
+        steps: [
+          { keyword: "Given", text: "step 1" },
+        ],
+      },
+      {
+        name: "Scenario 2",
+        tags: [],
+        steps: [
+          { keyword: "Given", text: "step 2" },
+        ],
+      },
+    ],
+  };
 
   runner.test(testFeature, "web");
 
@@ -567,13 +646,19 @@ await test("plugin can collect step durations", async () => {
     plugins: [timingPlugin],
   });
 
-  const testFeature = feature("Test Feature")
-    .scenario("Test Scenario")
-    .given("step 1")
-    .when("step 2")
-    .then("step 3")
-    .done()
-    ._build();
+  const testFeature: Feature = {
+    name: "Test Feature",
+    tags: [],
+    scenarios: [{
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "step 1" },
+        { keyword: "When", text: "step 2" },
+        { keyword: "Then", text: "step 3" },
+      ],
+    }],
+  };
 
   runner.test(testFeature, "web");
 

@@ -1,0 +1,7 @@
+model: gpt-5-mini
+platforms:
+  api:
+    type: api
+    baseUrl: https://api.example.com
+stepTimeout: 15000
+outputDir: copilot-test-results/api-testing

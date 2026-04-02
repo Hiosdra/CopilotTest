@@ -1,0 +1,12 @@
+model: gpt-5-mini
+platforms:
+  web:
+    type: web
+    browser: chromium
+    headless: true
+baseUrl: https://demo.example-shop.com
+stepTimeout: 30000
+retry:
+  maxRetries: 1
+screenshotOnFailure: true
+outputDir: copilot-test-results/e-commerce

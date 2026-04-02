@@ -17,8 +17,8 @@ Usage: npm run test:watch <test-file>
 Start watch mode to continuously run tests on file changes.
 
 Example:
-  npm run test:watch tests/login.spec.ts
-  npm run test:watch tests/watch-example.spec.ts
+  npm run test:watch tests/login.feature.md
+  npm run test:watch tests/watch-example.feature.md
 
 The test file should:
   1. Call configure() to set up the test configuration

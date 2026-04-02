@@ -1,0 +1,32 @@
+model: gpt-5-mini
+reasoningEffort: high
+stepTimeout: 30000
+screenshotOnFailure: true
+outputDir: copilot-test-results
+
+platforms:
+  web:
+    platform: web
+    browser: chromium
+    headless: true
+    baseUrl: "${BASE_URL:-http://localhost:3000}"
+
+  api:
+    platform: api
+    baseUrl: "${API_URL:-http://localhost:3000/api}"
+    defaultHeaders:
+      Content-Type: application/json
+      Accept: application/json
+
+  mobile:
+    platform: mobile
+    device: emulator-5554
+    avd: Pixel_7_API_34
+
+mcpServers:
+  database:
+    type: stdio
+    command: npx
+    args: ["@copilot-test/postgres-mcp"]
+    env:
+      DATABASE_URL: "${DATABASE_URL:-postgresql://localhost:5432/testdb}"

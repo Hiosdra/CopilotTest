@@ -98,7 +98,7 @@ export class WatchMode {
    */
   private async setupFileWatchers(): Promise<void> {
     const watchConfig = this.config.watch || {};
-    const include = watchConfig.include || ["src/**/*.ts", "tests/**/*.ts", "**/*.spec.ts"];
+    const include = watchConfig.include || ["src/**/*.ts", "tests/**/*.feature.md", "**/*.feature.md"];
     const exclude = watchConfig.exclude || ["node_modules/**", "dist/**", "**/.*"];
 
     // Get the current working directory

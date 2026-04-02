@@ -1,9 +1,8 @@
 /**
  * Unit tests for CopilotTest core modules.
- * Validates DSL builder, runtime step-response parsing, and HTML report generation.
+ * Validates Feature object structure, runtime step-response parsing, and HTML report generation.
  */
 
-import { feature } from "../src/dsl.js";
 import { CopilotTestRuntime } from "../src/runtime.js";
 import { buildHtmlReport } from "../src/reporter.js";
 import { compareTestRuns } from "../src/compare.js";
@@ -56,26 +55,36 @@ function section(name: string): void {
   console.log(`\n📦 ${name}`);
 }
 
-// ── DSL Tests ───────────────────────────────────────────────
+// ── Feature Structure Tests ──────────────────────────────────
 
-section("DSL — feature/scenario/step builder");
+section("Feature — object structure");
 
-const feat: Feature = feature("User Authentication")
-  .description("Test login workflows")
-  .tag("@auth")
-  .scenario("Successful login")
-    .tag("@smoke")
-    .given("I am on the login page")
-    .when("I enter valid credentials")
-    .and("I click the Login button")
-    .then("I should see the dashboard")
-    .done()
-  .scenario("Failed login")
-    .given("I am on the login page")
-    .when("I enter invalid credentials")
-    .then("I should see an error message")
-    .done()
-  ._build();
+const feat: Feature = {
+  name: "User Authentication",
+  description: "Test login workflows",
+  tags: ["@auth"],
+  scenarios: [
+    {
+      name: "Successful login",
+      tags: ["@smoke"],
+      steps: [
+        { keyword: "Given", text: "I am on the login page" },
+        { keyword: "When", text: "I enter valid credentials" },
+        { keyword: "And", text: "I click the Login button" },
+        { keyword: "Then", text: "I should see the dashboard" },
+      ],
+    },
+    {
+      name: "Failed login",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I am on the login page" },
+        { keyword: "When", text: "I enter invalid credentials" },
+        { keyword: "Then", text: "I should see an error message" },
+      ],
+    },
+  ],
+};
 
 assertEqual(feat.name, "User Authentication", "feature name");
 assertEqual(feat.description, "Test login workflows", "feature description");
@@ -94,18 +103,27 @@ assertEqual(scenario1.steps[2].keyword, "And", "third step keyword is And");
 assertEqual(scenario2.name, "Failed login", "second scenario name");
 assertEqual(scenario2.steps.length, 3, "second scenario has 3 steps");
 
-// ── DSL — background steps ──────────────────────────────────
+// ── Feature — background steps ───────────────────────────────
 
-section("DSL — background steps");
+section("Feature — background steps");
 
-const featWithBg: Feature = feature("Dashboard")
-  .background()
-    .given("I am logged in as admin")
-    .and("I navigate to the dashboard")
-  .scenario("View widgets")
-    .then("I should see the widgets panel")
-    .done()
-  ._build();
+const featWithBg: Feature = {
+  name: "Dashboard",
+  tags: [],
+  background: [
+    { keyword: "Given", text: "I am logged in as admin" },
+    { keyword: "And", text: "I navigate to the dashboard" },
+  ],
+  scenarios: [
+    {
+      name: "View widgets",
+      tags: [],
+      steps: [
+        { keyword: "Then", text: "I should see the widgets panel" },
+      ],
+    },
+  ],
+};
 
 assert(featWithBg.background !== undefined, "feature has background");
 assertEqual(featWithBg.background!.length, 2, "background has 2 steps");
@@ -113,23 +131,37 @@ assertEqual(featWithBg.background![0].keyword, "Given", "background step keyword
 assertEqual(featWithBg.background![0].text, "I am logged in as admin", "background step text");
 assertEqual(featWithBg.scenarios.length, 1, "feature has 1 scenario");
 
-// ── DSL — table and docString ───────────────────────────────
+// ── Feature — table and docString ────────────────────────────
 
-section("DSL — table and docString attachments");
+section("Feature — table and docString attachments");
 
-const featWithTable: Feature = feature("Data entry")
-  .scenario("Fill form with table data")
-    .given("I have the following users")
-    .withTable([
-      ["name", "email"],
-      ["Alice", "alice@test.com"],
-      ["Bob", "bob@test.com"],
-    ])
-    .when("I submit the form")
-    .withDocString('{"action": "submit"}')
-    .then("all users are created")
-    .done()
-  ._build();
+const featWithTable: Feature = {
+  name: "Data entry",
+  tags: [],
+  scenarios: [
+    {
+      name: "Fill form with table data",
+      tags: [],
+      steps: [
+        {
+          keyword: "Given",
+          text: "I have the following users",
+          table: [
+            ["name", "email"],
+            ["Alice", "alice@test.com"],
+            ["Bob", "bob@test.com"],
+          ],
+        },
+        {
+          keyword: "When",
+          text: "I submit the form",
+          docString: '{"action": "submit"}',
+        },
+        { keyword: "Then", text: "all users are created" },
+      ],
+    },
+  ],
+};
 
 const tableStep = featWithTable.scenarios[0].steps[0];
 assert(tableStep.table !== undefined, "step has table");
@@ -140,38 +172,60 @@ const docStep = featWithTable.scenarios[0].steps[1];
 assert(docStep.docString !== undefined, "step has docString");
 assert(docStep.docString!.includes("submit"), "docString contains submit");
 
-// ── DSL — chaining multiple scenarios via .scenario() ───────
+// ── Feature — multiple scenarios ─────────────────────────────
 
-section("DSL — chaining scenarios via .scenario()");
+section("Feature — multiple scenarios");
 
-const chainedFeat: Feature = feature("Chaining")
-  .scenario("First")
-    .given("step one")
-  .scenario("Second")
-    .given("step two")
-    .done()
-  ._build();
+const chainedFeat: Feature = {
+  name: "Chaining",
+  tags: [],
+  scenarios: [
+    {
+      name: "First",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "step one" },
+      ],
+    },
+    {
+      name: "Second",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "step two" },
+      ],
+    },
+  ],
+};
 
 assertEqual(chainedFeat.scenarios.length, 2, "chained feature has 2 scenarios");
 assertEqual(chainedFeat.scenarios[0].name, "First", "first chained scenario name");
 assertEqual(chainedFeat.scenarios[1].name, "Second", "second chained scenario name");
 
-// ── DSL — scenario outline with examples ────────────
+// ── Feature — scenario outline with examples ────────────────
 
-section("DSL — scenario outline with examples");
+section("Feature — scenario outline with examples");
 
-const outlineFeat: Feature = feature("User Login")
-  .scenarioOutline("Login with different credentials")
-    .given("I am on the login page")
-    .when('I enter username "<username>" and password "<password>"')
-    .then('I should see "<message>"')
-    .examples([
-      { username: "admin", password: "admin123", message: "Welcome Admin" },
-      { username: "user", password: "wrong", message: "Invalid credentials" },
-      { username: "", password: "", message: "Please fill all fields" },
-    ])
-    .done()
-  ._build();
+const outlineFeat: Feature = {
+  name: "User Login",
+  tags: [],
+  scenarios: [
+    {
+      name: "Login with different credentials",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I am on the login page" },
+        { keyword: "When", text: "I enter username \"<username>\" and password \"<password>\"" },
+        { keyword: "Then", text: "I should see \"<message>\"" },
+      ],
+      examples: [
+        { username: "admin", password: "admin123", message: "Welcome Admin" },
+        { username: "user", password: "wrong", message: "Invalid credentials" },
+        { username: "", password: "", message: "Please fill all fields" },
+      ],
+      isOutline: true,
+    },
+  ],
+};
 
 assertEqual(outlineFeat.scenarios.length, 1, "outline feature has 1 scenario");
 const outline = outlineFeat.scenarios[0];
@@ -185,23 +239,37 @@ assertEqual(outline.steps.length, 3, "outline has 3 steps");
 assert(outline.steps[1].text.includes("<username>"), "step text contains placeholder");
 assert(outline.steps[1].text.includes("<password>"), "step text contains placeholder");
 
-// ── DSL — mixing scenario outline and regular scenario ─────
+// ── Feature — mixing scenario outline and regular scenario ──
 
-section("DSL — mixing scenario outline and regular scenario");
+section("Feature — mixing scenario outline and regular scenario");
 
-const mixedFeat: Feature = feature("Mixed")
-  .scenarioOutline("Parameterized test")
-    .given('I have "<count>" items')
-    .then('I should have <count> total')
-    .examples([
-      { count: "5" },
-      { count: "10" },
-    ])
-  .scenario("Regular test")
-    .given("I have a fixed value")
-    .then("I should see expected result")
-    .done()
-  ._build();
+const mixedFeat: Feature = {
+  name: "Mixed",
+  tags: [],
+  scenarios: [
+    {
+      name: "Parameterized test",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I have \"<count>\" items" },
+        { keyword: "Then", text: "I should have <count> total" },
+      ],
+      examples: [
+        { count: "5" },
+        { count: "10" },
+      ],
+      isOutline: true,
+    },
+    {
+      name: "Regular test",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I have a fixed value" },
+        { keyword: "Then", text: "I should see expected result" },
+      ],
+    },
+  ],
+};
 
 assertEqual(mixedFeat.scenarios.length, 2, "mixed feature has 2 scenarios");
 assertEqual(mixedFeat.scenarios[0].isOutline, true, "first scenario is outline");
@@ -209,38 +277,28 @@ assertEqual(mixedFeat.scenarios[1].isOutline, undefined, "second scenario is not
 assertEqual(mixedFeat.scenarios[0].examples!.length, 2, "outline has 2 examples");
 assertEqual(mixedFeat.scenarios[1].examples, undefined, "regular scenario has no examples");
 
-// ── DSL — scenario outline with tags ─────────────────
+// ── Feature — scenario outline with tags ─────────────────────
 
-section("DSL — scenario outline with tags");
+section("Feature — scenario outline with tags");
 
-const taggedOutline: Feature = feature("Tagged")
-  .scenarioOutline("Tagged outline")
-    .tag("@smoke", "@parameterized")
-    .given('I use value "<value>"')
-    .examples([{ value: "test" }])
-    .done()
-  ._build();
+const taggedOutline: Feature = {
+  name: "Tagged",
+  tags: [],
+  scenarios: [
+    {
+      name: "Tagged outline",
+      tags: ["@smoke", "@parameterized"],
+      steps: [
+        { keyword: "Given", text: "I use value \"<value>\"" },
+      ],
+      examples: [{ value: "test" }],
+      isOutline: true,
+    },
+  ],
+};
 
 assert(taggedOutline.scenarios[0].tags.includes("@smoke"), "outline has @smoke tag");
 assert(taggedOutline.scenarios[0].tags.includes("@parameterized"), "outline has @parameterized tag");
-
-// ── DSL — scenario outline validation ────────────────
-
-section("DSL — scenario outline validation");
-
-// Test that scenarioOutline without examples throws an error
-let validationError: Error | null = null;
-try {
-  feature("Validation Test")
-    .scenarioOutline("Outline without examples")
-      .given("some step")
-      .done()
-    ._build();
-} catch (err) {
-  validationError = err as Error;
-}
-assert(validationError !== null, "scenarioOutline without examples throws error");
-assert(validationError!.message.includes("must have at least one example"), "error message mentions examples requirement");
 
 // ── Runtime — expandScenarioOutlines ─────────────────
 
@@ -291,14 +349,23 @@ const edgeCaseRuntime = new CopilotTestRuntime({
 await edgeCaseRuntime.start();
 
 // Test regex metacharacters in parameter keys
-const regexMetaFeat = feature("Regex Meta")
-  .scenarioOutline("Test with regex metacharacters")
-    .given('I use "<key.with.dots>" and "<key(with)parens>"')
-    .examples([
-      { "key.with.dots": "value1", "key(with)parens": "value2" }
-    ])
-    .done()
-  ._build();
+const regexMetaFeat: Feature = {
+  name: "Regex Meta",
+  tags: [],
+  scenarios: [
+    {
+      name: "Test with regex metacharacters",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I use \"<key.with.dots>\" and \"<key(with)parens>\"" },
+      ],
+      examples: [
+        { "key.with.dots": "value1", "key(with)parens": "value2" },
+      ],
+      isOutline: true,
+    },
+  ],
+};
 
 const regexMetaResult = await edgeCaseRuntime.runFeature(regexMetaFeat, "web");
 assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value1"), "dots in key name handled");
@@ -306,15 +373,24 @@ assert(regexMetaResult.scenarios[0].steps[0].step.text.includes("value2"), "pare
 assert(!regexMetaResult.scenarios[0].steps[0].step.text.includes("<key.with.dots>"), "placeholder removed");
 
 // Test $ replacement patterns in parameter values
-const dollarFeat = feature("Dollar Signs")
-  .scenarioOutline("Test with $ in values")
-    .given('I use "<value>"')
-    .examples([
-      { value: "$1 costs $100" },
-      { value: "$$special$$" }
-    ])
-    .done()
-  ._build();
+const dollarFeat: Feature = {
+  name: "Dollar Signs",
+  tags: [],
+  scenarios: [
+    {
+      name: "Test with $ in values",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I use \"<value>\"" },
+      ],
+      examples: [
+        { value: "$1 costs $100" },
+        { value: "$$special$$" },
+      ],
+      isOutline: true,
+    },
+  ],
+};
 
 const dollarResult = await edgeCaseRuntime.runFeature(dollarFeat, "web");
 assert(dollarResult.scenarios[0].steps[0].step.text.includes("$1 costs $100"), "$ in value preserved");
@@ -592,14 +668,22 @@ assert(html.includes("50%"), "HTML report shows pass rate");
 
 section("Debug — scenario debug mode");
 
-const debugScenario: Feature = feature("Debug Test")
-  .scenario("With debug enabled")
-    .debug()
-    .given("I am on the homepage")
-    .when("I click the button")
-    .then("I should see a message")
-    .done()
-  ._build();
+const debugScenario: Feature = {
+  name: "Debug Test",
+  tags: [],
+  scenarios: [
+    {
+      name: "With debug enabled",
+      tags: [],
+      debugMode: true,
+      steps: [
+        { keyword: "Given", text: "I am on the homepage" },
+        { keyword: "When", text: "I click the button" },
+        { keyword: "Then", text: "I should see a message" },
+      ],
+    },
+  ],
+};
 
 assert(debugScenario.scenarios[0].debugMode === true, "scenario has debug mode enabled");
 assertEqual(debugScenario.scenarios[0].name, "With debug enabled", "debug scenario name");
@@ -1031,7 +1115,19 @@ defineStep(/^I check the context$/, async (context) => {
   receivedContext = context;
 });
 
-const testFeature = feature("Test Feature").scenario("Test Scenario").given("I check the context").done()._build();
+const testFeature: Feature = {
+  name: "Test Feature",
+  tags: [],
+  scenarios: [
+    {
+      name: "Test Scenario",
+      tags: [],
+      steps: [
+        { keyword: "Given", text: "I check the context" },
+      ],
+    },
+  ],
+};
 const testScenario = testFeature.scenarios[0];
 const testPlatform = webPlatform();
 

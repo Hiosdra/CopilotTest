@@ -61,7 +61,7 @@ Each test file includes its own configuration via YAML frontmatter. You can also
 
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web

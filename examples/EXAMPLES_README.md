@@ -224,7 +224,7 @@ Verify complete user experience:
 ### Basic Configuration
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web
@@ -237,7 +237,7 @@ outputDir: copilot-test-results
 ### With Retry Mechanism
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web
@@ -250,7 +250,7 @@ retry:
 ### With Parallel Execution
 ```yaml
 # copilot-test.config.yaml
-model: gpt-4o
+model: gpt-5-mini
 platforms:
   web:
     platform: web

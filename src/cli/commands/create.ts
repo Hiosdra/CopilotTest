@@ -2,51 +2,51 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { prompt } from "../utils/prompt.js";
 
-const TEST_TEMPLATES = {
-  web: `import { feature, test } from "copilot-test";
+const TEST_TEMPLATES: Record<string, string> = {
+  web: `---
+platform: web
+tags: [smoke]
+---
 
-test(
-  feature("<FEATURE_NAME>")
-    .tag("@web")
-    .scenario("<SCENARIO_NAME>")
-    .tag("@smoke")
-    .given("I am on the page")
-    .when("I perform an action")
-    .then("I should see the expected result")
-    .done()
-    ._build(),
-  "web"
-);
+# Feature: <FEATURE_NAME>
+
+<FEATURE_NAME> feature tests
+
+## Scenario: <SCENARIO_NAME>
+@smoke
+- Given I am on the page
+- When I perform an action
+- Then I should see the expected result
 `,
-  api: `import { feature, test } from "copilot-test";
+  api: `---
+platform: api
+tags: [api, smoke]
+---
 
-test(
-  feature("<FEATURE_NAME>")
-    .tag("@api")
-    .scenario("<SCENARIO_NAME>")
-    .tag("@smoke")
-    .given("I have the required data")
-    .when("I send a request to the API")
-    .then("I should receive the expected response")
-    .done()
-    ._build(),
-  "api"
-);
+# Feature: <FEATURE_NAME>
+
+<FEATURE_NAME> API tests
+
+## Scenario: <SCENARIO_NAME>
+@smoke
+- Given I have the required data
+- When I send a request to the API
+- Then I should receive the expected response
 `,
-  mobile: `import { feature, test } from "copilot-test";
+  mobile: `---
+platform: mobile
+tags: [mobile, smoke]
+---
 
-test(
-  feature("<FEATURE_NAME>")
-    .tag("@mobile")
-    .scenario("<SCENARIO_NAME>")
-    .tag("@smoke")
-    .given("I have the app open")
-    .when("I interact with the UI")
-    .then("I should see the expected behavior")
-    .done()
-    ._build(),
-  "mobile"
-);
+# Feature: <FEATURE_NAME>
+
+<FEATURE_NAME> mobile tests
+
+## Scenario: <SCENARIO_NAME>
+@smoke
+- Given I have the app open
+- When I interact with the UI
+- Then I should see the expected behavior
 `,
 };
 
@@ -73,11 +73,8 @@ export async function createCommand(args: string[]) {
   const featureName = await prompt("Feature name:", "My Feature");
   const scenarioName = await prompt("Scenario name:", "My Scenario");
 
-  // Detect project type
   const baseFileName = featureName.toLowerCase().replace(/\s+/g, "-");
-  const usesTypeScript = fs.existsSync("tsconfig.json");
-  const defaultExtension = usesTypeScript ? ".spec.ts" : ".spec.js";
-  const defaultFileName = `${baseFileName}${defaultExtension}`;
+  const defaultFileName = `${baseFileName}.feature.md`;
   const fileName = await prompt("File name:", defaultFileName);
 
   const filePath = path.join("tests", fileName);
@@ -99,7 +96,7 @@ export async function createCommand(args: string[]) {
 
   console.log(`\n✅ Created ${filePath}`);
   console.log("\nNext steps:");
-  console.log(`  1. Edit ${filePath} to add your test steps`);
+  console.log(`  1. Edit ${filePath} to add your test scenarios and steps`);
   console.log(`  2. Run: copilot-test run ${filePath}`);
 }
 

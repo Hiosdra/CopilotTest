@@ -213,7 +213,7 @@ Set and manage global CLI preferences.
 
 ```bash
 # Set configuration
-copilot-test config set model gpt-4o
+copilot-test config set model gpt-5-mini
 copilot-test config set headless true
 copilot-test config set parallel true
 
@@ -297,10 +297,12 @@ tags: [mobile, onboarding]
 
 ## Configuration Reference
 
+> 💡 **Cost tip:** `gpt-5-mini` is a 0x multiplier model — included in your GitHub Copilot plan at no extra cost. We recommend it as the default for all test execution. See the [Configuration Guide](./docs/guides/configuration.md#recommended-0x-multiplier-models) for details.
+
 All configuration lives in `copilot-test.config.yaml` at the project root:
 
 ```yaml
-model: gpt-4o                        # AI model to use
+model: gpt-5-mini                        # AI model to use
 reasoningEffort: high                 # low | medium | high
 stepTimeout: 30000                    # Timeout per step (ms)
 retries: 2                            # Retry failed scenarios
@@ -421,7 +423,7 @@ Run scenarios in parallel for significantly faster test execution:
 Parallel execution is configured in `copilot-test.config.yaml`:
 
 ```yaml
-model: gpt-4o
+model: gpt-5-mini
 parallel: true              # Enable parallel execution
 maxWorkers: 4               # Run 4 scenarios concurrently
 workerTimeout: 300000       # 5 minute timeout per worker

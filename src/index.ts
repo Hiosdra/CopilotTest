@@ -1,5 +1,7 @@
-export { feature } from "./dsl.js";
-export { configure, test, testOnly, run, TestRunner, getEnvironment, getConfig, getDefaultRunner } from "./runner.js";
+export { parseFeatureFile, parseFeatureMarkdown } from "./markdown-parser.js";
+export type { ParsedFeatureFile } from "./markdown-parser.js";
+export { loadConfig } from "./config-loader.js";
+export { configure, test, testOnly, run, loadTest, loadTests, TestRunner, getEnvironment, getConfig, getDefaultRunner } from "./runner.js";
 export { CopilotTestRuntime } from "./runtime.js";
 export { webPlatform } from "./platforms/web.js";
 export { apiPlatform } from "./platforms/api.js";
@@ -100,13 +102,7 @@ export type {
   Plugin,
 } from "./types.js";
 
-// Export builder types for advanced usage
-export type {
-  FeatureBuilder,
-  ScenarioBuilder,
-  ScenarioOutlineBuilder,
-  BackgroundBuilder,
-} from "./dsl.js";
+
 
 // Export debug types
 export type { DebugContext, DebugCommand, DebugAction } from "./debug.js";
