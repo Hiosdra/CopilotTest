@@ -44,7 +44,7 @@
   "dependencies": {
     "@github/copilot-sdk": "^0.1.32",
     "@playwright/mcp": "^0.0.68",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.2.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
